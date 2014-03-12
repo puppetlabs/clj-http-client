@@ -5,5 +5,5 @@ providing some extra functionality for configuring SSL in a way
 compatible with Puppet.
 
 Async versions of the http methods are exposed in
-puppetlabs.http.client, and synchronous versions are in
-puppetlabs.http.sync.
+puppetlabs.http.client.async, and synchronous versions are in
+puppetlabs.http.client.sync.

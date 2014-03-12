@@ -1,8 +1,8 @@
-(ns puppetlabs.http.client-test
+(ns puppetlabs.http.client.async-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :refer [resource]] 
             [puppetlabs.kitchensink.ssl :as ks-ssl]
-            [puppetlabs.http.client :as http])
+            [puppetlabs.http.client.async :as http])
   (:import [javax.net.ssl SSLEngine]))
 
 (deftest ssl-config-with-files

@@ -12,7 +12,7 @@
 ;; See the puppetlabs.http.sync namespace for synchronous versions of all
 ;; these methods.
 
-(ns puppetlabs.http.client
+(ns puppetlabs.http.client.async
   (:require [org.httpkit.client :as http]
             [puppetlabs.kitchensink.ssl :as ssl])
   (:refer-clojure :exclude (get)))

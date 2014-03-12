@@ -1,8 +1,8 @@
 ;; This namespace provides synchronous versions of the request functions
 ;; defined in puppetlabs.http.client
 
-(ns puppetlabs.http.sync
-  (:require [puppetlabs.http.client :as async])
+(ns puppetlabs.http.client.sync
+  (:require [puppetlabs.http.client.async :as async])
   (:refer-clojure :exclute (get)))
 
 (defn request
