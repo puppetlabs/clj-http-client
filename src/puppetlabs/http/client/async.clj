@@ -62,7 +62,7 @@
 (defn request
   [opts callback]
   (check-url! (:url opts))
-  (http/request (configure-ssl opts callback)))
+  (http/request (configure-ssl opts) callback))
 
 (defn- wrap-with-ssl-config
   [method]
