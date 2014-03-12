@@ -67,36 +67,42 @@
 (defn- wrap-with-ssl-config
   [method]
   (fn wrapped-fn
-    ([url] (wrapped-fn url nil {}))
-    ([url callback] (wrapped-fn url callback {}))
-    ([url callback opts]
+    ([url]
+     (wrapped-fn url {} nil))
+
+    ([url callback-or-opts]
+     (if (map? callback-or-opts)
+       (wrapped-fn url callback-or-opts nil)
+       (wrapped-fn url {} callback-or-opts)))
+
+    ([url opts callback]
      (check-url! url)
      (method url (configure-ssl opts) callback))))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} get
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} get
   "Issue an async HTTP GET request."
   (wrap-with-ssl-config http/get))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} head
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} head
   "Issue an async HTTP HEAD request."
   (wrap-with-ssl-config http/head))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} post
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} post
   "Issue an async HTTP POST request."
   (wrap-with-ssl-config http/post))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} put
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} put
   "Issue an async HTTP PUT request."
   (wrap-with-ssl-config http/put))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} delete
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} delete
   "Issue an async HTTP DELETE request."
   (wrap-with-ssl-config http/delete))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} options
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} options
   "Issue an async HTTP OPTIONS request."
   (wrap-with-ssl-config http/options))
 
-(def ^{:arglists '([url] [url callback] [url callback opts])} patch
+(def ^{:arglists '([url] [url callback-or-opts] [url opts callback])} patch
   "Issue an async HTTP PATCH request."
   (wrap-with-ssl-config http/patch))
