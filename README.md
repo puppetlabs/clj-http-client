@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/puppetlabs/clj-http-client.png?branch=master)](https://travis-ci.org/puppetlabs/clj-http-client)
+
 # puppetlabs/http-client
 
 This is a wrapper around the [http-kit](http://http-kit.org/) client
