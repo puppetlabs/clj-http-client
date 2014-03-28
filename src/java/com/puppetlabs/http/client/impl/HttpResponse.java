@@ -1,5 +1,7 @@
 package com.puppetlabs.http.client.impl;
 
+import com.puppetlabs.http.client.RequestOptions;
+
 import java.util.Map;
 
 public class HttpResponse {

@@ -1,5 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
+import com.puppetlabs.http.client.RequestOptions;
 import org.httpkit.HttpMethod;
 import org.httpkit.client.*;
 
@@ -53,11 +54,11 @@ public class JavaClient {
     }
 
     private static Map<String, Object> prepareHeaders(RequestOptions options) {
-        Map<String, Object> result;
+        Map<String, Object> result = new HashMap<String, Object>();
         if (options.getHeaders() != null) {
-            result = (Map<String, Object>) options.getHeaders().clone();
-        } else {
-            result = new HashMap<String, Object>();
+            for (Map.Entry<String, Object> entry : options.getHeaders().entrySet()) {
+                result.put(entry.getKey(), entry.getValue());
+            }
         }
 
         if (options.getFormParams() != null) {
@@ -94,7 +95,7 @@ public class JavaClient {
             sslEngine = SslContextFactory.trustAnybody();
         }
 
-        HttpMethod method = options.getMethod();
+        HttpMethod method = options.getMethod().getValue();
         if (method == null) {
             method = HttpMethod.GET;
         }

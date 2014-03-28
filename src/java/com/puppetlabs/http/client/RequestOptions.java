@@ -1,13 +1,14 @@
-package com.puppetlabs.http.client.impl;
+package com.puppetlabs.http.client;
 
-import org.httpkit.HttpMethod;
+import com.puppetlabs.http.client.impl.*;
 import org.httpkit.client.HttpClient;
+
 import org.httpkit.client.IFilter;
 import org.httpkit.client.MultipartEntity;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +18,8 @@ public class RequestOptions {
     private int timeout = 60000;
     private boolean followRedirects = true;
     private int maxRedirects = 10;
+    // TODO: we are technically leaking this http-kit class into our API,
+    // but since we're not using it anywhere I decided not to worry about it yet.
     private IFilter filter = IFilter.ACCEPT_ALL;
     private ExecutorService workerPool = DefaultWorkerPool.getInstance();
     private Promise<HttpResponse> promise = new Promise<HttpResponse>();
@@ -26,16 +29,23 @@ public class RequestOptions {
     private String url;
     private HttpMethod method = null;
     private List<String> traceRedirects = new ArrayList<String>();
-    private HashMap<String, Object> headers;
+    private Map<String, Object> headers;
     private Map<String, String> formParams;
     private BasicAuth basicAuth;
     private String oauthToken;
     private String userAgent;
     private Map<String, String> queryParams;
     private SSLEngine sslEngine;
+    private SSLContext sslContext;
+    private String sslCert;
+    private String sslKey;
+    private String sslCaCert;
     private boolean insecure = false;
     private Object body;
+    // TODO: we are technically leaking this http-kit class into our API,
+    // but since we're not using it anywhere I decided not to worry about it yet.
     private List<MultipartEntity> multipartEntities;
+
 
     public RequestOptions(String url) {
         this.url = url;
@@ -133,10 +143,10 @@ public class RequestOptions {
         return this;
     }
 
-    public HashMap<String, Object> getHeaders() {
+    public Map<String, Object> getHeaders() {
         return headers;
     }
-    public RequestOptions setHeaders(HashMap<String, Object> headers) {
+    public RequestOptions setHeaders(Map<String, Object> headers) {
         this.headers = headers;
         return this;
     }
@@ -189,6 +199,38 @@ public class RequestOptions {
         return this;
     }
 
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+    public RequestOptions setSslContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
+        return this;
+    }
+
+    public String getSslCert() {
+        return sslCert;
+    }
+    public RequestOptions setSslCert(String sslCert) {
+        this.sslCert = sslCert;
+        return this;
+    }
+
+    public String getSslKey() {
+        return sslKey;
+    }
+    public RequestOptions setSslKey(String sslKey) {
+        this.sslKey = sslKey;
+        return this;
+    }
+
+    public String getSslCaCert() {
+        return sslCaCert;
+    }
+    public RequestOptions setSslCaCert(String sslCaCert) {
+        this.sslCaCert = sslCaCert;
+        return this;
+    }
+
     public boolean getInsecure() {
         return insecure;
     }
@@ -212,4 +254,5 @@ public class RequestOptions {
         this.multipartEntities = entities;
         return this;
     }
+
 }
