@@ -8,9 +8,9 @@
 (deftest ssl-config-with-files
   (let [req {:url "http://localhost"
              :method :get
-             :ssl-cert (resource "resources/cert.pem")
-             :ssl-key (resource "resources/key.pem")
-             :ssl-ca-cert (resource "resources/ca.pem")}
+             :ssl-cert (resource "ssl/cert.pem")
+             :ssl-key (resource "ssl/key.pem")
+             :ssl-ca-cert (resource "ssl/ca.pem")}
         configured-req (http/configure-ssl req)]
 
     (testing "configure-ssl sets up an SSLEngine when given cert, key, ca-cert"
@@ -33,9 +33,9 @@
   (let [req {:url "http://localhost"
              :method :get
              :ssl-context (ks-ssl/pems->ssl-context
-                            (resource "resources/cert.pem")
-                            (resource "resources/key.pem")
-                            (resource "resources/ca.pem"))}
+                            (resource "ssl/cert.pem")
+                            (resource "ssl/key.pem")
+                            (resource "ssl/ca.pem"))}
         configured-req (http/configure-ssl req)]
 
     (testing "configure-ssl uses an existing ssl context"
@@ -44,9 +44,9 @@
 (deftest ssl-config-with-sslengine
   (let [req {:url "http://localhost"
              :method :get
-             :ssl-cert (resource "resources/cert.pem")
-             :ssl-key (resource "resources/key.pem")
-             :ssl-ca-cert (resource "resources/ca.pem")
+             :ssl-cert (resource "ssl/cert.pem")
+             :ssl-key (resource "ssl/key.pem")
+             :ssl-ca-cert (resource "ssl/ca.pem")
              :sslengine "thing"}
         configured-req (http/configure-ssl req)]
     (testing "configure-ssl does nothing when :sslengine is given"
