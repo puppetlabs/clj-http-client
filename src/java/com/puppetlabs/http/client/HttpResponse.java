@@ -1,15 +1,16 @@
-package com.puppetlabs.http.client.impl;
+package com.puppetlabs.http.client;
 
+import com.puppetlabs.http.client.HttpResponse;
 import com.puppetlabs.http.client.RequestOptions;
 
 import java.util.Map;
 
 public class HttpResponse {
-    private RequestOptions options = null;
-    private Throwable error = null;
-    private Object body = null;
-    private Map<String, Object> headers = null;
-    private Integer status = null;
+    private RequestOptions options;
+    private Throwable error;
+    private Object body;
+    private Map<String, Object> headers;
+    private Integer status;
 
     public HttpResponse(RequestOptions options, Throwable error) {
         this.options = options;

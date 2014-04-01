@@ -1,6 +1,6 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.HttpResponse;
+import com.puppetlabs.http.client.HttpResponse;
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.Promise;
 import com.puppetlabs.http.client.impl.SslUtils;

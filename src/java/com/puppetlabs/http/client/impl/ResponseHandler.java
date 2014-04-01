@@ -1,6 +1,7 @@
 package com.puppetlabs.http.client.impl;
 
 import com.puppetlabs.http.client.HttpMethod;
+import com.puppetlabs.http.client.HttpResponse;
 import com.puppetlabs.http.client.RequestOptions;
 import org.httpkit.HttpUtils;
 import org.httpkit.client.IResponseHandler;

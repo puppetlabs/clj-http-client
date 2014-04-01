@@ -1,4 +1,4 @@
-package com.puppetlabs.http.client.impl;
+package com.puppetlabs.http.client;
 
 public enum ResponseBodyType {
     AUTO(1),
