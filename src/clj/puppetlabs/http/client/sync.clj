@@ -3,7 +3,7 @@
 
 (ns puppetlabs.http.client.sync
   (:require [puppetlabs.http.client.async :as async])
-  (:refer-clojure :exclute (get)))
+  (:refer-clojure :exclude (get)))
 
 (defn request
   [req]
