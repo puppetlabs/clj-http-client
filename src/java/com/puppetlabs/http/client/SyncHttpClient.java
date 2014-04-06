@@ -1,9 +1,8 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.HttpResponse;
+import com.puppetlabs.certificate_authority.CertificateAuthority;
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.Promise;
-import com.puppetlabs.http.client.impl.SslUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +44,7 @@ public class SyncHttpClient {
                 (options.getSslCaCert() != null)) {
             try {
                 options.setSslContext(
-                        SslUtils.pemsToSSLContext(
+                        CertificateAuthority.pemsToSSLContext(
                                 new FileReader(options.getSslCert()),
                                 new FileReader(options.getSslKey()),
                                 new FileReader(options.getSslCaCert()))

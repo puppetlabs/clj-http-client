@@ -1,5 +1,5 @@
-(def ks-version "0.5.3")
-(def tk-version "0.3.8")
+(def ks-version "0.6.0")
+(def tk-version "0.3.10")
 
 (defproject puppetlabs/http-client "0.1.5-SNAPSHOT"
   :description "HTTP client wrapper"
@@ -8,7 +8,7 @@
 
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [http-kit "2.1.16"]
-                 [puppetlabs/kitchensink ~ks-version]
+                 [puppetlabs/certificate-authority "0.1.3"]
                  [org.clojure/tools.logging "0.2.6"]
                  [org.slf4j/slf4j-api "1.7.6"]]
 
@@ -18,7 +18,7 @@
   :profiles {:dev {:dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]
                                   [puppetlabs/trapperkeeper ~tk-version]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.3.5"]]}}
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.5.0"]]}}
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
