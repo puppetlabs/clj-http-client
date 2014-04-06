@@ -68,6 +68,27 @@ public class SyncHttpClient {
             return configureSslFromContext(options);
         }
 
+        if (options.getSslCaCert() != null) {
+            try {
+                options.setSslContext(
+                        CertificateAuthority.caCertPemToSSLContext(
+                                new FileReader(options.getSslCaCert()))
+                );
+            } catch (KeyStoreException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (CertificateException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (IOException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (NoSuchAlgorithmException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (KeyManagementException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            }
+            options.setSslCaCert(null);
+            return configureSslFromContext(options);
+        }
+
         return options;
     }
 

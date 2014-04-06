@@ -21,6 +21,18 @@
       (is (not (:ssl-key configured-req)))
       (is (not (:ssl-ca-cert configured-req))))))
 
+(deftest ssl-config-with-ca-file
+  (let [req {:url "http://localhost"
+             :method :get
+             :ssl-ca-cert (resource "ssl/ca.pem")}
+        configured-req (http/configure-ssl req)]
+
+    (testing "configure-ssl sets up an SSLEngine when given ca-cert"
+      (is (instance? SSLEngine (:sslengine configured-req))))
+
+    (testing "removes ssl-ca-cert"
+      (is (not (:ssl-ca-cert configured-req))))))
+
 (deftest ssl-config-without-ssl-params
   (let [req {:url "http://localhost"
              :method :get}
