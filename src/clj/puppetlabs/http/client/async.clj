@@ -14,7 +14,7 @@
 
 (ns puppetlabs.http.client.async
   (:require [org.httpkit.client :as http]
-            [puppetlabs.kitchensink.ssl :as ssl])
+            [puppetlabs.certificate-authority.core :as ssl])
   (:refer-clojure :exclude (get)))
 
 ;; SSL configuration functions

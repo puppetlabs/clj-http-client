@@ -1,7 +1,7 @@
 (ns puppetlabs.http.client.async-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :refer [resource]] 
-            [puppetlabs.kitchensink.ssl :as ks-ssl]
+            [puppetlabs.certificate-authority.core :as ssl]
             [puppetlabs.http.client.async :as http])
   (:import [javax.net.ssl SSLEngine]))
 
@@ -32,7 +32,7 @@
 (deftest ssl-config-with-context
   (let [req {:url "http://localhost"
              :method :get
-             :ssl-context (ks-ssl/pems->ssl-context
+             :ssl-context (ssl/pems->ssl-context
                             (resource "ssl/cert.pem")
                             (resource "ssl/key.pem")
                             (resource "ssl/ca.pem"))}
