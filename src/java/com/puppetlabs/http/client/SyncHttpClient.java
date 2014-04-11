@@ -20,7 +20,7 @@ public class SyncHttpClient {
 
     private static void logAndRethrow(String msg, Throwable t) {
         LOGGER.error(msg, t);
-        throw new RuntimeException(msg, t);
+        throw new HttpClientException(msg, t);
     }
 
     private static RequestOptions configureSslFromContext(RequestOptions options) {
