@@ -20,7 +20,7 @@ public class SyncHttpClient {
 
     private static void logAndRethrow(String msg, Throwable t) {
         LOGGER.error(msg, t);
-        throw new RuntimeException(msg, t);
+        throw new HttpClientException(msg, t);
     }
 
     private static RequestOptions configureSslFromContext(RequestOptions options) {
@@ -64,6 +64,27 @@ public class SyncHttpClient {
             }
             options.setSslCert(null);
             options.setSslKey(null);
+            options.setSslCaCert(null);
+            return configureSslFromContext(options);
+        }
+
+        if (options.getSslCaCert() != null) {
+            try {
+                options.setSslContext(
+                        CertificateAuthority.caCertPemToSSLContext(
+                                new FileReader(options.getSslCaCert()))
+                );
+            } catch (KeyStoreException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (CertificateException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (IOException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (NoSuchAlgorithmException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            } catch (KeyManagementException e) {
+                logAndRethrow("Error while configuring SSL", e);
+            }
             options.setSslCaCert(null);
             return configureSslFromContext(options);
         }

@@ -28,6 +28,13 @@
                           (:ssl-ca-cert req)))
     (dissoc :ssl-cert :ssl-key :ssl-ca-cert)))
 
+(defn- initialize-ssl-context-from-ca-pem
+  [req]
+  (-> req
+      (assoc :ssl-context (ssl/ca-cert-pem->ssl-context
+                            (:ssl-ca-cert req)))
+      (dissoc :ssl-ca-cert)))
+
 (defn- configure-ssl-from-context
   "Configures an SSLEngine in the request starting from an SSLContext"
   [req]
@@ -42,6 +49,13 @@
     initialize-ssl-context-from-pems
     configure-ssl-from-context))
 
+(defn- configure-ssl-from-ca-pem
+  "Configures an SSLEngine in the request starting from a CA PEM file"
+  [req]
+  (-> req
+      initialize-ssl-context-from-ca-pem
+      configure-ssl-from-context))
+
 (defn configure-ssl
   "Configures a request map to have an SSLEngine. It will use an existing one
   if already present, , then use an SSLContext (stored in :ssl-context) if
@@ -53,6 +67,7 @@
     (:sslengine req) req
     (:ssl-context req) (configure-ssl-from-context req)
     (every? (partial req) [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems req)
+    (:ssl-ca-cert req) (configure-ssl-from-ca-pem req)
     :else req))
 
 (defn- check-url! [url]

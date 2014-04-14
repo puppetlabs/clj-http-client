@@ -8,7 +8,7 @@
 
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [http-kit "2.1.16"]
-                 [puppetlabs/certificate-authority "0.1.3"]
+                 [puppetlabs/certificate-authority "0.1.4"]
                  [org.clojure/tools.logging "0.2.6"]
                  [org.slf4j/slf4j-api "1.7.6"]]
 
