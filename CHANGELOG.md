@@ -1,3 +1,6 @@
+## 0.1.7
+ * Explicitly target JDK6 when building release jars
+
 ## 0.1.6
  * Add support for configuring client SSL context with a CA cert without a client cert/key
 
