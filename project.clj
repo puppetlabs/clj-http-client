@@ -33,7 +33,7 @@
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "0.5.0"]]}
              :sources-jar {:java-source-paths ^:replace []
                            :jar-exclusions ^:replace []
-                           :source-paths ^:replace ["src/clojure" "src/java"]}}
+                           :source-paths ^:replace ["src/clj" "src/java"]}}
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username
