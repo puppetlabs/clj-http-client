@@ -1,7 +1,7 @@
 package com.puppetlabs.http.client.impl;
 
-import com.puppetlabs.http.client.HttpResponse;
+import com.puppetlabs.http.client.Response;
 
 public interface IResponseCallback {
-    HttpResponse handleResponse(HttpResponse response);
+    Response handleResponse(Response response);
 }

@@ -1,28 +1,25 @@
 package com.puppetlabs.http.client;
 
-// This is really dumb, but I didn't want to leak the HTTPKit class into the
-// API for now.
+import org.apache.http.client.methods.*;
 
 public enum HttpMethod {
-    GET(org.httpkit.HttpMethod.GET),
-    HEAD(org.httpkit.HttpMethod.HEAD),
-    POST(org.httpkit.HttpMethod.POST),
-    PUT(org.httpkit.HttpMethod.PUT),
-    DELETE(org.httpkit.HttpMethod.DELETE),
-    TRACE(org.httpkit.HttpMethod.TRACE),
-    OPTIONS(org.httpkit.HttpMethod.OPTIONS),
-    CONNECT(org.httpkit.HttpMethod.CONNECT),
-    PATCH(org.httpkit.HttpMethod.PATCH);
+    GET(HttpGet.class),
+    HEAD(HttpHead.class),
+    POST(HttpPost.class),
+    PUT(HttpPut.class),
+    DELETE(HttpDelete.class),
+    TRACE(HttpTrace.class),
+    OPTIONS(HttpOptions.class),
+    PATCH(HttpPatch.class);
 
+    private Class<? extends HttpRequestBase> httpMethod;
 
-    private org.httpkit.HttpMethod httpKitMethod;
-
-    HttpMethod(org.httpkit.HttpMethod httpKitMethod) {
-        this.httpKitMethod = httpKitMethod;
+    HttpMethod(Class<? extends HttpRequestBase> httpMethod) {
+        this.httpMethod = httpMethod;
     }
 
-    public org.httpkit.HttpMethod getValue() {
-        return this.httpKitMethod;
+    public Class<? extends HttpRequestBase> getValue() {
+        return this.httpMethod;
     }
 
 }
