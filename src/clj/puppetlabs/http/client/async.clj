@@ -68,17 +68,12 @@
   [opts :- schemas/SslOptions]
   (cond
     (:ssl-context opts) opts
-    (every? (partial opts) [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems opts)
+    (every? opts [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems opts)
     (:ssl-ca-cert opts) (configure-ssl-from-ca-pem opts)
     :else opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
-
-(defn- check-url!
-  [url]
-  (when (nil? url)
-    (throw (IllegalArgumentException. "Host URL cannot be nil"))))
 
 (defn- add-accept-encoding-header
   [decompress-body? headers]
@@ -277,7 +272,6 @@
    (request opts nil))
   ([opts :- schemas/RawUserRequestOptions
     callback :- schemas/ResponseCallbackFn]
-   (check-url! (:url opts))
    (let [defaults {:headers         {}
                    :body            nil
                    :decompress-body true

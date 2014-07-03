@@ -10,7 +10,8 @@
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.sync :as sync]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [clojure.java.io :as io]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -178,7 +179,7 @@
           (is (= 200 (.getStatus response)))
           (is (= "foo" (slurp (.getBody response))))))
       (testing "clojure sync client: string body for post request"
-        (let [response (sync/post "http://localhost:10000/hello/" {:body (ByteArrayInputStream. (.getBytes "foo" "UTF-8"))})]
+        (let [response (sync/post "http://localhost:10000/hello/" {:body (io/input-stream (.getBytes "foo" "UTF-8"))})]
           (is (= 200 (:status response)))
           (is (= "foo" (slurp (:body response)))))))))
 

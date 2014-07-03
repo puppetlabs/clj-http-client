@@ -9,11 +9,6 @@ import org.slf4j.LoggerFactory;
 public class AsyncHttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHttpClient.class);
 
-    private static void logAndRethrow(String msg, Throwable t) {
-        LOGGER.error(msg, t);
-        throw new HttpClientException(msg, t);
-    }
-
     public static Promise<Response> request(RequestOptions options) {
         options = SslUtils.configureSsl(options);
 
