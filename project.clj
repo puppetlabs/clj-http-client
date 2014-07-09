@@ -1,7 +1,7 @@
-(def ks-version "0.6.0")
-(def tk-version "0.3.10")
+(def ks-version "0.7.2")
+(def tk-version "0.4.2")
 
-(defproject puppetlabs/http-client "0.1.8-SNAPSHOT"
+(defproject puppetlabs/http-client "0.2.0-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
@@ -12,15 +12,18 @@
   :pedantic? :abort
 
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [http-kit "2.1.16"]
                  [puppetlabs/certificate-authority "0.1.5"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [org.slf4j/slf4j-api "1.7.6"]]
+                 [puppetlabs/kitchensink ~ks-version]
+                 [org.slf4j/slf4j-api "1.7.6"]
+                 [org.apache.httpcomponents/httpasyncclient "4.0.1"]
+                 [org.apache.httpcomponents/httpcore "4.3.2"]
+                 [commons-io "2.1"]
+                 [prismatic/schema "0.2.1"]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
   :jar-exclusions [#".*\.java$"]
-  :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
 
   ;; By declaring a classifier here and a corresponding profile below we'll get an additional jar
   ;; during `lein jar` that has all the source code (including the java source). Downstream projects can then
@@ -30,7 +33,9 @@
   :profiles {:dev {:dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]
                                   [puppetlabs/trapperkeeper ~tk-version]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.5.0"]]}
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.5.0"]
+                                  [spyscope "0.1.4"]]
+                   :injections [(require 'spyscope.core)]}
              :sources-jar {:java-source-paths ^:replace []
                            :jar-exclusions ^:replace []
                            :source-paths ^:replace ["src/clj" "src/java"]}}

@@ -42,6 +42,12 @@
   ([url] (delete url {}))
   ([url opts] (request (assoc opts :method :delete :url url))))
 
+(defn trace
+  "Issue a synchronous HTTP TRACE request. This will raise an exception if an
+  error is returned."
+  ([url] (trace url {}))
+  ([url opts] (request (assoc opts :method :trace :url url))))
+
 (defn options
   "Issue a synchronous HTTP OPTIONS request. This will raise an exception if an
   error is returned."

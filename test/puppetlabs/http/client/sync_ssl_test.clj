@@ -1,4 +1,4 @@
-(ns puppetlabs.http.client.sync-test
+(ns puppetlabs.http.client.sync-ssl-test
   (:import (com.puppetlabs.http.client SyncHttpClient RequestOptions
                                        HttpClientException)
            (javax.net.ssl SSLHandshakeException))
@@ -7,7 +7,10 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
-            [puppetlabs.http.client.sync :as sync]))
+            [puppetlabs.http.client.sync :as sync]
+            [schema.test :as schema-test]))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (defn app
   [req]
