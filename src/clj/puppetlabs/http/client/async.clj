@@ -32,6 +32,19 @@
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Async Client protocol
+
+(defprotocol async-client
+  (get [url] [url opts])
+  (head [url] [url opts])
+  (post [url] [url opts])
+  (put [url] [url opts])
+  (delete [url] [url opts])
+  (trace [url] [url opts])
+  (options [url] [url opts])
+  (patch [url] [url opts]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private SSL configuration functions
 
 (defn- initialize-ssl-context-from-pems
