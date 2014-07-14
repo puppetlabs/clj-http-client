@@ -43,7 +43,7 @@
     (testutils/with-app-with-config app
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
-      (testing "java sync client"
+      (testing "java async client"
         (let [options (RequestOptions. "http://localhost:10000/hello/")
               response (AsyncHttpClient/head options)]
           (is (= 200 (.getStatus (.deref response))))
