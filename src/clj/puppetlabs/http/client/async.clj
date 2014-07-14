@@ -35,14 +35,15 @@
 ;;; Async Client protocol
 
 (defprotocol async-client
-  (get [url] [url opts])
-  (head [url] [url opts])
-  (post [url] [url opts])
-  (put [url] [url opts])
-  (delete [url] [url opts])
-  (trace [url] [url opts])
-  (options [url] [url opts])
-  (patch [url] [url opts]))
+  (get [this url] [this url opts])
+  (head [this url] [this url opts])
+  (post [this url] [this url opts])
+  (put [this url] [this url opts])
+  (delete [this url] [this url opts])
+  (trace [this url] [this url opts])
+  (options [this url] [this url opts])
+  (patch [this url] [this url opts])
+  (close [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private SSL configuration functions
@@ -239,12 +240,18 @@
   [opts :- schemas/UserRequestOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
-(schema/defn create-client :- schemas/Client
-  [opts :- schemas/ClientOptions]
-  (let [opts    (configure-ssl opts)
-        client  (if (:ssl-context opts)
-                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
-                  (HttpAsyncClients/createDefault))]
+(schema/defn create-default-client :- schemas/Client
+  [opts :- schemas/RawUserRequestOptions]
+  (let [defaults        {:headers         {}
+                         :body            nil
+                         :decompress-body true
+                         :as              :stream}
+        opts            (merge defaults opts)
+        client-opts     (extract-client-opts opts)
+        configured-opts (configure-ssl client-opts)
+        client          (if (:ssl-context configured-opts)
+                          (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context configured-opts)) build)
+                          (HttpAsyncClients/createDefault))]
     (.start client)
     client))
 
@@ -285,13 +292,16 @@
    (request opts nil))
   ([opts :- schemas/RawUserRequestOptions
     callback :- schemas/ResponseCallbackFn]
+   (let [client (create-default-client opts)]
+     (request opts callback client)))
+  ([opts :- schemas/RawUserRequestOptions
+    callback :- schemas/ResponseCallbackFn
+    client :- schemas/Client]
    (let [defaults {:headers         {}
                    :body            nil
                    :decompress-body true
                    :as              :stream}
          opts (merge defaults opts)
-         client-opts (extract-client-opts opts)
-         client (create-client client-opts)
          {:keys [method url body] :as coerced-opts} (coerce-opts opts)
          request (construct-request method url)
          result (promise)]
@@ -301,6 +311,32 @@
      (.execute client request
                (future-callback client result opts callback))
      result)))
+
+(schema/defn create-client :- async-client
+  [opts :- schemas/ClientOptions]
+  (let [opts    (configure-ssl opts)
+        client  (if (:ssl-context opts)
+                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
+                  (HttpAsyncClients/createDefault))]
+    (.start client)
+    (reify async-client
+      (get [_ url] (get url {}))
+      (get [_ url opts] (request (assoc opts :method :get :url url) nil client))
+      (head [_ url] (head url {}))
+      (head [_ url opts] (request (assoc opts :method :head :url url) nil client))
+      (post [_ url] (post url {}))
+      (post [_ url opts] (request (assoc opts :method :post :url url) nil client))
+      (put [_ url] (put url {}))
+      (put [_ url opts] (request (assoc opts :method :put :url url) nil client))
+      (delete [_ url] (delete url {}))
+      (delete [_ url opts] (request (assoc opts :method :delete :url url) nil client))
+      (trace [_ url] (trace url {}))
+      (trace [_ url opts] (request (assoc opts :method :trace :url url) nil client))
+      (options [_ url] (options url {}))
+      (options [_ url opts] (request (assoc opts :method :options :url url) nil client))
+      (patch [_ url] (patch url {}))
+      (patch [_ url opts] (request (assoc opts :method :patch :url url) nil client))
+      (close [_] (.close client)))))
 
 (defn get
   "Issue an asynchronous HTTP GET request. This will raise an exception if an
