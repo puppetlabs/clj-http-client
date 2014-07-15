@@ -11,6 +11,7 @@
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.sync :as sync]
             [puppetlabs.http.client.persistent-sync :as p-sync]
+            [puppetlabs.http.client.common :as common]
             [schema.test :as schema-test]
             [clojure.java.io :as io]))
 
@@ -87,38 +88,38 @@
     {:webserver {:port 10000}}
     (let [client (p-sync/create-client {})]
       (testing "HEAD request with persistent sync client"
-        (let [response (p-sync/head client "http://localhost:10000/hello/")]
+        (let [response (common/head client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= nil (:body response)))))
       (testing "GET request with persistent sync client"
-        (let [response (p-sync/get client "http://localhost:10000/hello/")]
+        (let [response (common/get client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
       (testing "POST request with persistent sync client"
-        (let [response (p-sync/post client "http://localhost:10000/hello/")]
+        (let [response (common/post client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
       (testing "PUT request with persistent sync client"
-        (let [response (p-sync/put client "http://localhost:10000/hello/")]
+        (let [response (common/put client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
       (testing "DELETE request with persistent sync client"
-        (let [response (p-sync/delete client "http://localhost:10000/hello/")]
+        (let [response (common/delete client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
       (testing "TRACE request with persistent sync client"
-        (let [response (p-sync/trace client "http://localhost:10000/hello/")]
+        (let [response (common/trace client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
       (testing "OPTIONS request with persistent sync client"
-        (let [response (p-sync/options client "http://localhost:10000/hello/")]
+        (let [response (common/options client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
       (testing "PATCH request with persistent sync client"
-        (let [response (p-sync/patch client "http://localhost:10000/hello/")]
+        (let [response (common/patch client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
-      (p-sync/close client)))))
+      (common/close client)))))
 
 (deftest sync-client-as-test
   (testlogging/with-test-logging

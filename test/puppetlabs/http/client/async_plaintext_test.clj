@@ -5,6 +5,7 @@
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
+            [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.async :as async]
             [puppetlabs.http.client.persistent-async :as p-async]
             [schema.test :as schema-test]))
@@ -82,35 +83,35 @@
     {:webserver {:port 10000}}
     (let [client (p-async/create-client {})]
       (testing "HEAD request with persistent async client"
-        (let [response (p-async/head client "http://localhost:10000/hello/")]
+        (let [response (common/head client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= nil (:body @response)))))
       (testing "GET request with persistent async client"
-        (let [response (p-async/get client "http://localhost:10000/hello/")]
+        (let [response (common/get client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
       (testing "POST request with persistent async client"
-        (let [response (p-async/post client "http://localhost:10000/hello/")]
+        (let [response (common/post client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
       (testing "PUT request with persistent async client"
-        (let [response (p-async/put client "http://localhost:10000/hello/")]
+        (let [response (common/put client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
       (testing "DELETE request with persistent async client"
-        (let [response (p-async/delete client "http://localhost:10000/hello/")]
+        (let [response (common/delete client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
       (testing "TRACE request with persistent async client"
-        (let [response (p-async/trace client "http://localhost:10000/hello/")]
+        (let [response (common/trace client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
       (testing "OPTIONS request with persistent async client"
-        (let [response (p-async/options client "http://localhost:10000/hello/")]
+        (let [response (common/options client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
       (testing "PATCH request with persistent async client"
-        (let [response (p-async/patch client "http://localhost:10000/hello/")]
+        (let [response (common/patch client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
-      (.close client)))))
+      (common/close client)))))
