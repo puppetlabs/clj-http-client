@@ -73,3 +73,43 @@
 
 (deftest async-client-patch-test
   (basic-test "PATCH" #(AsyncHttpClient/patch %) async/patch))
+
+(deftest persistent-async-client-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-web-service]
+      {:webserver {:port 10000}}
+      (let [client (async/create-client {})]
+        (testing "HEAD request with persistent async client"
+          (let [response (async/persist-head client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= nil (:body @response)))))
+        (testing "GET request with persistent async client"
+          (let [response (async/persist-get client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "POST request with persistent async client"
+          (let [response (async/persist-post client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "PUT request with persistent async client"
+          (let [response (async/persist-put client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "DELETE request with persistent async client"
+          (let [response (async/persist-delete client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "TRACE request with persistent async client"
+          (let [response (async/persist-trace client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "OPTIONS request with persistent async client"
+          (let [response (async/persist-options client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "PATCH request with persistent async client"
+          (let [response (async/persist-patch client "http://localhost:10000/hello/")]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (.close client)))))
