@@ -32,20 +32,6 @@
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Async Client protocol
-
-(defprotocol async-client
-  (persist-get [this url] [this url opts])
-  (persist-head [this url] [this url opts])
-  (persist-post [this url] [this url opts])
-  (persist-put [this url] [this url opts])
-  (persist-delete [this url] [this url opts])
-  (persist-trace [this url] [this url opts])
-  (persist-options [this url] [this url opts])
-  (persist-patch [this url] [this url opts])
-  (close [this]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private SSL configuration functions
 
 (defn- initialize-ssl-context-from-pems
@@ -314,32 +300,6 @@
      (.execute client request
                (future-callback client result opts callback))
      result)))
-
-(schema/defn create-client :- async-client
-  [opts :- schemas/ClientOptions]
-  (let [opts    (configure-ssl opts)
-        client  (if (:ssl-context opts)
-                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
-                  (HttpAsyncClients/createDefault))]
-    (.start client)
-    (reify async-client
-      (persist-get [this url] (persist-get this url {}))
-      (persist-get [_ url opts] (request (assoc opts :method :get :url url) nil client))
-      (persist-head [this url] (persist-head this url {}))
-      (persist-head [_ url opts] (request (assoc opts :method :head :url url) nil client))
-      (persist-post [this url] (persist-post this url {}))
-      (persist-post [_ url opts] (request (assoc opts :method :post :url url) nil client))
-      (persist-put [this url] (persist-put this url {}))
-      (persist-put [_ url opts] (request (assoc opts :method :put :url url) nil client))
-      (persist-delete [this url] (persist-delete this url {}))
-      (persist-delete [_ url opts] (request (assoc opts :method :delete :url url) nil client))
-      (persist-trace [this url] (persist-trace this url {}))
-      (persist-trace [_ url opts] (request (assoc opts :method :trace :url url) nil client))
-      (persist-options [this url] (persist-options this url {}))
-      (persist-options [_ url opts] (request (assoc opts :method :options :url url) nil client))
-      (persist-patch [this url] (persist-patch this url {}))
-      (persist-patch [_ url opts] (request (assoc opts :method :patch :url url) nil client))
-      (close [_] (.close client)))))
 
 (defn get
   "Issue an asynchronous HTTP GET request. This will raise an exception if an
