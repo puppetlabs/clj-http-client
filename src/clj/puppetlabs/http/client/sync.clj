@@ -6,11 +6,16 @@
   (:refer-clojure :exclude (get)))
 
 (defn request
-  [req]
-  (let [{:keys [error] :as resp} @(async/request req nil)]
-    (if error
-      (throw error)
-      resp)))
+  ([req]
+   (let [{:keys [error] :as resp} @(async/request req nil)]
+     (if error
+       (throw error)
+       resp)))
+  ([req client]
+   (let [{:keys [error] :as resp} @(async/request req nil client)]
+     (if error
+       (throw error)
+       resp))))
 
 (defn get
   "Issue a synchronous HTTP GET request. This will raise an exception if an
