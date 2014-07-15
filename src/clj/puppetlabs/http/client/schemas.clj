@@ -33,6 +33,8 @@
    (ok :body)             Body
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
+   (schema/optional-key
+     :persistent)         schema/Bool
 
    (ok :ssl-context)      SSLContext
    (ok :ssl-cert)         UrlOrString
@@ -45,7 +47,9 @@
    :headers         Headers
    :body            Body
    :decompress-body schema/Bool
-   :as              BodyType})
+   :as              BodyType
+   (schema/optional-key
+     :persistent)   schema/Bool})
 
 (def SslContextOptions
   {:ssl-context SSLContext})

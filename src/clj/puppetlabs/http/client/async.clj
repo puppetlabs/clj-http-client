@@ -35,14 +35,14 @@
 ;;; Async Client protocol
 
 (defprotocol async-client
-  (get [this url] [this url opts])
-  (head [this url] [this url opts])
-  (post [this url] [this url opts])
-  (put [this url] [this url opts])
-  (delete [this url] [this url opts])
-  (trace [this url] [this url opts])
-  (options [this url] [this url opts])
-  (patch [this url] [this url opts])
+  (persist-get [this url] [this url opts])
+  (persist-head [this url] [this url opts])
+  (persist-post [this url] [this url opts])
+  (persist-put [this url] [this url opts])
+  (persist-delete [this url] [this url opts])
+  (persist-trace [this url] [this url opts])
+  (persist-options [this url] [this url opts])
+  (persist-patch [this url] [this url opts])
   (close [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -209,7 +209,8 @@
   (try
     (deliver result (callback-response opts callback response))
     (finally
-      (.close client))))
+      (if (not (:persistent opts))
+        (.close client)))))
 
 (schema/defn future-callback
   [client :- schemas/Client
@@ -292,7 +293,8 @@
    (request opts nil))
   ([opts :- schemas/RawUserRequestOptions
     callback :- schemas/ResponseCallbackFn]
-   (let [client (create-default-client opts)]
+   (let [client (create-default-client opts)
+         opts   (assoc opts :persistent false)]
      (request opts callback client)))
   ([opts :- schemas/RawUserRequestOptions
     callback :- schemas/ResponseCallbackFn
@@ -300,7 +302,8 @@
    (let [defaults {:headers         {}
                    :body            nil
                    :decompress-body true
-                   :as              :stream}
+                   :as              :stream
+                   :persistent      true}
          opts (merge defaults opts)
          {:keys [method url body] :as coerced-opts} (coerce-opts opts)
          request (construct-request method url)
@@ -320,22 +323,22 @@
                   (HttpAsyncClients/createDefault))]
     (.start client)
     (reify async-client
-      (get [_ url] (get url {}))
-      (get [_ url opts] (request (assoc opts :method :get :url url) nil client))
-      (head [_ url] (head url {}))
-      (head [_ url opts] (request (assoc opts :method :head :url url) nil client))
-      (post [_ url] (post url {}))
-      (post [_ url opts] (request (assoc opts :method :post :url url) nil client))
-      (put [_ url] (put url {}))
-      (put [_ url opts] (request (assoc opts :method :put :url url) nil client))
-      (delete [_ url] (delete url {}))
-      (delete [_ url opts] (request (assoc opts :method :delete :url url) nil client))
-      (trace [_ url] (trace url {}))
-      (trace [_ url opts] (request (assoc opts :method :trace :url url) nil client))
-      (options [_ url] (options url {}))
-      (options [_ url opts] (request (assoc opts :method :options :url url) nil client))
-      (patch [_ url] (patch url {}))
-      (patch [_ url opts] (request (assoc opts :method :patch :url url) nil client))
+      (persist-get [this url] (persist-get this url {}))
+      (persist-get [_ url opts] (request (assoc opts :method :get :url url) nil client))
+      (persist-head [this url] (persist-head this url {}))
+      (persist-head [_ url opts] (request (assoc opts :method :head :url url) nil client))
+      (persist-post [this url] (persist-post this url {}))
+      (persist-post [_ url opts] (request (assoc opts :method :post :url url) nil client))
+      (persist-put [this url] (persist-put this url {}))
+      (persist-put [_ url opts] (request (assoc opts :method :put :url url) nil client))
+      (persist-delete [this url] (persist-delete this url {}))
+      (persist-delete [_ url opts] (request (assoc opts :method :delete :url url) nil client))
+      (persist-trace [this url] (persist-trace this url {}))
+      (persist-trace [_ url opts] (request (assoc opts :method :trace :url url) nil client))
+      (persist-options [this url] (persist-options this url {}))
+      (persist-options [_ url opts] (request (assoc opts :method :options :url url) nil client))
+      (persist-patch [this url] (persist-patch this url {}))
+      (persist-patch [_ url opts] (request (assoc opts :method :patch :url url) nil client))
       (close [_] (.close client)))))
 
 (defn get
