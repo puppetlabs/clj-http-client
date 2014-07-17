@@ -3,7 +3,8 @@
                                        HttpClientException ResponseBodyType)
            (javax.net.ssl SSLHandshakeException)
            (java.io ByteArrayInputStream InputStream)
-           (java.nio.charset Charset))
+           (java.nio.charset Charset)
+           (org.apache.http.impl.nio.client HttpAsyncClients))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
@@ -160,6 +161,24 @@
           (is (= 200 (:status response)))
           (is (string? (:body response)))
           (is (= "Hello, World!" (:body response))))))))
+
+(deftest request-with-client-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-web-service]
+      {:webserver {:port 10000}}
+      (let [client (HttpAsyncClients/createDefault)
+            opts   {:method :get :url "http://localhost:10000/hello/"}]
+        (.start client)
+        (testing "GET request works with request-with-client"
+          (let [response (sync/request-with-client opts client)]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "Client persists when passed to request-with-client"
+          (let [response (sync/request-with-client opts client)]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (.close client)))))
 
 (defn header-app
   [req]

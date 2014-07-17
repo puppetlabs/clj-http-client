@@ -1,5 +1,6 @@
 (ns puppetlabs.http.client.async-plaintext-test
-  (:import (com.puppetlabs.http.client AsyncHttpClient RequestOptions))
+  (:import (com.puppetlabs.http.client AsyncHttpClient RequestOptions)
+           (org.apache.http.impl.nio.client HttpAsyncClients))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
@@ -116,3 +117,21 @@
       (testing "client closes properly"
         (common/close client)
         (is (thrown? IllegalStateException (common/get client "http://localhost:10000/hello/"))))))))
+
+(deftest request-with-client-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-web-service]
+      {:webserver {:port 10000}}
+      (let [client (HttpAsyncClients/createDefault)
+            opts   {:method :get :url "http://localhost:10000/hello/"}]
+        (.start client)
+        (testing "GET request works with request-with-client"
+          (let [response (async/request-with-client opts nil client)]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "Client persists when passed to request-with-client"
+          (let [response (async/request-with-client opts nil client)]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (slurp (:body @response))))))
+        (.close client)))))
