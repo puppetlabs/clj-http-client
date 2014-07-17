@@ -29,8 +29,7 @@
 
 (def UrlOrString (schema/either schema/Str URL))
 
-;; TODO: replace this with a protocol
-(def Client CloseableHttpAsyncClient)
+(def Client HTTPClient)
 
 (def Headers
   {schema/Str schema/Str})
@@ -42,6 +41,9 @@
   (schema/enum :text :stream))
 
 (def RawUserRequestOptions
+  "The list of Request options passed by a user into
+  the request function. Allows the user to configure
+  both a client and a request."
   {:url                   UrlOrString
    :method                schema/Keyword
    (ok :headers)          Headers
@@ -55,6 +57,10 @@
    (ok :ssl-ca-cert)      UrlOrString})
 
 (def RequestOptions
+  "The options from UserRequestOptions that have to do with the
+  configuration and settings for an individual request. This is
+  everything from UserRequestOptions not included in
+  ClientOptions."
   {:url             UrlOrString
    :method          schema/Keyword
    :headers         Headers
@@ -79,6 +85,8 @@
   (schema/either {} SslContextOptions SslCertOptions SslCaCertOptions))
 
 (def UserRequestOptions
+  "A cleaned-up version of RawUserRequestOptions, which is formed after
+  validating the RawUserRequestOptions and merging it with the defaults."
   (schema/either
     RequestOptions
     (merge RequestOptions SslContextOptions)
@@ -86,6 +94,9 @@
     (merge RequestOptions SslCertOptions)))
 
 (def ClientOptions
+  "The options from UserRequestOptions that are related to the
+   instantiation/management of a client. This is everything
+   from UserRequestOptions not included in RequestOptions."
   SslOptions)
 
 (def ResponseCallbackFn
