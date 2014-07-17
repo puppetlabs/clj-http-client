@@ -228,14 +228,8 @@
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
 (schema/defn create-default-client :- common/Client
-  [opts :- common/RawUserRequestOptions]
-  (let [defaults        {:headers         {}
-                         :body            nil
-                         :decompress-body true
-                         :as              :stream}
-        opts            (merge defaults opts)
-        client-opts     (extract-client-opts opts)
-        configured-opts (configure-ssl client-opts)
+  [opts :- common/ClientOptions]
+  (let [configured-opts (configure-ssl opts)
         client          (if (:ssl-context configured-opts)
                           (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context configured-opts)) build)
                           (HttpAsyncClients/createDefault))]
@@ -279,18 +273,18 @@
    (request opts nil))
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn]
-   (let [client (create-default-client opts)
-         opts   (assoc opts :persistent false)]
-     (request opts callback client)))
+   (request opts callback nil))
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
-    client :- common/Client]
-   (let [defaults {:headers         {}
+    client]
+   (let [persistent (not (nil? client))
+         defaults {:headers         {}
                    :body            nil
                    :decompress-body true
-                   :as              :stream
-                   :persistent      true}
-         opts (merge defaults opts)
+                   :as              :stream}
+         opts (assoc (merge defaults opts) :persistent persistent)
+         client-opts (extract-client-opts opts)
+         client (or client (create-default-client client-opts))
          {:keys [method url body] :as coerced-opts} (coerce-opts opts)
          request (construct-request method url)
          result (promise)]
