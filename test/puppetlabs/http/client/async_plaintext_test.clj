@@ -7,7 +7,6 @@
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.async :as async]
-            [puppetlabs.http.client.persistent-async :as p-async]
             [schema.test :as schema-test]))
 
 (use-fixtures :once schema-test/validate-schemas)
@@ -81,7 +80,7 @@
     (testutils/with-app-with-config app
     [jetty9/jetty9-service test-web-service]
     {:webserver {:port 10000}}
-    (let [client (p-async/create-client {})]
+    (let [client (async/create-client {})]
       (testing "HEAD request with persistent async client"
         (let [response (common/head client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))

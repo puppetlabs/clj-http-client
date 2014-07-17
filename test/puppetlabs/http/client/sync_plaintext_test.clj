@@ -10,7 +10,6 @@
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.sync :as sync]
-            [puppetlabs.http.client.persistent-sync :as p-sync]
             [puppetlabs.http.client.common :as common]
             [schema.test :as schema-test]
             [clojure.java.io :as io]))
@@ -86,7 +85,7 @@
     (testutils/with-app-with-config app
     [jetty9/jetty9-service test-web-service]
     {:webserver {:port 10000}}
-    (let [client (p-sync/create-client {})]
+    (let [client (sync/create-client {})]
       (testing "HEAD request with persistent sync client"
         (let [response (common/head client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
