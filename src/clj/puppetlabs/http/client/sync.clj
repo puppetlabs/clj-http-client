@@ -8,17 +8,26 @@
             [puppetlabs.http.client.common :as common])
   (:refer-clojure :exclude (get)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Private utility functions
+
+(defn request-with-client
+  [req client]
+  (let [{:keys [error] :as resp} @(async/request-with-client req nil client)]
+    (if error
+      (throw error)
+      resp)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
+
 (defn request
-  ([req]
-   (let [{:keys [error] :as resp} @(async/request req nil)]
-     (if error
-       (throw error)
-       resp)))
-  ([req client]
-   (let [{:keys [error] :as resp} @(async/request req nil client)]
-     (if error
-       (throw error)
-       resp))))
+  [req]
+  (let [{:keys [error] :as resp} @(async/request req nil)]
+    (if error
+      (throw error)
+      resp)))
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
@@ -29,21 +38,21 @@
     (.start client)
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
-      (get [_ url opts] (request (assoc opts :method :get :url url) client))
+      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) client))
       (head [this url] (common/head this url {}))
-      (head [_ url opts] (request (assoc opts :method :head :url url) client))
+      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) client))
       (post [this url] (common/post this url {}))
-      (post [_ url opts] (request (assoc opts :method :post :url url) client))
+      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) client))
       (put [this url] (common/put this url {}))
-      (put [_ url opts] (request (assoc opts :method :put :url url) client))
+      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) client))
       (delete [this url] (common/delete this url {}))
-      (delete [_ url opts] (request (assoc opts :method :delete :url url) client))
+      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) client))
       (trace [this url] (common/trace this url {}))
-      (trace [_ url opts] (request (assoc opts :method :trace :url url) client))
+      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) client))
       (options [this url] (common/options this url {}))
-      (options [_ url opts] (request (assoc opts :method :options :url url) client))
+      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) client))
       (patch [this url] (common/patch this url {}))
-      (patch [_ url opts] (request (assoc opts :method :patch :url url) client))
+      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) client))
       (close [_] (.close client)))))
 
 (defn get

@@ -113,4 +113,6 @@
         (let [response (common/patch client "http://localhost:10000/hello/")]
           (is (= 200 (:status @response)))
           (is (= "Hello, World!" (slurp (:body @response))))))
-      (common/close client)))))
+      (testing "client closes properly"
+        (common/close client)
+        (is (thrown? IllegalStateException (common/get client "http://localhost:10000/hello/"))))))))

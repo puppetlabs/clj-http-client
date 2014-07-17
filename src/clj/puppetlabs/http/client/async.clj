@@ -236,6 +236,28 @@
     (.start client)
     client))
 
+(schema/defn ^:always-validate request-with-client :- common/ResponsePromise
+  [opts :- common/RawUserRequestOptions
+   callback :- common/ResponseCallbackFn
+   client]
+  (let [persistent (not (nil? client))
+        defaults {:headers         {}
+                  :body            nil
+                  :decompress-body true
+                  :as              :stream}
+        opts (assoc (merge defaults opts) :persistent persistent)
+        client-opts (extract-client-opts opts)
+        client (or client (create-default-client client-opts))
+        {:keys [method url body] :as coerced-opts} (coerce-opts opts)
+        request (construct-request method url)
+        result (promise)]
+    (.setHeaders request (:headers coerced-opts))
+    (when body
+      (.setEntity request body))
+    (.execute client request
+              (future-callback client result opts callback))
+    result))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -273,27 +295,7 @@
    (request opts nil))
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn]
-   (request opts callback nil))
-  ([opts :- common/RawUserRequestOptions
-    callback :- common/ResponseCallbackFn
-    client]
-   (let [persistent (not (nil? client))
-         defaults {:headers         {}
-                   :body            nil
-                   :decompress-body true
-                   :as              :stream}
-         opts (assoc (merge defaults opts) :persistent persistent)
-         client-opts (extract-client-opts opts)
-         client (or client (create-default-client client-opts))
-         {:keys [method url body] :as coerced-opts} (coerce-opts opts)
-         request (construct-request method url)
-         result (promise)]
-     (.setHeaders request (:headers coerced-opts))
-     (when body
-       (.setEntity request body))
-     (.execute client request
-               (future-callback client result opts callback))
-     result)))
+   (request-with-client opts callback nil)))
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
@@ -304,21 +306,21 @@
     (.start client)
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
-      (get [_ url opts] (request (assoc opts :method :get :url url) nil client))
+      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) nil client))
       (head [this url] (common/head this url {}))
-      (head [_ url opts] (request (assoc opts :method :head :url url) nil client))
+      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) nil client))
       (post [this url] (common/post this url {}))
-      (post [_ url opts] (request (assoc opts :method :post :url url) nil client))
+      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) nil client))
       (put [this url] (common/put this url {}))
-      (put [_ url opts] (request (assoc opts :method :put :url url) nil client))
+      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) nil client))
       (delete [this url] (common/delete this url {}))
-      (delete [_ url opts] (request (assoc opts :method :delete :url url) nil client))
+      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) nil client))
       (trace [this url] (common/trace this url {}))
-      (trace [_ url opts] (request (assoc opts :method :trace :url url) nil client))
+      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) nil client))
       (options [this url] (common/options this url {}))
-      (options [_ url opts] (request (assoc opts :method :options :url url) nil client))
+      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) nil client))
       (patch [this url] (common/patch this url {}))
-      (patch [_ url opts] (request (assoc opts :method :patch :url url) nil client))
+      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) nil client))
       (close [_] (.close client)))))
 
 (defn get
