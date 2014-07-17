@@ -26,7 +26,7 @@
   (:require [puppetlabs.certificate-authority.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.http.client.schemas :as schemas]
+            [puppetlabs.http.client.common :as common]
             [schema.core :as schema]
             [clojure.tools.logging :as log])
   (:refer-clojure :exclude (get)))
@@ -60,12 +60,12 @@
   [req]
   (initialize-ssl-context-from-ca-pem req))
 
-(schema/defn configure-ssl :- (schema/either {} schemas/SslContextOptions)
+(schema/defn configure-ssl :- (schema/either {} common/SslContextOptions)
   "Configures a request map to have an SSLContext. It will use an existing one
   (stored in :ssl-context) if already present, and will fall back to a set of
   PEM files (stored in :ssl-cert, :ssl-key, and :ssl-ca-cert) if those are present.
   If none of these are present this does not modify the request map."
-  [opts :- schemas/SslOptions]
+  [opts :- common/SslOptions]
   (cond
     (:ssl-context opts) opts
     (every? opts [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems opts)
@@ -169,16 +169,16 @@
      :body                  (when-let [entity (.getEntity http-response)]
                               (.getContent entity))}))
 
-(schema/defn error-response :- schemas/ErrorResponse
-  [opts :- schemas/UserRequestOptions
+(schema/defn error-response :- common/ErrorResponse
+  [opts :- common/UserRequestOptions
    e :- Exception]
   {:opts opts
    :error e})
 
-(schema/defn callback-response :- schemas/Response
-  [opts :- schemas/UserRequestOptions
-   callback :- schemas/ResponseCallbackFn
-   response :- schemas/Response]
+(schema/defn callback-response :- common/Response
+  [opts :- common/UserRequestOptions
+   callback :- common/ResponseCallbackFn
+   response :- common/Response]
   (if callback
     (try
       (callback response)
@@ -187,11 +187,11 @@
     response))
 
 (schema/defn deliver-result
-  [client :- schemas/Client
-   result :- schemas/ResponsePromise
-   opts :- schemas/UserRequestOptions
-   callback :- schemas/ResponseCallbackFn
-   response :- schemas/Response]
+  [client :- common/Client
+   result :- common/ResponsePromise
+   opts :- common/UserRequestOptions
+   callback :- common/ResponseCallbackFn
+   response :- common/Response]
   (try
     (deliver result (callback-response opts callback response))
     (finally
@@ -199,10 +199,10 @@
         (.close client)))))
 
 (schema/defn future-callback
-  [client :- schemas/Client
-   result :- schemas/ResponsePromise
-   opts :- schemas/UserRequestOptions
-   callback :- schemas/ResponseCallbackFn]
+  [client :- common/Client
+   result :- common/ResponsePromise
+   opts :- common/UserRequestOptions
+   callback :- common/ResponseCallbackFn]
   (reify FutureCallback
     (completed [this http-response]
       (try
@@ -223,12 +223,12 @@
                         opts
                         (HttpClientException. "Request cancelled"))))))
 
-(schema/defn extract-client-opts :- schemas/ClientOptions
-  [opts :- schemas/UserRequestOptions]
+(schema/defn extract-client-opts :- common/ClientOptions
+  [opts :- common/UserRequestOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
-(schema/defn create-default-client :- schemas/Client
-  [opts :- schemas/RawUserRequestOptions]
+(schema/defn create-default-client :- common/Client
+  [opts :- common/RawUserRequestOptions]
   (let [defaults        {:headers         {}
                          :body            nil
                          :decompress-body true
@@ -245,7 +245,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate request :- schemas/ResponsePromise
+(schema/defn ^:always-validate request :- common/ResponsePromise
   "Issues an async HTTP request and returns a promise object to which the value
   of `(callback {:opts _ :status _ :headers _ :body _})` or
      `(callback {:opts _ :error _})` will be delivered.
@@ -275,16 +275,16 @@
   * :ssl-cert - path to a PEM file containing the client cert
   * :ssl-key - path to a PEM file containing the client private key
   * :ssl-ca-cert - path to a PEM file containing the CA cert"
-  ([opts :- schemas/RawUserRequestOptions]
+  ([opts :- common/RawUserRequestOptions]
    (request opts nil))
-  ([opts :- schemas/RawUserRequestOptions
-    callback :- schemas/ResponseCallbackFn]
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn]
    (let [client (create-default-client opts)
          opts   (assoc opts :persistent false)]
      (request opts callback client)))
-  ([opts :- schemas/RawUserRequestOptions
-    callback :- schemas/ResponseCallbackFn
-    client :- schemas/Client]
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn
+    client :- common/Client]
    (let [defaults {:headers         {}
                    :body            nil
                    :decompress-body true

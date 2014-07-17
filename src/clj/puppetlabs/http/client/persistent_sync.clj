@@ -2,7 +2,7 @@
   (:import (org.apache.http.impl.nio.client HttpAsyncClients))
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common]
-            [puppetlabs.http.client.schemas :as schemas]
+            [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.sync :refer [request]]
             [puppetlabs.http.client.async :refer [configure-ssl]])
   (:refer-clojure :exclude (get)))
@@ -11,7 +11,7 @@
 ;;; Public
 
 (schema/defn create-client :- common/HTTPClient
-  [opts :- schemas/ClientOptions]
+  [opts :- common/ClientOptions]
   (let [opts    (configure-ssl opts)
         client  (if (:ssl-context opts)
                   (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
