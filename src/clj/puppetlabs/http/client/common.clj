@@ -29,7 +29,8 @@
 
 (def UrlOrString (schema/either schema/Str URL))
 
-(def Client HTTPClient)
+-;; TODO: replace this with a protocol
+-(def Client CloseableHttpAsyncClient)
 
 (def Headers
   {schema/Str schema/Str})
