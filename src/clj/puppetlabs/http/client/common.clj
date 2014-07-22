@@ -68,8 +68,7 @@
    :body            Body
    :decompress-body schema/Bool
    :as              BodyType
-   (schema/optional-key
-     :persistent)   schema/Bool})
+   (ok :persistent) schema/Bool})
 
 (def SslContextOptions
   {:ssl-context SSLContext})
