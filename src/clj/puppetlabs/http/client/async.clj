@@ -26,7 +26,7 @@
   (:require [puppetlabs.certificate-authority.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.http.client.schemas :as schemas]
+            [puppetlabs.http.client.common :as common]
             [schema.core :as schema]
             [clojure.tools.logging :as log])
   (:refer-clojure :exclude (get)))
@@ -60,12 +60,12 @@
   [req]
   (initialize-ssl-context-from-ca-pem req))
 
-(schema/defn configure-ssl :- (schema/either {} schemas/SslContextOptions)
+(schema/defn configure-ssl :- (schema/either {} common/SslContextOptions)
   "Configures a request map to have an SSLContext. It will use an existing one
   (stored in :ssl-context) if already present, and will fall back to a set of
   PEM files (stored in :ssl-cert, :ssl-key, and :ssl-ca-cert) if those are present.
   If none of these are present this does not modify the request map."
-  [opts :- schemas/SslOptions]
+  [opts :- common/SslOptions]
   (cond
     (:ssl-context opts) opts
     (every? opts [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems opts)
@@ -169,16 +169,16 @@
      :body                  (when-let [entity (.getEntity http-response)]
                               (.getContent entity))}))
 
-(schema/defn error-response :- schemas/ErrorResponse
-  [opts :- schemas/UserRequestOptions
+(schema/defn error-response :- common/ErrorResponse
+  [opts :- common/UserRequestOptions
    e :- Exception]
   {:opts opts
    :error e})
 
-(schema/defn callback-response :- schemas/Response
-  [opts :- schemas/UserRequestOptions
-   callback :- schemas/ResponseCallbackFn
-   response :- schemas/Response]
+(schema/defn callback-response :- common/Response
+  [opts :- common/UserRequestOptions
+   callback :- common/ResponseCallbackFn
+   response :- common/Response]
   (if callback
     (try
       (callback response)
@@ -187,21 +187,22 @@
     response))
 
 (schema/defn deliver-result
-  [client :- schemas/Client
-   result :- schemas/ResponsePromise
-   opts :- schemas/UserRequestOptions
-   callback :- schemas/ResponseCallbackFn
-   response :- schemas/Response]
+  [client :- common/Client
+   result :- common/ResponsePromise
+   opts :- common/UserRequestOptions
+   callback :- common/ResponseCallbackFn
+   response :- common/Response]
   (try
     (deliver result (callback-response opts callback response))
     (finally
-      (.close client))))
+      (if (not (:persistent opts))
+        (.close client)))))
 
 (schema/defn future-callback
-  [client :- schemas/Client
-   result :- schemas/ResponsePromise
-   opts :- schemas/UserRequestOptions
-   callback :- schemas/ResponseCallbackFn]
+  [client :- common/Client
+   result :- common/ResponsePromise
+   opts :- common/RequestOptions
+   callback :- common/ResponseCallbackFn]
   (reify FutureCallback
     (completed [this http-response]
       (try
@@ -222,23 +223,50 @@
                         opts
                         (HttpClientException. "Request cancelled"))))))
 
-(schema/defn extract-client-opts :- schemas/ClientOptions
-  [opts :- schemas/UserRequestOptions]
+(schema/defn extract-client-opts :- common/ClientOptions
+  [opts :- common/UserRequestOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
-(schema/defn create-client :- schemas/Client
-  [opts :- schemas/ClientOptions]
-  (let [opts    (configure-ssl opts)
-        client  (if (:ssl-context opts)
-                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
-                  (HttpAsyncClients/createDefault))]
+(schema/defn extract-request-opts :- common/RequestOptions
+  [opts :- common/UserRequestOptions]
+  (select-keys opts [:url :method :headers :body :decompress-body :as :persistent]))
+
+(schema/defn create-default-client :- common/Client
+  [opts :- common/ClientOptions]
+  (let [configured-opts (configure-ssl opts)
+        client          (if (:ssl-context configured-opts)
+                          (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context configured-opts)) build)
+                          (HttpAsyncClients/createDefault))]
     (.start client)
     client))
+
+(schema/defn ^:always-validate request-with-client :- common/ResponsePromise
+  [opts :- common/RawUserRequestOptions
+   callback :- common/ResponseCallbackFn
+   client]
+  (let [persistent (not (nil? client))
+        defaults {:headers         {}
+                  :body            nil
+                  :decompress-body true
+                  :as              :stream}
+        opts (assoc (merge defaults opts) :persistent persistent)
+        client-opts (extract-client-opts opts)
+        request-opts (extract-request-opts opts)
+        client (or client (create-default-client client-opts))
+        {:keys [method url body] :as coerced-opts} (coerce-opts opts)
+        request (construct-request method url)
+        result (promise)]
+    (.setHeaders request (:headers coerced-opts))
+    (when body
+      (.setEntity request body))
+    (.execute client request
+              (future-callback client result request-opts callback))
+    result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate request :- schemas/ResponsePromise
+(schema/defn ^:always-validate request :- common/ResponsePromise
   "Issues an async HTTP request and returns a promise object to which the value
   of `(callback {:opts _ :status _ :headers _ :body _})` or
      `(callback {:opts _ :error _})` will be delivered.
@@ -268,26 +296,37 @@
   * :ssl-cert - path to a PEM file containing the client cert
   * :ssl-key - path to a PEM file containing the client private key
   * :ssl-ca-cert - path to a PEM file containing the CA cert"
-  ([opts :- schemas/RawUserRequestOptions]
+  ([opts :- common/RawUserRequestOptions]
    (request opts nil))
-  ([opts :- schemas/RawUserRequestOptions
-    callback :- schemas/ResponseCallbackFn]
-   (let [defaults {:headers         {}
-                   :body            nil
-                   :decompress-body true
-                   :as              :stream}
-         opts (merge defaults opts)
-         client-opts (extract-client-opts opts)
-         client (create-client client-opts)
-         {:keys [method url body] :as coerced-opts} (coerce-opts opts)
-         request (construct-request method url)
-         result (promise)]
-     (.setHeaders request (:headers coerced-opts))
-     (when body
-       (.setEntity request body))
-     (.execute client request
-               (future-callback client result opts callback))
-     result)))
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn]
+   (request-with-client opts callback nil)))
+
+(schema/defn create-client :- common/HTTPClient
+  [opts :- common/ClientOptions]
+  (let [opts    (configure-ssl opts)
+        client  (if (:ssl-context opts)
+                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
+                  (HttpAsyncClients/createDefault))]
+    (.start client)
+    (reify common/HTTPClient
+      (get [this url] (common/get this url {}))
+      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) nil client))
+      (head [this url] (common/head this url {}))
+      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) nil client))
+      (post [this url] (common/post this url {}))
+      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) nil client))
+      (put [this url] (common/put this url {}))
+      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) nil client))
+      (delete [this url] (common/delete this url {}))
+      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) nil client))
+      (trace [this url] (common/trace this url {}))
+      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) nil client))
+      (options [this url] (common/options this url {}))
+      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) nil client))
+      (patch [this url] (common/patch this url {}))
+      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) nil client))
+      (close [_] (.close client)))))
 
 (defn get
   "Issue an asynchronous HTTP GET request. This will raise an exception if an

@@ -3,13 +3,15 @@
                                        HttpClientException ResponseBodyType)
            (javax.net.ssl SSLHandshakeException)
            (java.io ByteArrayInputStream InputStream)
-           (java.nio.charset Charset))
+           (java.nio.charset Charset)
+           (org.apache.http.impl.nio.client HttpAsyncClients))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.sync :as sync]
+            [puppetlabs.http.client.common :as common]
             [schema.test :as schema-test]
             [clojure.java.io :as io]))
 
@@ -79,6 +81,48 @@
 (deftest sync-client-patch-test
   (basic-test "PATCH" #(SyncHttpClient/patch %) sync/patch))
 
+(deftest sync-client-persistent-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+    [jetty9/jetty9-service test-web-service]
+    {:webserver {:port 10000}}
+    (let [client (sync/create-client {})]
+      (testing "HEAD request with persistent sync client"
+        (let [response (common/head client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= nil (:body response)))))
+      (testing "GET request with persistent sync client"
+        (let [response (common/get client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (testing "POST request with persistent sync client"
+        (let [response (common/post client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (testing "PUT request with persistent sync client"
+        (let [response (common/put client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (testing "DELETE request with persistent sync client"
+        (let [response (common/delete client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (testing "TRACE request with persistent sync client"
+        (let [response (common/trace client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (testing "OPTIONS request with persistent sync client"
+        (let [response (common/options client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (testing "PATCH request with persistent sync client"
+        (let [response (common/patch client "http://localhost:10000/hello/")]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (slurp (:body response))))))
+      (common/close client)
+      (is (thrown? IllegalStateException
+                   (common/get client "http://localhost:10000/hello")))))))
+
 (deftest sync-client-as-test
   (testlogging/with-test-logging
     (testutils/with-app-with-config app
@@ -119,6 +163,24 @@
           (is (= 200 (:status response)))
           (is (string? (:body response)))
           (is (= "Hello, World!" (:body response))))))))
+
+(deftest request-with-client-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-web-service]
+      {:webserver {:port 10000}}
+      (let [client (HttpAsyncClients/createDefault)
+            opts   {:method :get :url "http://localhost:10000/hello/"}]
+        (.start client)
+        (testing "GET request works with request-with-client"
+          (let [response (sync/request-with-client opts client)]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "Client persists when passed to request-with-client"
+          (let [response (sync/request-with-client opts client)]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (.close client)))))
 
 (defn header-app
   [req]

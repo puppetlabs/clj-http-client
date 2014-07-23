@@ -2,8 +2,25 @@
 ;; defined in puppetlabs.http.client
 
 (ns puppetlabs.http.client.sync
-  (:require [puppetlabs.http.client.async :as async])
+  (:import (org.apache.http.impl.nio.client HttpAsyncClients))
+  (:require [puppetlabs.http.client.async :as async]
+            [schema.core :as schema]
+            [puppetlabs.http.client.common :as common])
   (:refer-clojure :exclude (get)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Private utility functions
+
+(defn request-with-client
+  [req client]
+  (let [{:keys [error] :as resp} @(async/request-with-client req nil client)]
+    (if error
+      (throw error)
+      resp)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
 
 (defn request
   [req]
@@ -11,6 +28,32 @@
     (if error
       (throw error)
       resp)))
+
+(schema/defn create-client :- common/HTTPClient
+  [opts :- common/ClientOptions]
+  (let [opts    (async/configure-ssl opts)
+        client  (if (:ssl-context opts)
+                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
+                  (HttpAsyncClients/createDefault))]
+    (.start client)
+    (reify common/HTTPClient
+      (get [this url] (common/get this url {}))
+      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) client))
+      (head [this url] (common/head this url {}))
+      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) client))
+      (post [this url] (common/post this url {}))
+      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) client))
+      (put [this url] (common/put this url {}))
+      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) client))
+      (delete [this url] (common/delete this url {}))
+      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) client))
+      (trace [this url] (common/trace this url {}))
+      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) client))
+      (options [this url] (common/options this url {}))
+      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) client))
+      (patch [this url] (common/patch this url {}))
+      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) client))
+      (close [_] (.close client)))))
 
 (defn get
   "Issue a synchronous HTTP GET request. This will raise an exception if an
