@@ -119,7 +119,9 @@
         (let [response (common/patch client "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))
-      (common/close client)))))
+      (common/close client)
+      (is (thrown? IllegalStateException
+                   (common/get client "http://localhost:10000/hello")))))))
 
 (deftest sync-client-as-test
   (testlogging/with-test-logging
