@@ -201,7 +201,7 @@
 (schema/defn future-callback
   [client :- common/Client
    result :- common/ResponsePromise
-   opts :- common/UserRequestOptions
+   opts :- common/RequestOptions
    callback :- common/ResponseCallbackFn]
   (reify FutureCallback
     (completed [this http-response]
@@ -227,6 +227,10 @@
   [opts :- common/UserRequestOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
+(schema/defn extract-request-opts :- common/RequestOptions
+  [opts :- common/UserRequestOptions]
+  (select-keys opts [:url :method :headers :body :decompress-body :as :persistent]))
+
 (schema/defn create-default-client :- common/Client
   [opts :- common/ClientOptions]
   (let [configured-opts (configure-ssl opts)
@@ -247,6 +251,7 @@
                   :as              :stream}
         opts (assoc (merge defaults opts) :persistent persistent)
         client-opts (extract-client-opts opts)
+        request-opts (extract-request-opts opts)
         client (or client (create-default-client client-opts))
         {:keys [method url body] :as coerced-opts} (coerce-opts opts)
         request (construct-request method url)
@@ -255,7 +260,7 @@
     (when body
       (.setEntity request body))
     (.execute client request
-              (future-callback client result opts callback))
+              (future-callback client result request-opts callback))
     result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
