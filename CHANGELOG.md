@@ -1,3 +1,11 @@
+## 0.2.0
+ * Port the code to use the Apache HttpAsyncClient library instead of
+   http-kit.
+ * The API around creating a persistent client has changed and
+   persistent clients are explicitly managed
+ * The available request options have changed. Some convenience options
+   have been removed.
+
 ## 0.1.7
  * Explicitly target JDK6 when building release jars
 
