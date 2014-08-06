@@ -96,9 +96,12 @@
 
 (defn- parse-url
   [url query-params]
-  (let [uri-builder (URIBuilder. url)
-        uri-builder (reduce #(.addParameter %1 (key %2) (val %2)) uri-builder query-params)]
-    (.build uri-builder)))
+  (if (nil? query-params)
+    url
+    (let [uri-builder (reduce #(.addParameter %1 (key %2) (val %2))
+                              (.clearParameters (URIBuilder. url))
+                              query-params)]
+      (.build uri-builder))))
 
 (defn- coerce-opts
   [{:keys [url body query-params] :as opts}]

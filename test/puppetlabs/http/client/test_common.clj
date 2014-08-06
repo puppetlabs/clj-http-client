@@ -18,3 +18,8 @@
 
 (def queryparams {"yellow"  "submarine"
                   "eleanor" "rigby"})
+
+(def query-options {:method :get
+                    :url    "http://localhost:8080/params/"
+                    :query-params queryparams
+                    :as :text})

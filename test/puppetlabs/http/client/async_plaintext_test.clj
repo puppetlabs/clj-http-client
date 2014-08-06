@@ -156,4 +156,17 @@
                     :as           :text}]
           (let [response (async/get "http://localhost:8080/params" opts)]
             (is (= 200 (:status @response)))
-            (is (= (str queryparams) (:body @response)))))))))
+            (is (= (str queryparams) (:body @response))))))
+
+      (testing "URL Query Parameters can be set directly in the URL"
+        (let [response (async/get "http://localhost:8080/params?akira=kurosawa"
+                                  {:as :text})]
+          (is (= 200 (:status @response)))
+          (is (= (str {"akira" "kurosawa"}) (:body @response)))))
+
+      (testing (str "URL Query Parameters set in URL are overwritten if params "
+                    "are also specified in options map")
+        (let [response (async/get "http://localhost:8080/params?akira=kurosawa&yellow=duck"
+                                  query-options)]
+          (is (= 200 (:status @response)))
+          (is (= (str queryparams) (:body @response))))))))
