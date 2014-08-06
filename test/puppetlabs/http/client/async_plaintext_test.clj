@@ -147,4 +147,13 @@
           (.setQueryParams options queryparams)
           (let [response (AsyncHttpClient/get options)]
             (is (= 200 (.getStatus (.deref response))))
-            (is (= (str queryparams) (slurp (.getBody (.deref response)))))))))))
+            (is (= (str queryparams) (slurp (.getBody (.deref response))))))))
+
+      (testing "URL Query Parameters work with the clojure client"
+        (let [opts {:method       :get
+                    :url          "http://localhost:8080/params/"
+                    :query-params queryparams
+                    :as           :text}]
+          (let [response (async/get "http://localhost:8080/params" opts)]
+            (is (= 200 (:status @response)))
+            (is (= (str queryparams) (:body @response)))))))))
