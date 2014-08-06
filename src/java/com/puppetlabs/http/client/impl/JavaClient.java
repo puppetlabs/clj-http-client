@@ -22,12 +22,32 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
 public class JavaClient {
 
     private static final String PROTOCOL = "TLS";
+
+    private static String buildQueryString(Map<String, String> params) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (!first) {
+                sb.append("&");
+            }
+            first = false;
+            try {
+                sb.append(URLEncoder.encode(entry.getKey(), "utf8"));
+                sb.append("=");
+                sb.append(URLEncoder.encode(entry.getValue(), "utf8"));
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("Error while url-encoding query string", e);
+            }
+        }
+        return sb.toString();
+    }
 
     private static Header[] prepareHeaders(RequestOptions options) {
         Map<String, Header> result = new HashMap<String, Header>();
@@ -46,7 +66,17 @@ public class JavaClient {
     }
 
     private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
-        String url = options.getUrl();
+        String url;
+
+        if (options.getQueryParams() != null) {
+            if (options.getUrl().indexOf('?') == -1) {
+                url = options.getUrl() + "?" + buildQueryString(options.getQueryParams());
+            } else {
+                url = options.getUrl() + "&" + buildQueryString(options.getQueryParams());
+            }
+        } else {
+            url = options.getUrl();
+        }
 
         SSLContext sslContext = null;
         if (options.getSslContext() != null) {

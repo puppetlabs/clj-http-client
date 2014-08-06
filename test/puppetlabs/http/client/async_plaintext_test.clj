@@ -2,6 +2,7 @@
   (:import (com.puppetlabs.http.client AsyncHttpClient RequestOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients))
   (:require [clojure.test :refer :all]
+            [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -135,3 +136,15 @@
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
         (.close client)))))
+
+(deftest query-params-test-async
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-params-web-service]
+      {:webserver {:port 8080}}
+      (testing "URL Query Parameters work with the Java client"
+        (let [options (RequestOptions. "http://localhost:8080/params")]
+          (.setQueryParams options queryparams)
+          (let [response (AsyncHttpClient/get options)]
+            (is (= 200 (.getStatus (.deref response))))
+            (is (= (str queryparams) (slurp (.getBody (.deref response)))))))))))

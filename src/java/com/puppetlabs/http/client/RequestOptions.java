@@ -23,6 +23,7 @@ public class RequestOptions {
     private Object body;
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
+    private Map<String, String> queryParams;
 
     public RequestOptions(String url) {
         this.url = url;
@@ -119,6 +120,14 @@ public class RequestOptions {
     }
     public RequestOptions setAs(ResponseBodyType as) {
         this.as = as;
+        return this;
+    }
+
+    public Map<String, String> getQueryParams() {
+        return queryParams;
+    }
+    public RequestOptions setQueryParams(Map<String, String> queryParams) {
+        this.queryParams = queryParams;
         return this;
     }
 }
