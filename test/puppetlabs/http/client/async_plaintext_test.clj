@@ -147,7 +147,7 @@
           (.setQueryParams options queryparams)
           (let [response (AsyncHttpClient/get options)]
             (is (= 200 (.getStatus (.deref response))))
-            (is (= (str queryparams) (slurp (.getBody (.deref response))))))))
+            (is (= queryparams (read-string (slurp (.getBody (.deref response)))))))))
 
       (testing "URL Query Parameters work with the clojure client"
         (let [opts {:method       :get
@@ -156,17 +156,17 @@
                     :as           :text}]
           (let [response (async/get "http://localhost:8080/params" opts)]
             (is (= 200 (:status @response)))
-            (is (= (str queryparams) (:body @response))))))
+            (is (= queryparams (read-string (:body @response)))))))
 
       (testing "URL Query Parameters can be set directly in the URL"
-        (let [response (async/get "http://localhost:8080/params?akira=kurosawa"
+        (let [response (async/get "http://localhost:8080/params?paramone=one"
                                   {:as :text})]
           (is (= 200 (:status @response)))
-          (is (= (str {"akira" "kurosawa"}) (:body @response)))))
+          (is (= (str {"paramone" "one"}) (:body @response)))))
 
       (testing (str "URL Query Parameters set in URL are overwritten if params "
                     "are also specified in options map")
-        (let [response (async/get "http://localhost:8080/params?akira=kurosawa&yellow=duck"
+        (let [response (async/get "http://localhost:8080/params?paramone=one&foo=lux"
                                   query-options)]
           (is (= 200 (:status @response)))
-          (is (= (str queryparams) (:body @response))))))))
+          (is (= queryparams (read-string (:body @response)))))))))

@@ -5,7 +5,7 @@
 (defn query-params-test
   [req]
   {:status 200
-   :body (str (:params req))})
+   :body (str (:query-params req))})
 
 (def app-wrapped
   (ring-params/wrap-params query-params-test))
@@ -16,8 +16,8 @@
         (add-ring-handler app-wrapped "/params")
         context))
 
-(def queryparams {"yellow"  "submarine"
-                  "eleanor" "rigby"})
+(def queryparams {"foo" "bar"
+                  "baz" "lux"})
 
 (def query-options {:method       :get
                     :url          "http://localhost:8080/params/"

@@ -311,7 +311,7 @@
           (.setQueryParams options queryparams)
           (let [response (SyncHttpClient/get options)]
             (is (= 200 (.getStatus response)))
-            (is (= (str queryparams) (slurp (.getBody response)))))))
+            (is (= queryparams (read-string (slurp (.getBody response))))))))
 
       (testing "URL Query Parameters work with the clojure client"
         (let [opts {:method       :get
@@ -320,4 +320,4 @@
                     :as           :text}
               response (sync/get "http://localhost:8080/params" opts)]
           (is (= 200 (:status response)))
-          (is (= (str queryparams) (:body response))))))))
+          (is (= queryparams (read-string (:body response)))))))))
