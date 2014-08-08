@@ -1,6 +1,7 @@
 (ns puppetlabs.http.client.async-plaintext-test
   (:import (com.puppetlabs.http.client AsyncHttpClient RequestOptions)
-           (org.apache.http.impl.nio.client HttpAsyncClients))
+           (org.apache.http.impl.nio.client HttpAsyncClients)
+           (java.net URI))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -32,7 +33,7 @@
         [jetty9/jetty9-service test-web-service]
         {:webserver {:port 10000}}
         (testing "java async client"
-          (let [options (RequestOptions. "http://localhost:10000/hello/")
+          (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
                 response (java-method options)]
             (is (= 200 (.getStatus (.deref response))))
             (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
@@ -47,7 +48,7 @@
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
       (testing "java async client"
-        (let [options (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
               response (AsyncHttpClient/head options)]
           (is (= 200 (.getStatus (.deref response))))
           (is (= nil (.getBody (.deref response))))))
@@ -143,8 +144,7 @@
       [jetty9/jetty9-service test-params-web-service]
       {:webserver {:port 8080}}
       (testing "URL Query Parameters work with the Java client"
-        (let [options (RequestOptions. "http://localhost:8080/params")]
-          (.setQueryParams options queryparams)
+        (let [options (RequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))]
           (let [response (AsyncHttpClient/get options)]
             (is (= 200 (.getStatus (.deref response))))
             (is (= queryparams (read-string (slurp (.getBody (.deref response)))))))))

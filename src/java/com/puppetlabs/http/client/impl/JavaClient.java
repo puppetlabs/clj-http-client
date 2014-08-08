@@ -6,6 +6,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.*;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -18,6 +19,8 @@ import javax.net.ssl.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -29,25 +32,6 @@ import java.util.Map;
 public class JavaClient {
 
     private static final String PROTOCOL = "TLS";
-
-    private static String buildQueryString(Map<String, String> params) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (!first) {
-                sb.append("&");
-            }
-            first = false;
-            try {
-                sb.append(URLEncoder.encode(entry.getKey(), "utf8"));
-                sb.append("=");
-                sb.append(URLEncoder.encode(entry.getValue(), "utf8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException("Error while url-encoding query string", e);
-            }
-        }
-        return sb.toString();
-    }
 
     private static Header[] prepareHeaders(RequestOptions options) {
         Map<String, Header> result = new HashMap<String, Header>();
@@ -66,17 +50,7 @@ public class JavaClient {
     }
 
     private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
-        String url;
-
-        if (options.getQueryParams() != null) {
-            if (options.getUrl().indexOf('?') == -1) {
-                url = options.getUrl() + "?" + buildQueryString(options.getQueryParams());
-            } else {
-                url = options.getUrl() + "&" + buildQueryString(options.getQueryParams());
-            }
-        } else {
-            url = options.getUrl();
-        }
+        String url = options.getUrl().toString();
 
         SSLContext sslContext = null;
         if (options.getSslContext() != null) {

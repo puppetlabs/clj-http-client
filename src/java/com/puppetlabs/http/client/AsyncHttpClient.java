@@ -6,6 +6,9 @@ import com.puppetlabs.http.client.impl.SslUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 public class AsyncHttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHttpClient.class);
 
@@ -15,57 +18,81 @@ public class AsyncHttpClient {
         return JavaClient.request(options, null);
     }
     
-    public static Promise<Response> get(String url) {
-        return get(new RequestOptions(url));
+    public static Promise<Response> get(String url) throws URISyntaxException {
+        return get(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> get(URI uri) {
+        return get(new RequestOptions(uri));
     }
     public static Promise<Response> get(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.GET));
     }
 
-    public static Promise<Response> head(String url) {
-        return head(new RequestOptions(url));
+    public static Promise<Response> head(String url) throws URISyntaxException {
+        return head(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> head(URI uri) {
+        return head(new RequestOptions(uri));
     }
     public static Promise<Response> head(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.HEAD));
     }
 
-    public static Promise<Response> post(String url) {
-        return post(new RequestOptions(url));
+    public static Promise<Response> post(String url) throws URISyntaxException {
+        return post(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> post(URI uri) {
+        return post(new RequestOptions(uri));
     }
     public static Promise<Response> post(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.POST));
     }
 
-    public static Promise<Response> put(String url) {
-        return put(new RequestOptions(url));
+    public static Promise<Response> put(String url) throws URISyntaxException {
+        return put(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> put(URI uri) {
+        return put(new RequestOptions(uri));
     }
     public static Promise<Response> put(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.PUT));
     }
 
-    public static Promise<Response> delete(String url) {
-        return delete(new RequestOptions(url));
+    public static Promise<Response> delete(String url) throws URISyntaxException {
+        return delete(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> delete(URI uri) {
+        return delete(new RequestOptions(uri));
     }
     public static Promise<Response> delete(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.DELETE));
     }
 
-    public static Promise<Response> trace(String url) {
-        return trace(new RequestOptions(url));
+    public static Promise<Response> trace(String url) throws URISyntaxException {
+        return trace(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> trace(URI uri) {
+        return trace(new RequestOptions(uri));
     }
     public static Promise<Response> trace(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.TRACE));
     }
 
-    public static Promise<Response> options(String url) {
-        return options(new RequestOptions(url));
+    public static Promise<Response> options(String url) throws URISyntaxException {
+        return options(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> options(URI uri) {
+        return options(new RequestOptions(uri));
     }
     public static Promise<Response> options(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.OPTIONS));
     }
 
-    public static Promise<Response> patch(String url) {
-        return patch(new RequestOptions(url));
+    public static Promise<Response> patch(String url) throws URISyntaxException {
+        return patch(new RequestOptions(new URI(url)));
+    }
+    public static Promise<Response> patch(URI uri) {
+        return patch(new RequestOptions(uri));
     }
     public static Promise<Response> patch(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.PATCH));
