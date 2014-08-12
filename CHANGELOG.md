@@ -1,3 +1,7 @@
+## 0.2.1
+ * Upgrade to Apache HttpAsyncClient v4.0.2 (fixes a bug where headers don't get included
+   when following redirects).
+
 ## 0.2.0
  * Port the code to use the Apache HttpAsyncClient library instead of
    http-kit.
