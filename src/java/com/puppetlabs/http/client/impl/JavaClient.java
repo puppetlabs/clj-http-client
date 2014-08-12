@@ -6,7 +6,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.*;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -20,12 +19,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,7 +47,7 @@ public class JavaClient {
     }
 
     private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
-        String url = options.getUrl().toString();
+        URI uri = options.getUri();
 
         SSLContext sslContext = null;
         if (options.getSslContext() != null) {
@@ -78,7 +75,7 @@ public class JavaClient {
             body = new InputStreamEntity((InputStream)options.getBody());
         }
 
-        return new CoercedRequestOptions(url, method, headers, body, sslContext);
+        return new CoercedRequestOptions(uri, method, headers, body, sslContext);
     }
 
     private static SSLContext getInsecureSslContext() {
@@ -118,7 +115,7 @@ public class JavaClient {
         final CloseableHttpAsyncClient client = createClient(coercedOptions);
 
         HttpRequestBase request = constructRequest(coercedOptions.getMethod(),
-                coercedOptions.getUrl(), coercedOptions.getBody());
+                coercedOptions.getUri(), coercedOptions.getBody());
         request.setHeaders(coercedOptions.getHeaders());
 
         final Promise<Response> promise = new Promise<Response>();
@@ -204,26 +201,27 @@ public class JavaClient {
         }
     }
 
-    private static HttpRequestBase constructRequest(HttpMethod httpMethod, String url, HttpEntity body) {
+    private static HttpRequestBase constructRequest(HttpMethod httpMethod, URI uri, HttpEntity body) {
         switch (httpMethod) {
             case GET:
-                return requestWithNoBody(new HttpGet(url), body, httpMethod);
+                return requestWithNoBody(new HttpGet(uri), body, httpMethod);
             case HEAD:
-                return requestWithNoBody(new HttpHead(url), body, httpMethod);
+                return requestWithNoBody(new HttpHead(uri), body, httpMethod);
             case POST:
-                return requestWithBody(new HttpPost(url), body);
+                return requestWithBody(new HttpPost(uri), body);
             case PUT:
-                return requestWithBody(new HttpPut(url), body);
+                return requestWithBody(new HttpPut(uri), body);
             case DELETE:
-                return requestWithNoBody(new HttpDelete(url), body, httpMethod);
+                return requestWithNoBody(new HttpDelete(uri), body, httpMethod);
             case TRACE:
-                return requestWithNoBody(new HttpTrace(url), body, httpMethod);
+                return requestWithNoBody(new HttpTrace(uri), body, httpMethod);
             case OPTIONS:
-                return requestWithNoBody(new HttpOptions(url), body, httpMethod);
+                return requestWithNoBody(new HttpOptions(uri), body, httpMethod);
             case PATCH:
-                return requestWithBody(new HttpPatch(url), body);
+                return requestWithBody(new HttpPatch(uri), body);
             default:
-                throw new HttpClientException("Unable to construct request for:" + httpMethod + ", " + url, null);
+                throw new HttpClientException("Unable to construct request for:" + httpMethod +
+                                                ", " + uri.toString(), null);
         }
     }
 

@@ -49,7 +49,7 @@ public class SyncHttpClient {
 
 
     public static Response get(String url) throws URISyntaxException {
-        return get(new RequestOptions(new URI(url)));
+        return get(new URI(url));
     }
     public static Response get(URI uri) {
         return get(new RequestOptions(uri));
@@ -59,7 +59,7 @@ public class SyncHttpClient {
     }
 
     public static Response head(String url) throws URISyntaxException {
-        return head(new RequestOptions(new URI(url)));
+        return head(new URI(url));
     }
     public static Response head(URI uri) {
         return head(new RequestOptions(uri));
@@ -69,7 +69,7 @@ public class SyncHttpClient {
     }
 
     public static Response post(String url) throws URISyntaxException {
-        return post(new RequestOptions(new URI(url)));
+        return post(new URI(url));
     }
     public static Response post(URI uri) { return post(new RequestOptions(uri)); }
     public static Response post(RequestOptions requestOptions) {
@@ -77,7 +77,7 @@ public class SyncHttpClient {
     }
 
     public static Response put(String url) throws URISyntaxException {
-        return put(new RequestOptions(new URI(url)));
+        return put(new URI(url));
     }
     public static Response put(URI uri) { return put(new RequestOptions(uri)); }
     public static Response put(RequestOptions requestOptions) {
@@ -85,7 +85,7 @@ public class SyncHttpClient {
     }
 
     public static Response delete(String url) throws URISyntaxException {
-        return delete(new RequestOptions(new URI(url)));
+        return delete(new URI(url));
     }
     public static Response delete(URI uri) { return delete(new RequestOptions(uri)); }
     public static Response delete(RequestOptions requestOptions) {
@@ -93,7 +93,7 @@ public class SyncHttpClient {
     }
 
     public static Response trace(String url) throws URISyntaxException {
-        return trace(new RequestOptions(new URI(url)));
+        return trace(new URI(url));
     }
     public static Response trace(URI uri) { return trace(new RequestOptions(uri)); }
     public static Response trace(RequestOptions requestOptions) {
@@ -101,7 +101,7 @@ public class SyncHttpClient {
     }
 
     public static Response options(String url) throws URISyntaxException {
-        return options(new RequestOptions(new URI(url)));
+        return options(new URI(url));
     }
     public static Response options(URI uri) { return options(new RequestOptions(uri)); }
     public static Response options(RequestOptions requestOptions) {
@@ -109,9 +109,9 @@ public class SyncHttpClient {
     }
 
     public static Response patch(String url) throws URISyntaxException {
-        return patch(new RequestOptions(new URI(url)));
+        return patch(new URI(url));
     }
-    public static Response patch(URI uri) { return patch(new RequestOptions (uri)); }
+    public static Response patch(URI uri) { return patch(new RequestOptions(uri)); }
     public static Response patch(RequestOptions requestOptions) {
         return request(requestOptions.setMethod(HttpMethod.PATCH));
     }

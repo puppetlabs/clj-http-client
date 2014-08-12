@@ -5,29 +5,30 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 
 import javax.net.ssl.SSLContext;
+import java.net.URI;
 
 public class CoercedRequestOptions {
-    private final String url;
+    private final URI uri;
     private final HttpMethod method;
     private final Header[] headers;
     private final HttpEntity body;
     private final SSLContext sslContext;
 
 
-    public CoercedRequestOptions(String url,
+    public CoercedRequestOptions(URI uri,
                                  HttpMethod method,
                                  Header[] headers,
                                  HttpEntity body,
                                  SSLContext sslContext) {
-        this.url = url;
+        this.uri = uri;
         this.method = method;
         this.headers = headers;
         this.body = body;
         this.sslContext = sslContext;
     }
 
-    public String getUrl() {
-        return url;
+    public URI getUri() {
+        return uri;
     }
 
     public HttpMethod getMethod() {

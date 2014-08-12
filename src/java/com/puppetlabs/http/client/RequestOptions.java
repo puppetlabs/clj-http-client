@@ -13,7 +13,7 @@ import java.util.Map;
 public class RequestOptions {
     private HttpAsyncClient client = null;
 
-    private URI url;
+    private URI uri;
     private HttpMethod method = null;
     private Map<String, String> headers;
     private SSLContext sslContext;
@@ -26,8 +26,8 @@ public class RequestOptions {
     private ResponseBodyType as = ResponseBodyType.STREAM;
     private Map<String, String> queryParams;
 
-    public RequestOptions(URI url) {
-        this.url = url;
+    public RequestOptions(URI uri) {
+        this.uri = uri;
     }
 
     public HttpAsyncClient getClient() {
@@ -38,11 +38,11 @@ public class RequestOptions {
         return this;
     }
 
-    public URI getUrl() {
-        return url;
+    public URI getUri() {
+        return uri;
     }
-    public RequestOptions setUrl(URI url) {
-        this.url = url;
+    public RequestOptions setUri(URI uri) {
+        this.uri = uri;
         return this;
     }
 
