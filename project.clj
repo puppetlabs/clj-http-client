@@ -16,7 +16,7 @@
                  [org.clojure/tools.logging "0.2.6"]
                  [puppetlabs/kitchensink ~ks-version]
                  [org.slf4j/slf4j-api "1.7.6"]
-                 [org.apache.httpcomponents/httpasyncclient "4.0.1"]
+                 [org.apache.httpcomponents/httpasyncclient "4.0.2"]
                  [org.apache.httpcomponents/httpcore "4.3.2"]
                  [commons-io "2.1"]
                  [prismatic/schema "0.2.1"]]
