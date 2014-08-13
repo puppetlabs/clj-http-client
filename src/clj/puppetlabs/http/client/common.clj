@@ -51,6 +51,7 @@
    (ok :body)             Body
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
+   (ok :query-params)     {schema/Str schema/Str}
 
    (ok :ssl-context)      SSLContext
    (ok :ssl-cert)         UrlOrString
@@ -62,13 +63,14 @@
   configuration and settings for an individual request. This is
   everything from UserRequestOptions not included in
   ClientOptions."
-  {:url             UrlOrString
-   :method          schema/Keyword
-   :headers         Headers
-   :body            Body
-   :decompress-body schema/Bool
-   :as              BodyType
-   (ok :persistent) schema/Bool})
+  {:url               UrlOrString
+   :method            schema/Keyword
+   :headers           Headers
+   :body              Body
+   :decompress-body   schema/Bool
+   :as                BodyType
+   (ok :persistent)   schema/Bool
+   (ok :query-params) {schema/Str schema/Str}})
 
 (def SslContextOptions
   {:ssl-context SSLContext})

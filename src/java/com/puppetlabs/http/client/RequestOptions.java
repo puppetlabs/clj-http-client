@@ -7,12 +7,13 @@ import org.apache.http.nio.client.HttpAsyncClient;
 //import org.httpkit.client.MultipartEntity;
 
 import javax.net.ssl.SSLContext;
+import java.net.URI;
 import java.util.Map;
 
 public class RequestOptions {
     private HttpAsyncClient client = null;
 
-    private String url;
+    private URI uri;
     private HttpMethod method = null;
     private Map<String, String> headers;
     private SSLContext sslContext;
@@ -23,9 +24,10 @@ public class RequestOptions {
     private Object body;
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
+    private Map<String, String> queryParams;
 
-    public RequestOptions(String url) {
-        this.url = url;
+    public RequestOptions(URI uri) {
+        this.uri = uri;
     }
 
     public HttpAsyncClient getClient() {
@@ -36,11 +38,11 @@ public class RequestOptions {
         return this;
     }
 
-    public String getUrl() {
-        return url;
+    public URI getUri() {
+        return uri;
     }
-    public RequestOptions setUrl(String url) {
-        this.url = url;
+    public RequestOptions setUri(URI uri) {
+        this.uri = uri;
         return this;
     }
 

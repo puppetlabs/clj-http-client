@@ -1,7 +1,8 @@
 (ns puppetlabs.http.client.sync-ssl-test
   (:import (com.puppetlabs.http.client SyncHttpClient RequestOptions
                                        HttpClientException)
-           (javax.net.ssl SSLHandshakeException))
+           (javax.net.ssl SSLHandshakeException)
+           (java.net URI))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
@@ -33,7 +34,7 @@
                    :ssl-cert    "./dev-resources/ssl/cert.pem"
                    :ssl-key     "./dev-resources/ssl/key.pem"}}
       (testing "java sync client"
-        (let [options (.. (RequestOptions. "https://localhost:10080/hello/")
+        (let [options (.. (RequestOptions. (URI. "https://localhost:10080/hello/"))
                           (setSslCert "./dev-resources/ssl/cert.pem")
                           (setSslKey "./dev-resources/ssl/key.pem")
                           (setSslCaCert "./dev-resources/ssl/ca.pem"))
@@ -59,7 +60,7 @@
                    :ssl-key     "./dev-resources/ssl/key.pem"
                    :client-auth "want"}}
       (testing "java sync client"
-        (let [options (.. (RequestOptions. "https://localhost:10080/hello/")
+        (let [options (.. (RequestOptions. (URI. "https://localhost:10080/hello/"))
                           (setSslCaCert "./dev-resources/ssl/ca.pem"))
               response (SyncHttpClient/get options)]
           (is (= 200 (.getStatus response)))
@@ -81,7 +82,7 @@
                    :ssl-key     "./dev-resources/ssl/key.pem"
                    :client-auth "want"}}
       (testing "java sync client"
-        (let [options (.. (RequestOptions. "https://localhost:10081/hello/")
+        (let [options (.. (RequestOptions. (URI. "https://localhost:10081/hello/"))
                           (setSslCaCert "./dev-resources/ssl/alternate-ca.pem"))]
           (try
             (SyncHttpClient/get options)

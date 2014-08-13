@@ -16,6 +16,7 @@
            (org.apache.http.nio.client HttpAsyncClient)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (org.apache.http.client.methods HttpGet HttpHead HttpPost HttpPut HttpTrace HttpDelete HttpOptions HttpPatch)
+           (org.apache.http.client.utils URIBuilder)
            (org.apache.http.concurrent FutureCallback)
            (org.apache.http.message BasicHeader)
            (org.apache.http Header)
@@ -93,15 +94,25 @@
        vals
        (into-array Header)))
 
+(defn- parse-url
+  [url query-params]
+  (if (nil? query-params)
+    url
+    (let [uri-builder (reduce #(.addParameter %1 (key %2) (val %2))
+                              (.clearParameters (URIBuilder. url))
+                              query-params)]
+      (.build uri-builder))))
+
 (defn- coerce-opts
-  [{:keys [url body] :as opts}]
-  {:url     url
-   :method  (clojure.core/get opts :method :get)
-   :headers (prepare-headers opts)
-   :body    (cond
-              (string? body) (NStringEntity. body)
-              (instance? InputStream body) (InputStreamEntity. body)
-              :else body)})
+  [{:keys [url body query-params] :as opts}]
+  (let [url (parse-url url query-params)]
+    {:url     url
+     :method  (clojure.core/get opts :method :get)
+     :headers (prepare-headers opts)
+     :body    (cond
+                (string? body) (NStringEntity. body)
+                (instance? InputStream body) (InputStreamEntity. body)
+                :else body)}))
 
 (defn- construct-request
   [method url]
@@ -229,7 +240,7 @@
 
 (schema/defn extract-request-opts :- common/RequestOptions
   [opts :- common/UserRequestOptions]
-  (select-keys opts [:url :method :headers :body :decompress-body :as :persistent]))
+  (select-keys opts [:url :method :headers :body :decompress-body :as :persistent :query-params]))
 
 (schema/defn create-default-client :- common/Client
   [opts :- common/ClientOptions]
@@ -283,9 +294,10 @@
        'gzip, deflate' will be added to the request, and the response will be
        automatically decompressed if it contains a recognized 'content-encoding'
        header.  defaults to `true`.
-    :as - used to control the data type of the response body.  Supported values are
+  * :as - used to control the data type of the response body.  Supported values are
       `:text` and `:stream`, which will return a `String` or an `InputStream`,
       respectively.  Defaults to `:stream`.
+  * :query-params - used to set the query parameters of an http request
 
   SSL options:
 

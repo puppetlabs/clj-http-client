@@ -4,8 +4,10 @@
            (javax.net.ssl SSLHandshakeException)
            (java.io ByteArrayInputStream InputStream)
            (java.nio.charset Charset)
-           (org.apache.http.impl.nio.client HttpAsyncClients))
+           (org.apache.http.impl.nio.client HttpAsyncClients)
+           (java.net URI))
   (:require [clojure.test :refer :all]
+            [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -36,7 +38,7 @@
         [jetty9/jetty9-service test-web-service]
         {:webserver {:port 10000}}
         (testing "java sync client"
-          (let [options (RequestOptions. "http://localhost:10000/hello/")
+          (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
                 response (java-method options)]
             (is (= 200 (.getStatus response)))
             (is (= "Hello, World!" (slurp (.getBody response))))))
@@ -51,7 +53,7 @@
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client"
-        (let [options (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
               response (SyncHttpClient/head options)]
           (is (= 200 (.getStatus response)))
           (is (= nil (.getBody response)))))
@@ -129,20 +131,20 @@
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client: :as unspecified"
-        (let [options (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
               response (SyncHttpClient/get options)]
           (is (= 200 (.getStatus response)))
           (is (instance? InputStream (.getBody response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "java sync client: :as :stream"
-        (let [options (.. (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (.. (RequestOptions. (URI. "http://localhost:10000/hello/"))
                           (setAs ResponseBodyType/STREAM))
               response (SyncHttpClient/get options)]
           (is (= 200 (.getStatus response)))
           (is (instance? InputStream (.getBody response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "java sync client: :as :text"
-        (let [options (.. (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (.. (RequestOptions. (URI. "http://localhost:10000/hello/"))
                           (setAs ResponseBodyType/TEXT))
               response (SyncHttpClient/get options)]
           (is (= 200 (.getStatus response)))
@@ -201,7 +203,7 @@
       [jetty9/jetty9-service test-header-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client"
-        (let [options (-> (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
                           (.setHeaders {"fooheader" "foo"}))
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
@@ -230,12 +232,12 @@
       [jetty9/jetty9-service test-body-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client: string body for post request"
-        (let [options (-> (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
                           (.setBody "foo"))
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
           (is (= "foo" (slurp (.getBody response)))))
-        (let [options (-> (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
                           (.setBody (ByteArrayInputStream. (.getBytes "foo" "UTF-8"))))
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
@@ -268,7 +270,7 @@
       [jetty9/jetty9-service test-compression-web-service]
       {:webserver {:port 10000}}
       (testing (str "java sync client: compression headers / response: " desc)
-        (let [java-opts (cond-> (RequestOptions. "http://localhost:10000/hello/")
+        (let [java-opts (cond-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
                                 (contains? opts :decompress-body) (.setDecompressBody (:decompress-body opts))
                                 (contains? opts :headers) (.setHeaders (:headers opts)))
               response (SyncHttpClient/get java-opts)]
@@ -299,3 +301,23 @@
 (deftest sync-client-decompression-disabled-test
   (test-compression "explicit disable" {:headers {"accept-encoding" "gzip"}
                                         :decompress-body false} "gzip" "gzip" false))
+
+(deftest query-params-test-sync
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-params-web-service]
+      {:webserver {:port 8080}}
+      (testing "URL Query Parameters work with the Java client"
+        (let [options (RequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))]
+          (let [response (SyncHttpClient/get options)]
+            (is (= 200 (.getStatus response)))
+            (is (= queryparams (read-string (slurp (.getBody response))))))))
+
+      (testing "URL Query Parameters work with the clojure client"
+        (let [opts {:method       :get
+                    :url          "http://localhost:8080/params/"
+                    :query-params queryparams
+                    :as           :text}
+              response (sync/get "http://localhost:8080/params" opts)]
+          (is (= 200 (:status response)))
+          (is (= queryparams (read-string (:body response)))))))))

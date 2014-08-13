@@ -1,7 +1,9 @@
 (ns puppetlabs.http.client.async-plaintext-test
   (:import (com.puppetlabs.http.client AsyncHttpClient RequestOptions)
-           (org.apache.http.impl.nio.client HttpAsyncClients))
+           (org.apache.http.impl.nio.client HttpAsyncClients)
+           (java.net URI))
   (:require [clojure.test :refer :all]
+            [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -31,7 +33,7 @@
         [jetty9/jetty9-service test-web-service]
         {:webserver {:port 10000}}
         (testing "java async client"
-          (let [options (RequestOptions. "http://localhost:10000/hello/")
+          (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
                 response (java-method options)]
             (is (= 200 (.getStatus (.deref response))))
             (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
@@ -46,7 +48,7 @@
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
       (testing "java async client"
-        (let [options (RequestOptions. "http://localhost:10000/hello/")
+        (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
               response (AsyncHttpClient/head options)]
           (is (= 200 (.getStatus (.deref response))))
           (is (= nil (.getBody (.deref response))))))
@@ -135,3 +137,36 @@
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
         (.close client)))))
+
+(deftest query-params-test-async
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-params-web-service]
+      {:webserver {:port 8080}}
+      (testing "URL Query Parameters work with the Java client"
+        (let [options (RequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))]
+          (let [response (AsyncHttpClient/get options)]
+            (is (= 200 (.getStatus (.deref response))))
+            (is (= queryparams (read-string (slurp (.getBody (.deref response)))))))))
+
+      (testing "URL Query Parameters work with the clojure client"
+        (let [opts {:method       :get
+                    :url          "http://localhost:8080/params/"
+                    :query-params queryparams
+                    :as           :text}]
+          (let [response (async/get "http://localhost:8080/params" opts)]
+            (is (= 200 (:status @response)))
+            (is (= queryparams (read-string (:body @response)))))))
+
+      (testing "URL Query Parameters can be set directly in the URL"
+        (let [response (async/get "http://localhost:8080/params?paramone=one"
+                                  {:as :text})]
+          (is (= 200 (:status @response)))
+          (is (= (str {"paramone" "one"}) (:body @response)))))
+
+      (testing (str "URL Query Parameters set in URL are overwritten if params "
+                    "are also specified in options map")
+        (let [response (async/get "http://localhost:8080/params?paramone=one&foo=lux"
+                                  query-options)]
+          (is (= 200 (:status @response)))
+          (is (= queryparams (read-string (:body @response)))))))))
