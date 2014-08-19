@@ -1,3 +1,6 @@
+## 0.2.2
+ * Add back in support for query-params map in Clojure API
+
 ## 0.2.1
  * Upgrade to Apache HttpAsyncClient v4.0.2 (fixes a bug where headers don't get included
    when following redirects).
