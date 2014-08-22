@@ -1,3 +1,9 @@
+## 0.2.4
+ * Fix a bug in the Java client API that caused an NPE if a Content-Type header did not specify a charset
+
+## 0.2.3
+ * No changes
+
 ## 0.2.2
  * Add back in support for query-params map in Clojure API
 
