@@ -33,7 +33,7 @@
         [jetty9/jetty9-service test-web-service]
         {:webserver {:port 10000}}
         (testing "java async client"
-          (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
+          (let [options (RequestOptions. "http://localhost:10000/hello/")
                 response (java-method options)]
             (is (= 200 (.getStatus (.deref response))))
             (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))

@@ -8,6 +8,7 @@ import org.apache.http.nio.client.HttpAsyncClient;
 
 import javax.net.ssl.SSLContext;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 public class RequestOptions {
@@ -26,6 +27,7 @@ public class RequestOptions {
     private ResponseBodyType as = ResponseBodyType.STREAM;
     private Map<String, String> queryParams;
 
+    public RequestOptions (String url) throws URISyntaxException { this.uri = new URI(url); }
     public RequestOptions(URI uri) {
         this.uri = uri;
     }
