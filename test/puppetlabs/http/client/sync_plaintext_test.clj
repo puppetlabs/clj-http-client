@@ -321,3 +321,32 @@
               response (sync/get "http://localhost:8080/params" opts)]
           (is (= 200 (:status response)))
           (is (= queryparams (read-string (:body response)))))))))
+
+(deftest redirect-test-sync
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service redirect-web-service]
+      {:webserver {:port 8080}}
+      (testing (str "redirects on POST not followed by clojure client "
+                    "when :force-redirects is not set to true")
+        (let [opts     {:method           :post
+                        :url              "http://localhost:8080/hello"
+                        :as               :text
+                        :force-redirects  false}
+              response (sync/post "http://localhost:8080/hello" opts)]
+          (is (= 302 (:status response)))))
+      (testing "redirects on POST followed by clojure client when option is set"
+        (let [opts     {:method           :post
+                        :url              "http://localhost:8080/hello"
+                        :as               :text
+                        :force-redirects  true}
+              response (sync/post "http://localhost:8080/hello" opts)]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (:body response)))))
+      (testing (str "redirects on POST followed by persistent clojure client "
+                    "when option is set")
+        (let [client (sync/create-client {:force-redirects true})
+              response (common/post client "http://localhost:8080/hello" {:as :text})]
+          (is (= 200 (:status response)))
+          (is (= "Hello, World!" (:body response)))
+          (common/close client))))))

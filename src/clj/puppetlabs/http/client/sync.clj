@@ -2,7 +2,8 @@
 ;; defined in puppetlabs.http.client
 
 (ns puppetlabs.http.client.sync
-  (:import (org.apache.http.impl.nio.client HttpAsyncClients))
+  (:import (org.apache.http.impl.nio.client HttpAsyncClients)
+           (org.apache.http.impl.client LaxRedirectStrategy))
   (:require [puppetlabs.http.client.async :as async]
             [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
@@ -31,10 +32,16 @@
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
-  (let [opts    (async/configure-ssl opts)
-        client  (if (:ssl-context opts)
-                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
-                  (HttpAsyncClients/createDefault))]
+  (let [force-redirects (:force-redirects opts)
+        opts            (async/configure-ssl (async/extract-ssl-opts opts))
+        client-builder  (HttpAsyncClients/custom)
+        client          (do (if (:ssl-context opts)
+                              (.setSSLContext client-builder
+                                              (:ssl-context opts)))
+                            (if force-redirects
+                              (.setRedirectStrategy client-builder
+                                                    (LaxRedirectStrategy.)))
+                            (.build client-builder))]
     (.start client)
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))

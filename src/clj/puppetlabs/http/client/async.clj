@@ -23,7 +23,8 @@
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
-           (com.puppetlabs.http.client.impl Compression))
+           (com.puppetlabs.http.client.impl Compression)
+           (org.apache.http.impl.client LaxRedirectStrategy))
   (:require [puppetlabs.certificate-authority.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -236,6 +237,10 @@
 
 (schema/defn extract-client-opts :- common/ClientOptions
   [opts :- common/UserRequestOptions]
+  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key :force-redirects]))
+
+(schema/defn extract-ssl-opts :- common/SslOptions
+  [opts :- common/ClientOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
 (schema/defn extract-request-opts :- common/RequestOptions
@@ -244,15 +249,21 @@
 
 (schema/defn create-default-client :- common/Client
   [opts :- common/ClientOptions]
-  (let [configured-opts (configure-ssl opts)
-        client          (if (:ssl-context configured-opts)
-                          (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context configured-opts)) build)
-                          (HttpAsyncClients/createDefault))]
+  (let [force-redirects (:force-redirects opts)
+        configured-opts (configure-ssl (extract-ssl-opts opts))
+        client-builder  (HttpAsyncClients/custom)
+        client          (do (if (:ssl-context configured-opts)
+                              (.setSSLContext client-builder
+                                              (:ssl-context configured-opts)))
+                            (if force-redirects
+                              (.setRedirectStrategy client-builder
+                                                    (LaxRedirectStrategy.)))
+                            (.build client-builder))]
     (.start client)
     client))
 
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
-  [opts :- common/RawUserRequestOptions
+  [opts :- common/RawUserRequestClientOptions
    callback :- common/ResponseCallbackFn
    client]
   (let [persistent (not (nil? client))
@@ -273,6 +284,12 @@
     (.execute client request
               (future-callback client result request-opts callback))
     result))
+
+(schema/defn ^:always-validate request-with-reified-client :- common/ResponsePromise
+  [opts :- common/RawUserRequestOptions
+   callback :- common/ResponseCallbackFn
+   client]
+  (request-with-client opts callback client))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -298,6 +315,8 @@
       `:text` and `:stream`, which will return a `String` or an `InputStream`,
       respectively.  Defaults to `:stream`.
   * :query-params - used to set the query parameters of an http request
+  * :force-redirects - used to set whether or not the client should follow
+      redirects. Defaults to false.
 
   SSL options:
 
@@ -308,36 +327,42 @@
   * :ssl-cert - path to a PEM file containing the client cert
   * :ssl-key - path to a PEM file containing the client private key
   * :ssl-ca-cert - path to a PEM file containing the CA cert"
-  ([opts :- common/RawUserRequestOptions]
+  ([opts :- common/RawUserRequestClientOptions]
    (request opts nil))
-  ([opts :- common/RawUserRequestOptions
+  ([opts :- common/RawUserRequestClientOptions
     callback :- common/ResponseCallbackFn]
    (request-with-client opts callback nil)))
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
-  (let [opts    (configure-ssl opts)
-        client  (if (:ssl-context opts)
-                  (.. (HttpAsyncClients/custom) (setSSLContext (:ssl-context opts)) build)
-                  (HttpAsyncClients/createDefault))]
+  (let [force-redirects (:force-redirects opts)
+        opts            (configure-ssl (extract-ssl-opts opts))
+        client-builder  (HttpAsyncClients/custom)
+        client          (do (if (:ssl-context opts)
+                              (.setSSLContext client-builder
+                                              (:ssl-context opts)))
+                            (if force-redirects
+                              (.setRedirectStrategy client-builder
+                                                    (LaxRedirectStrategy.)))
+                            (.build client-builder))]
     (.start client)
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
-      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) nil client))
+      (get [_ url opts] (request-with-reified-client (assoc opts :method :get :url url) nil client))
       (head [this url] (common/head this url {}))
-      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) nil client))
+      (head [_ url opts] (request-with-reified-client (assoc opts :method :head :url url) nil client))
       (post [this url] (common/post this url {}))
-      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) nil client))
+      (post [_ url opts] (request-with-reified-client (assoc opts :method :post :url url) nil client))
       (put [this url] (common/put this url {}))
-      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) nil client))
+      (put [_ url opts] (request-with-reified-client (assoc opts :method :put :url url) nil client))
       (delete [this url] (common/delete this url {}))
-      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) nil client))
+      (delete [_ url opts] (request-with-reified-client (assoc opts :method :delete :url url) nil client))
       (trace [this url] (common/trace this url {}))
-      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) nil client))
+      (trace [_ url opts] (request-with-reified-client (assoc opts :method :trace :url url) nil client))
       (options [this url] (common/options this url {}))
-      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) nil client))
+      (options [_ url opts] (request-with-reified-client (assoc opts :method :options :url url) nil client))
       (patch [this url] (common/patch this url {}))
-      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) nil client))
+      (patch [_ url opts] (request-with-reified-client (assoc opts :method :patch :url url) nil client))
       (close [_] (.close client)))))
 
 (defn get
