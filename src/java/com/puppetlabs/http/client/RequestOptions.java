@@ -24,7 +24,7 @@ public class RequestOptions {
     private Object body;
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
-    private Map<String, String> queryParams;
+    private boolean forceRedirects = false;
 
     public RequestOptions(URI uri) {
         this.uri = uri;
@@ -121,6 +121,12 @@ public class RequestOptions {
     }
     public RequestOptions setAs(ResponseBodyType as) {
         this.as = as;
+        return this;
+    }
+
+    public boolean getForceRedirects() { return forceRedirects; }
+    public RequestOptions setForceRedirects(boolean forceRedirects) {
+        this.forceRedirects = forceRedirects;
         return this;
     }
 }

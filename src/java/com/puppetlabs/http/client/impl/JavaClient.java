@@ -9,7 +9,9 @@ import org.apache.http.client.methods.*;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
@@ -75,7 +77,9 @@ public class JavaClient {
             body = new InputStreamEntity((InputStream)options.getBody());
         }
 
-        return new CoercedRequestOptions(uri, method, headers, body, sslContext);
+        boolean forceRedirects = options.getForceRedirects();
+
+        return new CoercedRequestOptions(uri, method, headers, body, sslContext, forceRedirects);
     }
 
     private static SSLContext getInsecureSslContext() {
@@ -169,12 +173,14 @@ public class JavaClient {
     }
 
     private static CloseableHttpAsyncClient createClient(CoercedRequestOptions coercedOptions) {
-        CloseableHttpAsyncClient client;
+        HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
-            client = HttpAsyncClients.custom().setSSLContext(coercedOptions.getSslContext()).build();
-        } else {
-            client = HttpAsyncClients.createDefault();
+            clientBuilder.setSSLContext(coercedOptions.getSslContext()).build();
         }
+        if (coercedOptions.getForceRedirects()) {
+            clientBuilder.setRedirectStrategy(new LaxRedirectStrategy());
+        }
+        CloseableHttpAsyncClient client = clientBuilder.build();
         client.start();
         return client;
     }

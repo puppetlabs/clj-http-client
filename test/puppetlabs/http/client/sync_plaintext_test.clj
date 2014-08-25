@@ -327,6 +327,17 @@
     (testutils/with-app-with-config app
       [jetty9/jetty9-service redirect-web-service]
       {:webserver {:port 8080}}
+      (testing (str "redirects on POST not followed by Java client "
+                    "when forceRedirects option not set to true")
+        (let [options  (RequestOptions. (URI. "http://localhost:8080/hello"))
+              response (SyncHttpClient/post options)]
+          (is (= 302 (.getStatus response)))))
+      (testing "redirects on POST followed by Java client when option is set"
+        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
+                          (setForceRedirects true))
+              response (SyncHttpClient/post options)]
+          (is (= 200 (.getStatus response)))
+          (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing (str "redirects on POST not followed by clojure client "
                     "when :force-redirects is not set to true")
         (let [opts     {:method           :post
