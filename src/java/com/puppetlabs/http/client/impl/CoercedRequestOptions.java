@@ -14,6 +14,7 @@ public class CoercedRequestOptions {
     private final HttpEntity body;
     private final SSLContext sslContext;
     private final boolean forceRedirects;
+    private final boolean followRedirects;
 
 
     public CoercedRequestOptions(URI uri,
@@ -21,13 +22,15 @@ public class CoercedRequestOptions {
                                  Header[] headers,
                                  HttpEntity body,
                                  SSLContext sslContext,
-                                 boolean forceRedirects) {
+                                 boolean forceRedirects,
+                                 boolean followRedirects) {
         this.uri = uri;
         this.method = method;
         this.headers = headers;
         this.body = body;
         this.sslContext = sslContext;
         this.forceRedirects = forceRedirects;
+        this.followRedirects = followRedirects;
     }
 
     public URI getUri() {
@@ -51,4 +54,6 @@ public class CoercedRequestOptions {
     }
 
     public boolean getForceRedirects() { return forceRedirects; }
+
+    public boolean getFollowRedirects() { return followRedirects; }
 }

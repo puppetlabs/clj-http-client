@@ -338,6 +338,17 @@
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
+      (testing "redirects not followed by Java client when :follow-redirects is false"
+        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
+                          (setFollowRedirects false))
+              response (SyncHttpClient/get options)]
+          (is (= 302 (.getStatus response)))))
+      (testing ":follow-redirects overrides :force-redirects for Java client"
+        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
+                          (setFollowRedirects false)
+                          (setForceRedirects true))
+              response (SyncHttpClient/get options)]
+          (is (= 302 (.getStatus response)))))
       (testing (str "redirects on POST not followed by clojure client "
                     "when :force-redirects is not set to true")
         (let [opts     {:method           :post

@@ -187,6 +187,17 @@
               response (AsyncHttpClient/post options)]
           (is (= 200 (.getStatus (.deref response))))
           (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+      (testing "redirects not followed by Java client when :follow-redirects is false"
+        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
+                          (setFollowRedirects false))
+              response (AsyncHttpClient/get options)]
+          (is (= 302 (.getStatus (.deref response))))))
+      (testing ":follow-redirects overrides :force-redirects for Java client"
+        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
+                          (setFollowRedirects false)
+                          (setForceRedirects true))
+              response (AsyncHttpClient/get options)]
+          (is (= 302 (.getStatus (.deref response))))))
       (testing (str "redirects on POST not followed by clojure client "
                     "when :force-redirects is not set to true")
         (let [opts     {:method           :post

@@ -25,6 +25,7 @@ public class RequestOptions {
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
     private boolean forceRedirects = false;
+    private boolean followRedirects = true;
 
     public RequestOptions(URI uri) {
         this.uri = uri;
@@ -127,6 +128,12 @@ public class RequestOptions {
     public boolean getForceRedirects() { return forceRedirects; }
     public RequestOptions setForceRedirects(boolean forceRedirects) {
         this.forceRedirects = forceRedirects;
+        return this;
+    }
+
+    public boolean getFollowRedirects() { return followRedirects; }
+    public RequestOptions setFollowRedirects(boolean followRedirects) {
+        this.followRedirects = followRedirects;
         return this;
     }
 }
