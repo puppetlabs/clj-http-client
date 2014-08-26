@@ -34,7 +34,7 @@
   [opts :- common/ClientOptions]
   (let [configured-opts (async/configure-ssl (async/extract-ssl-opts opts))
         client-builder  (HttpAsyncClients/custom)
-        client          (do (if (:ssl-context configured-opts)
+        client          (do (when (:ssl-context configured-opts)
                               (.setSSLContext client-builder
                                               (:ssl-context configured-opts)))
                             (.setRedirectStrategy client-builder
