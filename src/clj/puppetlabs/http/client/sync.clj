@@ -32,15 +32,13 @@
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
-  (let [force-redirects (:force-redirects opts)
-        opts            (async/configure-ssl (async/extract-ssl-opts opts))
+  (let [configured-opts (async/configure-ssl (async/extract-ssl-opts opts))
         client-builder  (HttpAsyncClients/custom)
-        client          (do (if (:ssl-context opts)
+        client          (do (if (:ssl-context configured-opts)
                               (.setSSLContext client-builder
-                                              (:ssl-context opts)))
-                            (if force-redirects
-                              (.setRedirectStrategy client-builder
-                                                    (LaxRedirectStrategy.)))
+                                              (:ssl-context configured-opts)))
+                            (.setRedirectStrategy client-builder
+                                                  (async/redirect-strategy opts))
                             (.build client-builder))]
     (.start client)
     (reify common/HTTPClient

@@ -354,10 +354,32 @@
               response (sync/post "http://localhost:8080/hello" opts)]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (:body response)))))
+      (testing (str "redirects not followed by clojure client when :follow-redirects "
+                    "is set to false")
+        (let [response (sync/get "http://localhost:8080/hello" {:as :text
+                                                                 :follow-redirects false})]
+          (is (= 302 (:status response)))))
+      (testing ":follow-redirects overrides :force-redirects with clojure client"
+        (let [response (sync/get "http://localhost:8080/hello" {:as :text
+                                                                 :follow-redirects false
+                                                                 :force-redirects true})]
+          (is (= 302 (:status response)))))
       (testing (str "redirects on POST followed by persistent clojure client "
                     "when option is set")
         (let [client (sync/create-client {:force-redirects true})
               response (common/post client "http://localhost:8080/hello" {:as :text})]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (:body response)))
+          (common/close client)))
+      (testing (str "persistent clojure client does not follow redirects when "
+                    ":follow-redirects is set to false")
+        (let [client (sync/create-client {:follow-redirects false})
+              response (common/get client "http://localhost:8080/hello" {:as :text})]
+          (is (= 302 (:status response)))
+          (common/close client)))
+      (testing ":follow-redirects overrides :force-redirects with persistent clj client"
+        (let [client (sync/create-client {:follow-redirects false
+                                           :force-redirects true})
+              response (common/get client "http://localhost:8080/hello" {:as :text})]
+          (is (= 302 (:status response)))
           (common/close client))))))

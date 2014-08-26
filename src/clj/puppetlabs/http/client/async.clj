@@ -24,7 +24,8 @@
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
            (com.puppetlabs.http.client.impl Compression)
-           (org.apache.http.impl.client LaxRedirectStrategy))
+           (org.apache.http.client RedirectStrategy)
+           (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy))
   (:require [puppetlabs.certificate-authority.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -237,7 +238,8 @@
 
 (schema/defn extract-client-opts :- common/ClientOptions
   [opts :- common/UserRequestOptions]
-  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key :force-redirects]))
+  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key
+                     :force-redirects :follow-redirects]))
 
 (schema/defn extract-ssl-opts :- common/SslOptions
   [opts :- common/ClientOptions]
@@ -247,17 +249,31 @@
   [opts :- common/UserRequestOptions]
   (select-keys opts [:url :method :headers :body :decompress-body :as :persistent :query-params]))
 
-(schema/defn create-default-client :- common/Client
+(schema/defn ^:always-validate redirect-strategy :- RedirectStrategy
   [opts :- common/ClientOptions]
-  (let [force-redirects (:force-redirects opts)
-        configured-opts (configure-ssl (extract-ssl-opts opts))
+  (let [follow-redirects (:follow-redirects opts)
+        force-redirects (:force-redirects opts)]
+    (cond
+      (and (not (nil? follow-redirects)) (not follow-redirects))
+        (proxy [RedirectStrategy] []
+          (isRedirected [req resp context]
+            false)
+          (getRedirect [req resp context]
+            nil))
+        force-redirects
+          (LaxRedirectStrategy.)
+        :else
+          (DefaultRedirectStrategy.))))
+
+(schema/defn ^:always-validate create-default-client :- common/Client
+  [opts :- common/ClientOptions]
+  (let [configured-opts (configure-ssl (extract-ssl-opts opts))
         client-builder  (HttpAsyncClients/custom)
         client          (do (if (:ssl-context configured-opts)
                               (.setSSLContext client-builder
                                               (:ssl-context configured-opts)))
-                            (if force-redirects
-                              (.setRedirectStrategy client-builder
-                                                    (LaxRedirectStrategy.)))
+                            (.setRedirectStrategy client-builder
+                                                  (redirect-strategy opts))
                             (.build client-builder))]
     (.start client)
     client))
@@ -316,7 +332,10 @@
       respectively.  Defaults to `:stream`.
   * :query-params - used to set the query parameters of an http request
   * :force-redirects - used to set whether or not the client should follow
-      redirects. Defaults to false.
+      redirects on POST or PUT requests. Defaults to false.
+  * :follow-redirects - used to set whether or  not the client should follow
+      redirects in general. Defaults to true. If set to false, will override
+      the :force-redirects setting.
 
   SSL options:
 
@@ -335,15 +354,13 @@
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
-  (let [force-redirects (:force-redirects opts)
-        opts            (configure-ssl (extract-ssl-opts opts))
+  (let [configured-opts (configure-ssl (extract-ssl-opts opts))
         client-builder  (HttpAsyncClients/custom)
-        client          (do (if (:ssl-context opts)
+        client          (do (if (:ssl-context configured-opts)
                               (.setSSLContext client-builder
-                                              (:ssl-context opts)))
-                            (if force-redirects
-                              (.setRedirectStrategy client-builder
-                                                    (LaxRedirectStrategy.)))
+                                              (:ssl-context configured-opts)))
+                            (.setRedirectStrategy client-builder
+                                                  (redirect-strategy opts))
                             (.build client-builder))]
     (.start client)
     (reify common/HTTPClient

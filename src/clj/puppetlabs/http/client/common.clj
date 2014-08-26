@@ -57,7 +57,8 @@
    (ok :ssl-cert)         UrlOrString
    (ok :ssl-key)          UrlOrString
    (ok :ssl-ca-cert)      UrlOrString
-   (ok :force-redirects) schema/Bool})
+   (ok :force-redirects)  schema/Bool
+   (ok :follow-redirects) schema/Bool})
 
 (def RawUserRequestOptions
   "The list of request options passed by a user into the
@@ -98,27 +99,28 @@
 (def SslOptions
   (schema/either {} SslContextOptions SslCertOptions SslCaCertOptions))
 
-(def RedirectOption
-  {(schema/optional-key :force-redirects) schema/Bool})
+(def RedirectOptions
+  {(schema/optional-key :force-redirects)  schema/Bool
+   (schema/optional-key :follow-redirects) schema/Bool})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after
   validating the RawUserRequestClientOptions and merging it with the defaults."
   (schema/either
-    (merge RequestOptions RedirectOption)
-    (merge RequestOptions SslContextOptions RedirectOption)
-    (merge RequestOptions SslCaCertOptions RedirectOption)
-    (merge RequestOptions SslCertOptions RedirectOption)))
+    (merge RequestOptions RedirectOptions)
+    (merge RequestOptions SslContextOptions RedirectOptions)
+    (merge RequestOptions SslCaCertOptions RedirectOptions)
+    (merge RequestOptions SslCertOptions RedirectOptions)))
 
 (def ClientOptions
   "The options from UserRequestOptions that are related to the
    instantiation/management of a client. This is everything
    from UserRequestOptions not included in RequestOptions."
   (schema/either
-    RedirectOption
-    (merge SslContextOptions RedirectOption)
-    (merge SslCertOptions RedirectOption)
-    (merge SslCaCertOptions RedirectOption)))
+    RedirectOptions
+    (merge SslContextOptions RedirectOptions)
+    (merge SslCertOptions RedirectOptions)
+    (merge SslCaCertOptions RedirectOptions)))
 
 (def ResponseCallbackFn
   (schema/maybe (schema/pred ifn?)))
