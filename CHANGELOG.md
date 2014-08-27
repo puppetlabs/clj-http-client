@@ -1,3 +1,7 @@
+## 0.2.6
+ * Add :follow-redirects and :force-redirects options to the clojure client.
+ * Add followRedirects and forceRedirects options to the Java client.
+
 ## 0.2.5
  * Add an overloaded constructor for `RequestOptions` that accepts a String uri
 
