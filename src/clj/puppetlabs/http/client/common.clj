@@ -41,8 +41,8 @@
 (def BodyType
   (schema/enum :text :stream))
 
-(def RawUserRequestOptions
-  "The list of Request options passed by a user into
+(def RawUserRequestClientOptions
+  "The list of Request and client options passed by a user into
   the request function. Allows the user to configure
   both a client and a request."
   {:url                   UrlOrString
@@ -56,21 +56,34 @@
    (ok :ssl-context)      SSLContext
    (ok :ssl-cert)         UrlOrString
    (ok :ssl-key)          UrlOrString
-   (ok :ssl-ca-cert)      UrlOrString})
+   (ok :ssl-ca-cert)      UrlOrString
+   (ok :force-redirects)  schema/Bool
+   (ok :follow-redirects) schema/Bool})
+
+(def RawUserRequestOptions
+  "The list of request options passed by a user into the
+  request function. Allows the user to configure a request."
+  {:url                   UrlOrString
+   :method                schema/Keyword
+   (ok :headers)          Headers
+   (ok :body)             Body
+   (ok :decompress-body)  schema/Bool
+   (ok :as)               BodyType
+   (ok :query-params)     {schema/Str schema/Str}})
 
 (def RequestOptions
   "The options from UserRequestOptions that have to do with the
   configuration and settings for an individual request. This is
   everything from UserRequestOptions not included in
   ClientOptions."
-  {:url               UrlOrString
-   :method            schema/Keyword
-   :headers           Headers
-   :body              Body
-   :decompress-body   schema/Bool
-   :as                BodyType
-   (ok :persistent)   schema/Bool
-   (ok :query-params) {schema/Str schema/Str}})
+  {:url                   UrlOrString
+   :method                schema/Keyword
+   :headers               Headers
+   :body                  Body
+   :decompress-body       schema/Bool
+   :as                    BodyType
+   (ok :persistent)       schema/Bool
+   (ok :query-params)     {schema/Str schema/Str}})
 
 (def SslContextOptions
   {:ssl-context SSLContext})
@@ -86,20 +99,28 @@
 (def SslOptions
   (schema/either {} SslContextOptions SslCertOptions SslCaCertOptions))
 
+(def RedirectOptions
+  {(schema/optional-key :force-redirects)  schema/Bool
+   (schema/optional-key :follow-redirects) schema/Bool})
+
 (def UserRequestOptions
-  "A cleaned-up version of RawUserRequestOptions, which is formed after
-  validating the RawUserRequestOptions and merging it with the defaults."
+  "A cleaned-up version of RawUserRequestClientOptions, which is formed after
+  validating the RawUserRequestClientOptions and merging it with the defaults."
   (schema/either
-    RequestOptions
-    (merge RequestOptions SslContextOptions)
-    (merge RequestOptions SslCaCertOptions)
-    (merge RequestOptions SslCertOptions)))
+    (merge RequestOptions RedirectOptions)
+    (merge RequestOptions SslContextOptions RedirectOptions)
+    (merge RequestOptions SslCaCertOptions RedirectOptions)
+    (merge RequestOptions SslCertOptions RedirectOptions)))
 
 (def ClientOptions
   "The options from UserRequestOptions that are related to the
    instantiation/management of a client. This is everything
    from UserRequestOptions not included in RequestOptions."
-  SslOptions)
+  (schema/either
+    RedirectOptions
+    (merge SslContextOptions RedirectOptions)
+    (merge SslCertOptions RedirectOptions)
+    (merge SslCaCertOptions RedirectOptions)))
 
 (def ResponseCallbackFn
   (schema/maybe (schema/pred ifn?)))

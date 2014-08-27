@@ -23,3 +23,18 @@
                     :url          "http://localhost:8080/params/"
                     :query-params queryparams
                     :as           :text})
+
+(defn redirect-test-handler
+  [req]
+  (condp = (:uri req)
+    "/hello/world" {:status 200 :body "Hello, World!"}
+    "/hello/"       {:status 301
+                     :headers {"Location" "/hello/world"}
+                     :body    ""}
+    {:status 404 :body "D'oh"}))
+
+(tk/defservice redirect-web-service
+  [[:WebserverService add-ring-handler]]
+  (init [this context]
+        (add-ring-handler redirect-test-handler "/hello")
+        context))
