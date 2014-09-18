@@ -21,7 +21,7 @@
            (org.apache.http.message BasicHeader)
            (org.apache.http Consts Header)
            (org.apache.http.nio.entity NStringEntity)
-           (org.apache.http.entity InputStreamEntity ContentType)
+           (org.apache.http.entity InputStreamEntity BufferedHttpEntity ContentType)
            (java.io InputStream)
            (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
@@ -126,18 +126,22 @@
         (ContentType/create (.getMimeType content-type) Consts/UTF_8)))))
 
 (defn- coerce-opts
-  [{:keys [url body query-params] :as opts}]
+  [{:keys [url body force-redirects query-params] :as opts}]
   (let [url          (parse-url url query-params)
+        method       (clojure.core/get opts :method :get)
         content-type (content-type opts)]
     {:url     url
-     :method  (clojure.core/get opts :method :get)
+     :method  method
      :headers (prepare-headers opts content-type)
-     :body    (cond
-                (string? body) (if content-type
-                                 (NStringEntity. body content-type)
-                                 (NStringEntity. body))
-                (instance? InputStream body) (InputStreamEntity. body)
-                :else body)}))
+     :body    (let [entity (cond
+                             (string? body) (if content-type
+                                              (NStringEntity. body content-type)
+                                              (NStringEntity. body))
+                             (instance? InputStream body) (InputStreamEntity. body)
+                             :else body)]
+                 (if (and entity force-redirects (contains? #{:patch :post :put} method))
+                   (BufferedHttpEntity. entity)
+                   entity))}))
 
 (defn- construct-request
   [method url]
