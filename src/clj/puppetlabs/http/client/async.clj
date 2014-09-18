@@ -19,7 +19,7 @@
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.concurrent FutureCallback)
            (org.apache.http.message BasicHeader)
-           (org.apache.http Header)
+           (org.apache.http Consts Header)
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
@@ -112,7 +112,7 @@
      :method  (clojure.core/get opts :method :get)
      :headers (prepare-headers opts)
      :body    (cond
-                (string? body) (NStringEntity. body)
+                (string? body) (NStringEntity. body Consts/UTF_8)
                 (instance? InputStream body) (InputStreamEntity. body)
                 :else body)}))
 

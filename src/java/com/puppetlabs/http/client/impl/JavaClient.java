@@ -70,11 +70,8 @@ public class JavaClient {
         HttpEntity body = null;
 
         if (options.getBody() instanceof String) {
-            try {
-                body = new NStringEntity((String)options.getBody());
-            } catch (UnsupportedEncodingException e) {
-                throw new HttpClientException("Unable to create request body", e);
-            }
+            body = new NStringEntity((String)options.getBody(),
+                    Consts.UTF_8);
         } else if (options.getBody() instanceof InputStream) {
             body = new InputStreamEntity((InputStream)options.getBody());
         }

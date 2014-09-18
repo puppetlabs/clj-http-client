@@ -217,8 +217,12 @@
 
 (defn req-body-app
   [req]
-  {:status  200
-   :body    (slurp (:body req))})
+  (let [encoding (if (:character-encoding req)
+                   (:character-encoding req)
+                   "UTF-8")]
+    {:status  200
+     :headers {"Content-Type"(str "text/plain; charset=" encoding)}
+     :body    (slurp (:body req))}))
 
 (tk/defservice test-body-web-service
                [[:WebserverService add-ring-handler]]
@@ -233,19 +237,28 @@
       {:webserver {:port 10000}}
       (testing "java sync client: string body for post request"
         (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (.setBody "foo"))
+                          (.setBody "foo�"))
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
-          (is (= "foo" (slurp (.getBody response)))))
+          (is (= "foo�" (slurp (.getBody response))))))
+      (testing "java sync client: input stream body for post request"
         (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (.setBody (ByteArrayInputStream. (.getBytes "foo" "UTF-8"))))
+                          (.setBody (ByteArrayInputStream.
+                                      (.getBytes "foo�" "UTF-8"))))
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
-          (is (= "foo" (slurp (.getBody response))))))
+          (is (= "foo�" (slurp (.getBody response))))))
       (testing "clojure sync client: string body for post request"
-        (let [response (sync/post "http://localhost:10000/hello/" {:body (io/input-stream (.getBytes "foo" "UTF-8"))})]
+        (let [response (sync/post "http://localhost:10000/hello/"
+                                  {:body "foo�"})]
           (is (= 200 (:status response)))
-          (is (= "foo" (slurp (:body response)))))))))
+          (is (= "foo�" (slurp (:body response))))))
+      (testing "clojure sync client: input stream body for post request"
+        (let [response (sync/post "http://localhost:10000/hello/"
+                                  {:body (io/input-stream
+                                           (.getBytes "foo�" "UTF-8"))})]
+          (is (= 200 (:status response)))
+          (is (= "foo�" (slurp (:body response)))))))))
 
 (def compressible-body (apply str (repeat 1000 "f")))
 
