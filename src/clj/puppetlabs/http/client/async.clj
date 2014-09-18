@@ -19,7 +19,7 @@
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.concurrent FutureCallback)
            (org.apache.http.message BasicHeader)
-           (org.apache.http Header)
+           (org.apache.http Consts Header)
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
@@ -82,17 +82,30 @@
   [decompress-body? headers]
   (if (and decompress-body?
            (not (contains? headers "accept-encoding")))
-    (assoc headers "accept-encoding" (BasicHeader. "accept-encoding" "gzip, deflate"))
+    (assoc headers "accept-encoding"
+                   (BasicHeader. "Accept-Encoding" "gzip, deflate"))
+    headers))
+
+(defn- add-content-type-header
+  [content-type headers]
+  (if content-type
+    (assoc headers "content-type" (BasicHeader. "Content-Type"
+                                                (str (.getMimeType content-type)
+                                                     "; charset="
+                                                     (-> content-type
+                                                         .getCharset
+                                                         .name))))
     headers))
 
 (defn- prepare-headers
-  [{:keys [headers decompress-body]}]
+  [{:keys [headers decompress-body]} content-type]
   (->> headers
        (reduce
          (fn [acc [k v]]
            (assoc acc (str/lower-case k) (BasicHeader. k v)))
          {})
        (add-accept-encoding-header decompress-body)
+       (add-content-type-header content-type)
        vals
        (into-array Header)))
 
@@ -105,14 +118,28 @@
                               query-params)]
       (.build uri-builder))))
 
+(defn- content-type
+  [{:keys [headers]}]
+  (if-let [content-type-value (some #(when (= "content-type"
+                                           (clojure.string/lower-case (key %)))
+                                       (val %))
+                                    headers)]
+    (let [content-type (ContentType/parse content-type-value)]
+      (if (.getCharset content-type)
+        content-type
+        (ContentType/create (.getMimeType content-type) Consts/UTF_8)))))
+
 (defn- coerce-opts
   [{:keys [url body query-params] :as opts}]
-  (let [url (parse-url url query-params)]
+  (let [url          (parse-url url query-params)
+        content-type (content-type opts)]
     {:url     url
      :method  (clojure.core/get opts :method :get)
-     :headers (prepare-headers opts)
+     :headers (prepare-headers opts content-type)
      :body    (cond
-                (string? body) (NStringEntity. body)
+                (string? body) (if content-type
+                                 (NStringEntity. body content-type)
+                                 (NStringEntity. body))
                 (instance? InputStream body) (InputStreamEntity. body)
                 :else body)}))
 

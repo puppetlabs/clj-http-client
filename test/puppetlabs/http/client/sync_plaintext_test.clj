@@ -218,6 +218,8 @@
 (defn req-body-app
   [req]
   {:status  200
+   :headers (if-let [content-type (:content-type req)]
+              {"Content-Type" (:content-type req)})
    :body    (slurp (:body req))})
 
 (tk/defservice test-body-web-service
@@ -225,27 +227,98 @@
                (init [this context]
                      (add-ring-handler req-body-app "/hello")
                      context))
+(defn- validate-java-request
+  [body-to-send headers-to-send expected-content-type expected-response-body]
+  (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
+                    (.setBody body-to-send)
+                    (.setHeaders headers-to-send))
+        response (SyncHttpClient/post options)]
+    (is (= 200 (.getStatus response)))
+    (is (= (-> (.getHeaders response)
+               (.get "content-type"))
+           expected-content-type))
+    (is (= expected-response-body (slurp (.getBody response))))))
+
+(defn- validate-clj-request
+  [body-to-send headers-to-send expected-content-type expected-response-body]
+  (let [response (sync/post "http://localhost:10000/hello/"
+                            {:body body-to-send
+                             :headers headers-to-send})]
+    (is (= 200 (:status response)))
+    (is (= (get-in response [:headers "content-type"])
+           expected-content-type))
+    (is (= expected-response-body (slurp (:body response))))))
 
 (deftest sync-client-request-body-test
   (testlogging/with-test-logging
     (testutils/with-app-with-config req-body-app
       [jetty9/jetty9-service test-body-web-service]
       {:webserver {:port 10000}}
-      (testing "java sync client: string body for post request"
+      (testing "java sync client: string body for post request with explicit
+                content type and UTF-8 encoding uses UTF-8 encoding"
+        (validate-java-request "foo�"
+                               {"Content-Type" "text/plain; charset=utf-8"}
+                               "text/plain; charset=UTF-8"
+                               "foo�"))
+      (testing "java sync client: string body for post request with explicit
+                content type and ISO-8859-1 encoding uses ISO-8859-1 encoding"
+        (validate-java-request "foo�"
+                               {"Content-Type" "text/plain; charset=iso-8859-1"}
+                               "text/plain; charset=ISO-8859-1"
+                               "foo?"))
+      (testing "java sync client: string body for post request with explicit
+                content type but without explicit encoding uses UTF-8 encoding"
+        (validate-java-request "foo�"
+                               {"Content-Type" "text/plain"}
+                               "text/plain; charset=UTF-8"
+                               "foo�"))
+      (testing "java sync client: string body for post request without explicit
+                content or encoding uses ISO-8859-1 encoding"
+        (validate-java-request "foo�"
+                               nil
+                               "text/plain; charset=ISO-8859-1"
+                               "foo?"))
+      (testing "java sync client: input stream body for post request"
         (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (.setBody "foo"))
+                          (.setBody (ByteArrayInputStream.
+                                      (.getBytes "foo�" "UTF-8")))
+                          (.setHeaders {"Content-Type"
+                                        "text/plain; charset=UTF-8"}))
               response (SyncHttpClient/post options)]
           (is (= 200 (.getStatus response)))
-          (is (= "foo" (slurp (.getBody response)))))
-        (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (.setBody (ByteArrayInputStream. (.getBytes "foo" "UTF-8"))))
-              response (SyncHttpClient/post options)]
-          (is (= 200 (.getStatus response)))
-          (is (= "foo" (slurp (.getBody response))))))
-      (testing "clojure sync client: string body for post request"
-        (let [response (sync/post "http://localhost:10000/hello/" {:body (io/input-stream (.getBytes "foo" "UTF-8"))})]
+          (is (= "foo�" (slurp (.getBody response))))))
+      (testing "clojure sync client: string body for post request with explicit
+                content type and UTF-8 encoding uses UTF-8 encoding"
+        (validate-clj-request "foo�"
+                              {"content-type" "text/plain; charset=utf-8"}
+                              "text/plain; charset=UTF-8"
+                              "foo�"))
+      (testing "clojure sync client: string body for post request with explicit
+                content type and ISO-8859 encoding uses ISO-8859-1 encoding"
+        (validate-clj-request "foo�"
+                              {"content-type" "text/plain; charset=iso-8859-1"}
+                              "text/plain; charset=ISO-8859-1"
+                              "foo?"))
+      (testing "clojure sync client: string body for post request with explicit
+                content type but without explicit encoding uses UTF-8 encoding"
+        (validate-clj-request "foo�"
+                              {"content-type" "text/plain"}
+                              "text/plain; charset=UTF-8"
+                              "foo�"))
+      (testing "clojure sync client: string body for post request without explicit
+                content type or encoding uses ISO-8859-1 encoding"
+        (validate-clj-request "foo�"
+                              {}
+                              "text/plain; charset=ISO-8859-1"
+                              "foo?"))
+      (testing "clojure sync client: input stream body for post request"
+        (let [response (sync/post "http://localhost:10000/hello/"
+                                  {:body    (io/input-stream
+                                             (.getBytes "foo�" "UTF-8"))
+                                   :headers {"content-type"
+                                             "text/plain; charset=UTF-8"}})]
           (is (= 200 (:status response)))
-          (is (= "foo" (slurp (:body response)))))))))
+          (is (= "foo�" (slurp (:body response)))))))))
 
 (def compressible-body (apply str (repeat 1000 "f")))
 
