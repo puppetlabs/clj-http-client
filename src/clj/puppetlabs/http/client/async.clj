@@ -83,18 +83,14 @@
   (if (and decompress-body?
            (not (contains? headers "accept-encoding")))
     (assoc headers "accept-encoding"
-                   (BasicHeader. "Accept-Encoding" "gzip, deflate"))
+                   (BasicHeader. "accept-encoding" "gzip, deflate"))
     headers))
 
 (defn- add-content-type-header
   [content-type headers]
   (if content-type
     (assoc headers "content-type" (BasicHeader. "Content-Type"
-                                                (str (.getMimeType content-type)
-                                                     "; charset="
-                                                     (-> content-type
-                                                         .getCharset
-                                                         .name))))
+                                                (.toString content-type)))
     headers))
 
 (defn- prepare-headers

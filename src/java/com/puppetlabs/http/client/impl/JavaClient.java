@@ -53,8 +53,7 @@ public class JavaClient {
 
         if (contentType != null) {
             result.put("content-type", new BasicHeader("Content-Type",
-                    contentType.getMimeType() + "; charset=" +
-                    contentType.getCharset().name()));
+                    contentType.toString()));
         }
 
         return result.values().toArray(new Header[result.size()]);
