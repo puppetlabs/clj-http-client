@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -34,7 +36,8 @@ public class JavaClient {
 
     private static final String PROTOCOL = "TLS";
 
-    private static Header[] prepareHeaders(RequestOptions options) {
+    private static Header[] prepareHeaders(RequestOptions options,
+                                           ContentType contentType) {
         Map<String, Header> result = new HashMap<String, Header>();
         Map<String, String> origHeaders = options.getHeaders();
         if (origHeaders == null) {
@@ -44,10 +47,49 @@ public class JavaClient {
             result.put(entry.getKey().toLowerCase(), new BasicHeader(entry.getKey(), entry.getValue()));
         }
         if (options.getDecompressBody() &&
-                (! origHeaders.containsKey("accept-encoding"))) {
+                (! result.containsKey("accept-encoding"))) {
             result.put("accept-encoding", new BasicHeader("Accept-Encoding", "gzip, deflate"));
         }
+
+        if (contentType != null) {
+            result.put("content-type", new BasicHeader("Content-Type",
+                    contentType.toString()));
+        }
+
         return result.values().toArray(new Header[result.size()]);
+    }
+
+    private static ContentType getContentType (RequestOptions options) {
+        ContentType contentType = null;
+
+        Map<String, String> headers = options.getHeaders();
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                if (entry.getKey().toLowerCase().equals("content-type")) {
+                    String contentTypeValue = entry.getValue();
+                    if (contentTypeValue != null && !contentTypeValue.isEmpty()) {
+                        try {
+                            contentType = ContentType.parse(contentTypeValue);
+                        }
+                        catch (ParseException e) {
+                            throw new HttpClientException(
+                                    "Unable to parse request content type", e);
+                        }
+                        catch (UnsupportedCharsetException e) {
+                            throw new HttpClientException(
+                                    "Unsupported content type charset", e);
+                        }
+                        if (contentType.getCharset() == null) {
+                            contentType = ContentType.create(
+                                    contentType.getMimeType(),
+                                    Consts.UTF_8);
+                        }
+                    }
+                }
+            }
+        }
+
+        return contentType;
     }
 
     private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
@@ -65,16 +107,27 @@ public class JavaClient {
             method = HttpMethod.GET;
         }
 
-        Header[] headers = prepareHeaders(options);
+        ContentType contentType = getContentType(options);
+
+        Header[] headers = prepareHeaders(options, contentType);
 
         HttpEntity body = null;
 
         if (options.getBody() instanceof String) {
-            try {
-                body = new NStringEntity((String)options.getBody());
-            } catch (UnsupportedEncodingException e) {
-                throw new HttpClientException("Unable to create request body", e);
+            String originalBody = (String) options.getBody();
+            if (contentType != null) {
+                body = new NStringEntity(originalBody, contentType);
             }
+            else {
+                try {
+                    body = new NStringEntity(originalBody);
+                }
+                catch (UnsupportedEncodingException e) {
+                    throw new HttpClientException(
+                            "Unable to create request body", e);
+                }
+            }
+
         } else if (options.getBody() instanceof InputStream) {
             body = new InputStreamEntity((InputStream)options.getBody());
         }
