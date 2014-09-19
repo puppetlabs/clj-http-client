@@ -1,3 +1,8 @@
+## 0.2.7
+ This is a bugfix release.
+
+ * Fix a bug where the character encoding was always being set to ISO-8859-1 w/o a charset ever being explicitly specified in the Content-Type header.  We now honor the existing charset if there is one in the header, and otherwise we use UTF-8 and explicitly add the charset to the header.
+
 ## 0.2.6
  * Add :follow-redirects and :force-redirects options to the clojure client.
  * Add followRedirects and forceRedirects options to the Java client.
