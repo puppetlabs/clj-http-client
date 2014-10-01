@@ -231,7 +231,7 @@ public class JavaClient {
     private static CloseableHttpAsyncClient createClient(CoercedRequestOptions coercedOptions) {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
-            clientBuilder.setSSLContext(coercedOptions.getSslContext()).build();
+            clientBuilder.setSSLContext(coercedOptions.getSslContext());
         }
         RedirectStrategy redirectStrategy;
         if (!coercedOptions.getFollowRedirects()) {
