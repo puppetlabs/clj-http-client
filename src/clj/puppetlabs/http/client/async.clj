@@ -25,7 +25,8 @@
            (java.io InputStream)
            (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
-           (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy))
+           (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
+           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy))
   (:require [puppetlabs.certificate-authority.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -293,10 +294,14 @@
   (let [configured-opts (configure-ssl (extract-ssl-opts opts))
         client-builder  (HttpAsyncClients/custom)
         client          (do (when (:ssl-context configured-opts)
-                              (.setSSLContext client-builder
-                                              (:ssl-context configured-opts)))
-                            (.setRedirectStrategy client-builder
-                                                  (redirect-strategy opts))
+                              (.setSSLStrategy
+                                client-builder
+                                (SSLIOSessionStrategy.
+                                  (:ssl-context configured-opts)
+                                  SSLIOSessionStrategy/BROWSER_COMPATIBLE_HOSTNAME_VERIFIER)))
+                            (.setRedirectStrategy
+                              client-builder
+                              (redirect-strategy opts))
                             (.build client-builder))]
     (.start client)
     client))

@@ -15,6 +15,7 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
 
@@ -231,7 +232,8 @@ public class JavaClient {
     private static CloseableHttpAsyncClient createClient(CoercedRequestOptions coercedOptions) {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
-            clientBuilder.setSSLContext(coercedOptions.getSslContext());
+            clientBuilder.setSSLStrategy(new SSLIOSessionStrategy(coercedOptions.getSslContext(),
+                    SSLIOSessionStrategy.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER));
         }
         RedirectStrategy redirectStrategy;
         if (!coercedOptions.getFollowRedirects()) {
