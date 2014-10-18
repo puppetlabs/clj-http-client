@@ -12,7 +12,8 @@
 ;; these methods.
 
 (ns puppetlabs.http.client.async
-  (:import (com.puppetlabs.http.client HttpMethod HttpClientException)
+  (:import (com.puppetlabs.http.client HttpMethod HttpClientException
+                                       RequestOptions)
            (org.apache.http.nio.client HttpAsyncClient)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (org.apache.http.client.methods HttpGet HttpHead HttpPost HttpPut HttpTrace HttpDelete HttpOptions HttpPatch)
@@ -26,7 +27,8 @@
            (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
-           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy))
+           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
+           (org.apache.http.conn.ssl SSLContexts))
   (:require [puppetlabs.certificate-authority.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -64,7 +66,7 @@
   [req]
   (initialize-ssl-context-from-ca-pem req))
 
-(schema/defn configure-ssl :- (schema/either {} common/SslContextOptions)
+(schema/defn configure-ssl-ctxt :- (schema/either {} common/SslContextOptions)
   "Configures a request map to have an SSLContext. It will use an existing one
   (stored in :ssl-context) if already present, and will fall back to a set of
   PEM files (stored in :ssl-cert, :ssl-key, and :ssl-ca-cert) if those are present.
@@ -263,6 +265,7 @@
 (schema/defn extract-client-opts :- common/ClientOptions
   [opts :- common/UserRequestOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key
+                     :ssl-protocols :cipher-suites
                      :force-redirects :follow-redirects]))
 
 (schema/defn extract-ssl-opts :- common/SslOptions
@@ -272,6 +275,18 @@
 (schema/defn extract-request-opts :- common/RequestOptions
   [opts :- common/UserRequestOptions]
   (select-keys opts [:url :method :headers :body :decompress-body :as :persistent :query-params]))
+
+(schema/defn ^:always-validate ssl-strategy :- SSLIOSessionStrategy
+  [ssl-ctxt-opts :- common/SslContextOptions
+   ssl-prot-opts :- common/SslProtocolOptions]
+  (SSLIOSessionStrategy.
+    (:ssl-context ssl-ctxt-opts)
+    (if (contains? ssl-prot-opts :ssl-protocols)
+      (into-array String (:ssl-protocols ssl-prot-opts))
+      RequestOptions/DEFAULT_SSL_PROTOCOLS)
+    (if (contains? ssl-prot-opts :cipher-suites)
+      (into-array String (:cipher-suites ssl-prot-opts)))
+    SSLIOSessionStrategy/BROWSER_COMPATIBLE_HOSTNAME_VERIFIER))
 
 (schema/defn ^:always-validate redirect-strategy :- RedirectStrategy
   [opts :- common/ClientOptions]
@@ -291,17 +306,12 @@
 
 (schema/defn ^:always-validate create-default-client :- common/Client
   [opts :- common/ClientOptions]
-  (let [configured-opts (configure-ssl (extract-ssl-opts opts))
+  (let [ssl-ctxt-opts   (configure-ssl-ctxt (extract-ssl-opts opts))
+        ssl-prot-opts   (select-keys opts [:ssl-protocols :cipher-suites])
         client-builder  (HttpAsyncClients/custom)
-        client          (do (when (:ssl-context configured-opts)
-                              (.setSSLStrategy
-                                client-builder
-                                (SSLIOSessionStrategy.
-                                  (:ssl-context configured-opts)
-                                  SSLIOSessionStrategy/BROWSER_COMPATIBLE_HOSTNAME_VERIFIER)))
-                            (.setRedirectStrategy
-                              client-builder
-                              (redirect-strategy opts))
+        client          (do (when (:ssl-context ssl-ctxt-opts)
+                              (.setSSLStrategy client-builder (ssl-strategy ssl-ctxt-opts ssl-prot-opts)))
+                            (.setRedirectStrategy client-builder (redirect-strategy opts))
                             (.build client-builder))]
     (.start client)
     client))

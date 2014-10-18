@@ -12,9 +12,9 @@
   (let [opts {:ssl-cert (resource "ssl/cert.pem")
              :ssl-key (resource "ssl/key.pem")
              :ssl-ca-cert (resource "ssl/ca.pem")}
-        configured-opts (http/configure-ssl opts)]
+        configured-opts (http/configure-ssl-ctxt opts)]
 
-    (testing "configure-ssl sets up an SSLContext when given cert, key, ca-cert"
+    (testing "configure-ssl-ctxt sets up an SSLContext when given cert, key, ca-cert"
       (is (instance? SSLContext (:ssl-context configured-opts))))
 
     (testing "removes ssl-cert, ssl-key, ssl-ca-cert"
@@ -24,18 +24,18 @@
 
 (deftest ssl-config-with-ca-file
   (let [opts {:ssl-ca-cert (resource "ssl/ca.pem")}
-        configured-opts (http/configure-ssl opts)]
+        configured-opts (http/configure-ssl-ctxt opts)]
 
-    (testing "configure-ssl sets up an SSLContext when given ca-cert"
+    (testing "configure-ssl-ctxt sets up an SSLContext when given ca-cert"
       (is (instance? SSLContext (:ssl-context configured-opts))))
 
     (testing "removes ssl-ca-cert"
       (is (not (:ssl-ca-cert configured-opts))))))
 
 (deftest ssl-config-without-ssl-params
-  (let [configured-opts (http/configure-ssl {})]
+  (let [configured-opts (http/configure-ssl-ctxt {})]
 
-    (testing "configure-ssl does nothing when given no ssl parameters"
+    (testing "configure-ssl-ctxt does nothing when given no ssl parameters"
       (is (= {} configured-opts)))))
 
 (deftest ssl-config-with-context
@@ -43,7 +43,7 @@
                             (resource "ssl/cert.pem")
                             (resource "ssl/key.pem")
                             (resource "ssl/ca.pem"))}
-        configured-opts (http/configure-ssl opts)]
+        configured-opts (http/configure-ssl-ctxt opts)]
 
-    (testing "configure-ssl uses an existing ssl context"
+    (testing "configure-ssl-ctxt uses an existing ssl context"
       (is (instance? SSLContext (:ssl-context configured-opts))))))

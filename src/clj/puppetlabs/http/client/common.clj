@@ -29,8 +29,8 @@
 
 (def UrlOrString (schema/either schema/Str URL))
 
--;; TODO: replace this with a protocol
--(def Client CloseableHttpAsyncClient)
+;; TODO: replace this with a protocol
+(def Client CloseableHttpAsyncClient)
 
 (def Headers
   {schema/Str schema/Str})
@@ -57,6 +57,8 @@
    (ok :ssl-cert)         UrlOrString
    (ok :ssl-key)          UrlOrString
    (ok :ssl-ca-cert)      UrlOrString
+   (ok :ssl-protocols)    [schema/Str]
+   (ok :cipher-suites) [schema/Str]
    (ok :force-redirects)  schema/Bool
    (ok :follow-redirects) schema/Bool})
 
@@ -99,6 +101,10 @@
 (def SslOptions
   (schema/either {} SslContextOptions SslCertOptions SslCaCertOptions))
 
+(def SslProtocolOptions
+  {(schema/optional-key :ssl-protocols) [schema/Str]
+   (schema/optional-key :cipher-suites) [schema/Str]})
+
 (def RedirectOptions
   {(schema/optional-key :force-redirects)  schema/Bool
    (schema/optional-key :follow-redirects) schema/Bool})
@@ -108,9 +114,9 @@
   validating the RawUserRequestClientOptions and merging it with the defaults."
   (schema/either
     (merge RequestOptions RedirectOptions)
-    (merge RequestOptions SslContextOptions RedirectOptions)
-    (merge RequestOptions SslCaCertOptions RedirectOptions)
-    (merge RequestOptions SslCertOptions RedirectOptions)))
+    (merge RequestOptions SslContextOptions SslProtocolOptions RedirectOptions)
+    (merge RequestOptions SslCaCertOptions SslProtocolOptions RedirectOptions)
+    (merge RequestOptions SslCertOptions SslProtocolOptions RedirectOptions)))
 
 (def ClientOptions
   "The options from UserRequestOptions that are related to the
@@ -118,9 +124,9 @@
    from UserRequestOptions not included in RequestOptions."
   (schema/either
     RedirectOptions
-    (merge SslContextOptions RedirectOptions)
-    (merge SslCertOptions RedirectOptions)
-    (merge SslCaCertOptions RedirectOptions)))
+    (merge SslContextOptions SslProtocolOptions RedirectOptions)
+    (merge SslCertOptions SslProtocolOptions RedirectOptions)
+    (merge SslCaCertOptions SslProtocolOptions RedirectOptions)))
 
 (def ResponseCallbackFn
   (schema/maybe (schema/pred ifn?)))

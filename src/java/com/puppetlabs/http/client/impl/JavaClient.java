@@ -103,6 +103,18 @@ public class JavaClient {
             sslContext = getInsecureSslContext();
         }
 
+        String[] sslProtocols = null;
+        if (options.getSslProtocols() != null) {
+            sslProtocols = options.getSslProtocols();
+        } else {
+            sslProtocols = RequestOptions.DEFAULT_SSL_PROTOCOLS;
+        }
+
+        String[] sslCipherSuites = null;
+        if (options.getSslCipherSuites() != null) {
+            sslCipherSuites = options.getSslCipherSuites();
+        }
+
         HttpMethod method = options.getMethod();
         if (method == null) {
             method = HttpMethod.GET;
@@ -136,7 +148,7 @@ public class JavaClient {
         boolean forceRedirects = options.getForceRedirects();
         boolean followRedirects = options.getFollowRedirects();
 
-        return new CoercedRequestOptions(uri, method, headers, body, sslContext, forceRedirects, followRedirects);
+        return new CoercedRequestOptions(uri, method, headers, body, sslContext, sslProtocols, sslCipherSuites, forceRedirects, followRedirects);
     }
 
     private static SSLContext getInsecureSslContext() {
@@ -232,8 +244,11 @@ public class JavaClient {
     private static CloseableHttpAsyncClient createClient(CoercedRequestOptions coercedOptions) {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
-            clientBuilder.setSSLStrategy(new SSLIOSessionStrategy(coercedOptions.getSslContext(),
-                    SSLIOSessionStrategy.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER));
+            clientBuilder.setSSLStrategy(
+                    new SSLIOSessionStrategy(coercedOptions.getSslContext(),
+                            coercedOptions.getSslProtocols(),
+                            coercedOptions.getSslCipherSuites(),
+                            SSLIOSessionStrategy.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER));
         }
         RedirectStrategy redirectStrategy;
         if (!coercedOptions.getFollowRedirects()) {

@@ -12,6 +12,9 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 public class RequestOptions {
+    public static final String[] DEFAULT_SSL_PROTOCOLS =
+            new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"};
+
     private HttpAsyncClient client = null;
 
     private URI uri;
@@ -21,6 +24,8 @@ public class RequestOptions {
     private String sslCert;
     private String sslKey;
     private String sslCaCert;
+    private String[] sslProtocols;
+    private String[] sslCipherSuites;
     private boolean insecure = false;
     private Object body;
     private boolean decompressBody = true;
@@ -94,6 +99,22 @@ public class RequestOptions {
     }
     public RequestOptions setSslCaCert(String sslCaCert) {
         this.sslCaCert = sslCaCert;
+        return this;
+    }
+
+    public String[] getSslProtocols() {
+        return sslProtocols;
+    }
+    public RequestOptions setSslProtocols(String[] sslProtocols) {
+        this.sslProtocols = sslProtocols;
+        return this;
+    }
+
+    public String[] getSslCipherSuites() {
+        return sslCipherSuites;
+    }
+    public RequestOptions setSslCipherSuites(String[] sslCipherSuites) {
+        this.sslCipherSuites = sslCipherSuites;
         return this;
     }
 
