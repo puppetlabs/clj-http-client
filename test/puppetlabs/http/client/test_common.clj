@@ -28,7 +28,7 @@
   [req]
   (condp = (:uri req)
     "/hello/world" {:status 200 :body "Hello, World!"}
-    "/hello/"       {:status 301
+    "/hello"       {:status 302
                      :headers {"Location" "/hello/world"}
                      :body    ""}
     {:status 404 :body "D'oh"}))
