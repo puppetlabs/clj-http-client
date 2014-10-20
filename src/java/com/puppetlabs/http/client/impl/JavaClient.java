@@ -273,11 +273,16 @@ public class JavaClient {
                 promise.deliver(httpResponse);
             }
         } finally {
-            try {
-                client.close();
-            } catch (IOException e) {
-                throw new HttpClientException("Unable to close client", e);
-            }
+            // Call to AsyncClose.close added for TK-101.  Can't call client
+            // close from the current thread context because the Apache HTTP
+            // client library may have called through to this function from an
+            // i/o reactor thread and the client close might try to do a join on
+            // the i/o reactor threads, leading to a deadlock.  AsyncClose does
+            // the close on a different thread to avoid the deadlock.  Not a
+            // great solution but avoids the deadlock until an implementation
+            // that allows the originating request thread to perform the client
+            // close can be done.
+            AsyncClose.close(client);
         }
     }
 
