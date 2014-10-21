@@ -1,3 +1,9 @@
+## 0.3.0
+ This is a feature release.
+
+ * Add configuration settings for SSL Protocols and Cipher Suites to both the
+   Java and Clojure clients.
+
 ## 0.2.8
  This is a bugfix release.
 
