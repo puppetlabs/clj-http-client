@@ -1,5 +1,5 @@
 (def ks-version "0.7.2")
-(def tk-version "0.4.2")
+(def tk-version "0.5.1")
 
 (defproject puppetlabs/http-client "0.2.9-SNAPSHOT"
   :description "HTTP client wrapper"
@@ -12,14 +12,14 @@
   :pedantic? :abort
 
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [puppetlabs/certificate-authority "0.1.5"]
+                 [puppetlabs/certificate-authority "0.6.0"]
                  [org.clojure/tools.logging "0.2.6"]
                  [puppetlabs/kitchensink ~ks-version]
                  [org.slf4j/slf4j-api "1.7.6"]
                  [org.apache.httpcomponents/httpasyncclient "4.0.2"]
                  [org.apache.httpcomponents/httpcore "4.3.2"]
                  [commons-io "2.1"]
-                 [prismatic/schema "0.2.1"]]
+                 [prismatic/schema "0.2.2"]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -33,7 +33,7 @@
   :profiles {:dev {:dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]
                                   [puppetlabs/trapperkeeper ~tk-version]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.5.0"]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.9.0"]
                                   [spyscope "0.1.4"]]
                    :injections [(require 'spyscope.core)]}
              :sources-jar {:java-source-paths ^:replace []

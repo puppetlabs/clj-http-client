@@ -32,15 +32,7 @@
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
-  (let [configured-opts (async/configure-ssl (async/extract-ssl-opts opts))
-        client-builder  (HttpAsyncClients/custom)
-        client          (do (when (:ssl-context configured-opts)
-                              (.setSSLContext client-builder
-                                              (:ssl-context configured-opts)))
-                            (.setRedirectStrategy client-builder
-                                                  (async/redirect-strategy opts))
-                            (.build client-builder))]
-    (.start client)
+  (let [client (async/create-default-client opts)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
       (get [_ url opts] (request-with-client (assoc opts :method :get :url url) client))

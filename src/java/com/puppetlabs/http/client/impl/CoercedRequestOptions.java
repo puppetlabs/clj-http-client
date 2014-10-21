@@ -13,6 +13,8 @@ public class CoercedRequestOptions {
     private final Header[] headers;
     private final HttpEntity body;
     private final SSLContext sslContext;
+    private final String[] sslProtocols;
+    private final String[] sslCipherSuites;
     private final boolean forceRedirects;
     private final boolean followRedirects;
 
@@ -22,6 +24,8 @@ public class CoercedRequestOptions {
                                  Header[] headers,
                                  HttpEntity body,
                                  SSLContext sslContext,
+                                 String[] sslProtocols,
+                                 String[] sslCipherSuites,
                                  boolean forceRedirects,
                                  boolean followRedirects) {
         this.uri = uri;
@@ -29,6 +33,8 @@ public class CoercedRequestOptions {
         this.headers = headers;
         this.body = body;
         this.sslContext = sslContext;
+        this.sslProtocols = sslProtocols;
+        this.sslCipherSuites = sslCipherSuites;
         this.forceRedirects = forceRedirects;
         this.followRedirects = followRedirects;
     }
@@ -51,6 +57,14 @@ public class CoercedRequestOptions {
 
     public SSLContext getSslContext() {
         return sslContext;
+    }
+
+    public String[] getSslProtocols() {
+        return sslProtocols;
+    }
+
+    public String[] getSslCipherSuites() {
+        return sslCipherSuites;
     }
 
     public boolean getForceRedirects() { return forceRedirects; }
