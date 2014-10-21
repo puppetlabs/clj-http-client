@@ -24,7 +24,7 @@
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
-           (com.puppetlabs.http.client.impl Compression)
+           (com.puppetlabs.http.client.impl AsyncClose Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
@@ -234,8 +234,16 @@
   (try
     (deliver result (callback-response opts callback response))
     (finally
+      ;; Call to AsyncClose/close added for TK-101.  Can't call client close
+      ;; from the current thread context because the Apache HTTP client library
+      ;; may have called through to this function from an i/o reactor thread and
+      ;; the client close might try to do a join on the i/o reactor threads,
+      ;; leading to a deadlock.  AsyncClose does the close on a different thread
+      ;; to avoid the deadlock.  Not a great solution but avoids the deadlock
+      ;; until an implementation that allows the originating request thread to
+      ;; perform the client close can be done.
       (if (not (:persistent opts))
-        (.close client)))))
+        (AsyncClose/close client)))))
 
 (schema/defn future-callback
   [client :- common/Client
