@@ -30,6 +30,7 @@ public class AsyncClose {
                 this.closeable.close();
             } catch (IOException ioe) {
                 LOGGER.error("Async close error", ioe);
+                throw new RuntimeException("Async close error", ioe);
             }
         }
     }
