@@ -191,20 +191,20 @@
 
 (deftest sync-client-test-cipher-suites
   (testing "should not connect to a server with no overlapping cipher suites"
-    (with-server-with-protocols ["TLSv1.2"] ["TLS_RSA_WITH_AES_256_CBC_SHA256"]
+    (with-server-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_SHA"]
       (testing "java sync client"
         (is (java-unsupported-protocol-exception?
-              (java-https-get-with-protocols ["TLSv1.2"] ["TLS_RSA_WITH_AES_128_CBC_SHA256"]))))
+              (java-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]))))
       (testing "clojure sync client"
         (is (thrown? ConnectionClosedException
-              (clj-https-get-with-protocols ["TLSv1.2"] ["TLS_RSA_WITH_AES_128_CBC_SHA256"]))))))
+              (clj-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]))))))
   (testing "should connect to a server with overlapping cipher suites"
-    (with-server-with-protocols ["TLSv1.2"] ["TLS_RSA_WITH_AES_256_CBC_SHA256"]
+    (with-server-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]
       (testing "java sync client"
-        (let [response (java-https-get-with-protocols ["TLSv1.2"] ["TLS_RSA_WITH_AES_256_CBC_SHA256"])]
+        (let [response (java-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"])]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "clojure sync client"
-        (let [response (clj-https-get-with-protocols ["TLSv1.2"] ["TLS_RSA_WITH_AES_256_CBC_SHA256"])]
+        (let [response (clj-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"])]
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response)))))))))
