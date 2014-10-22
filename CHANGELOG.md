@@ -1,3 +1,8 @@
+## 0.3.1
+ This is a bugfix release.
+
+ * Fix a memory leak that occurred as a result of connection failures.
+
 ## 0.3.0
  This is a feature release.
 
