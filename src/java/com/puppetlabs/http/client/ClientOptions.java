@@ -1,12 +1,6 @@
 package com.puppetlabs.http.client;
 
-
-import org.apache.http.nio.client.HttpAsyncClient;
-
 import javax.net.ssl.SSLContext;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
 
 public class ClientOptions {
     public static final String[] DEFAULT_SSL_PROTOCOLS =

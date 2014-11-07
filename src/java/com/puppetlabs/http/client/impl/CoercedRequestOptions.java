@@ -4,7 +4,6 @@ import com.puppetlabs.http.client.HttpMethod;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 
-import javax.net.ssl.SSLContext;
 import java.net.URI;
 
 public class CoercedRequestOptions {

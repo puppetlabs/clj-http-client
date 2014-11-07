@@ -1,9 +1,10 @@
 package com.puppetlabs.http.client;
 
-
-import com.puppetlabs.http.client.impl.JavaClient;
-import com.puppetlabs.http.client.impl.Promise;
 import com.puppetlabs.http.client.impl.SslUtils;
+import com.puppetlabs.http.client.impl.Promise;
+import com.puppetlabs.http.client.impl.JavaClient;
+import com.puppetlabs.http.client.impl.PersistentSyncHttpClient;
+import com.puppetlabs.http.client.impl.CoercedClientOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,12 @@ public class SyncHttpClient {
             logAndRethrow("Error executing http request", response.getError());
         }
         return response;
+    }
+
+    public static PersistentSyncHttpClient createClient(ClientOptions clientOptions) {
+        clientOptions = SslUtils.configureSsl(clientOptions);
+        CoercedClientOptions coercedClientOptions = JavaClient.coerceClientOptions(clientOptions);
+        return new PersistentSyncHttpClient(JavaClient.createClient(coercedClientOptions));
     }
 
 

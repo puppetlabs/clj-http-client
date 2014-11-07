@@ -1,6 +1,9 @@
 package com.puppetlabs.http.client.impl;
 
-import com.puppetlabs.http.client.*;
+import com.puppetlabs.http.client.SyncHttpClient;
+import com.puppetlabs.http.client.Response;
+import com.puppetlabs.http.client.RequestOptions;
+import com.puppetlabs.http.client.HttpMethod;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +14,7 @@ import java.net.URISyntaxException;
 public class PersistentAsyncHttpClient {
     private CloseableHttpAsyncClient client;
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHttpClient.class);
-    
+
     public PersistentAsyncHttpClient(CloseableHttpAsyncClient client) {
         this.client = client;
     }
