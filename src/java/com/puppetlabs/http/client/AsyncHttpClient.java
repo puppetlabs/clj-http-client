@@ -1,8 +1,6 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.JavaClient;
-import com.puppetlabs.http.client.impl.Promise;
-import com.puppetlabs.http.client.impl.SslUtils;
+import com.puppetlabs.http.client.impl.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +15,13 @@ public class AsyncHttpClient {
 
         return JavaClient.request(requestOptions, clientOptions, null);
     }
-    
+
+    public static PersistentAsyncHttpClient createClient(ClientOptions clientOptions) {
+        clientOptions = SslUtils.configureSsl(clientOptions);
+        CoercedClientOptions coercedClientOptions = JavaClient.coerceClientOptions(clientOptions);
+        return new PersistentAsyncHttpClient(JavaClient.createClient(coercedClientOptions));
+    }
+
     public static Promise<Response> get(String url) throws URISyntaxException {
         return get(new URI(url));
     }

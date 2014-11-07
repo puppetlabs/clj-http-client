@@ -129,7 +129,7 @@ public class JavaClient {
         return new CoercedRequestOptions(uri, method, headers, body);
     }
 
-    private static CoercedClientOptions coerceClientOptions(ClientOptions options) {
+    public static CoercedClientOptions coerceClientOptions(ClientOptions options) {
         SSLContext sslContext = null;
         if (options.getSslContext() != null) {
             sslContext = options.getSslContext();
@@ -187,10 +187,18 @@ public class JavaClient {
     }
 
     public static Promise<Response> request(final RequestOptions requestOptions, final ClientOptions clientOptions, final IResponseCallback callback) {
-        CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions);
         CoercedClientOptions coercedClientOptions = coerceClientOptions(clientOptions);
 
         final CloseableHttpAsyncClient client = createClient(coercedClientOptions);
+
+        return requestWithClient(requestOptions, callback, client, false);
+    }
+
+    public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
+                                                      final IResponseCallback callback,
+                                                      final CloseableHttpAsyncClient client,
+                                                      final boolean persistent) {
+        CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions);
 
         HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
                 coercedRequestOptions.getUri(), coercedRequestOptions.getBody());
@@ -226,27 +234,27 @@ public class JavaClient {
                             new Response(requestOptions, origContentEncoding, body,
                                     headers, httpResponse.getStatusLine().getStatusCode(),
                                     contentType),
-                            callback, promise);
+                            callback, promise, persistent);
                 } catch (Exception e) {
-                    deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise);
+                    deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise, persistent);
                 }
             }
 
             @Override
             public void failed(Exception e) {
-                deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise);
+                deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise, persistent);
             }
 
             @Override
             public void cancelled() {
-                deliverResponse(client, requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise);
+                deliverResponse(client, requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise, persistent);
             }
         });
 
         return promise;
     }
 
-    private static CloseableHttpAsyncClient createClient(CoercedClientOptions coercedOptions) {
+    public static CloseableHttpAsyncClient createClient(CoercedClientOptions coercedOptions) {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
             clientBuilder.setSSLStrategy(
@@ -283,7 +291,7 @@ public class JavaClient {
 
     private static void deliverResponse(CloseableHttpAsyncClient client, RequestOptions options,
                                         Response httpResponse, IResponseCallback callback,
-                                        Promise<Response> promise) {
+                                        Promise<Response> promise, boolean persistent) {
         try {
             if (callback != null) {
                 try {
@@ -304,7 +312,9 @@ public class JavaClient {
             // great solution but avoids the deadlock until an implementation
             // that allows the originating request thread to perform the client
             // close can be done.
-            AsyncClose.close(client);
+            if (!persistent) {
+                AsyncClose.close(client);
+            }
         }
     }
 
