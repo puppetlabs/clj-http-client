@@ -20,11 +20,11 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
 
 import javax.net.ssl.*;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -33,7 +33,7 @@ import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JavaClient {
+public class JavaClient implements Closeable {
 
     private static final String PROTOCOL = "TLS";
 
@@ -93,9 +93,8 @@ public class JavaClient {
         return contentType;
     }
 
-    private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
-        URI uri = options.getUri();
-
+    private static CoercedClientOptions coerceClientOptions(
+            RequestOptions options) {
         SSLContext sslContext = null;
         if (options.getSslContext() != null) {
             sslContext = options.getSslContext();
@@ -114,6 +113,17 @@ public class JavaClient {
         if (options.getSslCipherSuites() != null) {
             sslCipherSuites = options.getSslCipherSuites();
         }
+
+        boolean forceRedirects = options.getForceRedirects();
+        boolean followRedirects = options.getFollowRedirects();
+
+        return new CoercedClientOptions(sslContext, sslProtocols,
+                sslCipherSuites, forceRedirects, followRedirects);
+    }
+
+    private static CoercedRequestOptions coerceRequestOptions(
+            RequestOptions options) {
+        URI uri = options.getUri();
 
         HttpMethod method = options.getMethod();
         if (method == null) {
@@ -145,10 +155,7 @@ public class JavaClient {
             body = new InputStreamEntity((InputStream)options.getBody());
         }
 
-        boolean forceRedirects = options.getForceRedirects();
-        boolean followRedirects = options.getFollowRedirects();
-
-        return new CoercedRequestOptions(uri, method, headers, body, sslContext, sslProtocols, sslCipherSuites, forceRedirects, followRedirects);
+        return new CoercedRequestOptions(uri, method, headers, body);
     }
 
     private static SSLContext getInsecureSslContext() {
@@ -182,10 +189,26 @@ public class JavaClient {
         return context;
     }
 
-    public static Promise<Response> request(final RequestOptions options, final IResponseCallback callback) {
-        CoercedRequestOptions coercedOptions = coerceRequestOptions(options);
+    private CloseableHttpAsyncClient client;
 
-        final CloseableHttpAsyncClient client = createClient(coercedOptions);
+    public JavaClient(final RequestOptions options) {
+        CoercedClientOptions coercedOptions = coerceClientOptions(options);
+        client = createClient(coercedOptions);
+    }
+
+    public void close() throws IOException {
+        client.close();
+        client = null;
+    }
+
+    public Promise<Response> request(final RequestOptions options,
+                                     final IResponseCallback callback) {
+        if (client == null) {
+            throw new IllegalStateException(
+                    "Cannot call request since client was already closed");
+        }
+
+        CoercedRequestOptions coercedOptions = coerceRequestOptions(options);
 
         HttpRequestBase request = constructRequest(coercedOptions.getMethod(),
                 coercedOptions.getUri(), coercedOptions.getBody());
@@ -241,7 +264,8 @@ public class JavaClient {
         return promise;
     }
 
-    private static CloseableHttpAsyncClient createClient(CoercedRequestOptions coercedOptions) {
+    private static CloseableHttpAsyncClient createClient(
+            CoercedClientOptions coercedOptions) {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
             clientBuilder.setSSLStrategy(
@@ -279,27 +303,14 @@ public class JavaClient {
     private static void deliverResponse(CloseableHttpAsyncClient client, RequestOptions options,
                                         Response httpResponse, IResponseCallback callback,
                                         Promise<Response> promise) {
-        try {
-            if (callback != null) {
-                try {
-                    promise.deliver(callback.handleResponse(httpResponse));
-                } catch (Exception ex) {
-                    promise.deliver(new Response(options, ex));
-                }
-            } else {
-                promise.deliver(httpResponse);
+        if (callback != null) {
+            try {
+                promise.deliver(callback.handleResponse(httpResponse));
+            } catch (Exception ex) {
+                promise.deliver(new Response(options, ex));
             }
-        } finally {
-            // Call to AsyncClose.close added for TK-101.  Can't call client
-            // close from the current thread context because the Apache HTTP
-            // client library may have called through to this function from an
-            // i/o reactor thread and the client close might try to do a join on
-            // the i/o reactor threads, leading to a deadlock.  AsyncClose does
-            // the close on a different thread to avoid the deadlock.  Not a
-            // great solution but avoids the deadlock until an implementation
-            // that allows the originating request thread to perform the client
-            // close can be done.
-            AsyncClose.close(client);
+        } else {
+            promise.deliver(httpResponse);
         }
     }
 
@@ -360,6 +371,8 @@ public class JavaClient {
 
     public static Object coerceBodyType(InputStream body, ResponseBodyType as,
                                          ContentType contentType) {
+        Object response = null;
+
         switch (as) {
             case TEXT:
                 String charset = "UTF-8";
@@ -367,13 +380,23 @@ public class JavaClient {
                     charset = contentType.getCharset().name();
                 }
                 try {
-                    return IOUtils.toString(body, charset);
+                    response = IOUtils.toString(body, charset);
                 } catch (IOException e) {
-                    throw new HttpClientException("Unable to read body as string", e);
+                    throw new HttpClientException(
+                            "Unable to read body as string", e);
                 }
+                try {
+                    body.close();
+                } catch (IOException e) {
+                    throw new HttpClientException(
+                            "Unable to close response stream", e);
+                }
+                break;
             default:
                 throw new HttpClientException("Unsupported body type: " + as);
         }
+
+        return response;
     }
 
 }

@@ -33,20 +33,32 @@ public class SyncHttpClient {
 
         options = SslUtils.configureSsl(options);
 
-        Promise<Response> promise =  JavaClient.request(options, null);
-
         Response response = null;
+        JavaClient client = new JavaClient(options);
         try {
-            response = promise.deref();
-        } catch (InterruptedException e) {
-            logAndRethrow("Error while waiting for http response", e);
+            Promise<Response> promise = client.request(options, null);
+
+            try {
+                response = promise.deref();
+            } catch (InterruptedException e) {
+                logAndRethrow("Error while waiting for http response", e);
+            }
+            if (response.getError() != null) {
+                logAndRethrow("Error executing http request",
+                        response.getError());
+            }
         }
-        if (response.getError() != null) {
-            logAndRethrow("Error executing http request", response.getError());
+        finally {
+            try {
+                client.close();
+            }
+            catch (IOException e) {
+                logAndRethrow("Error closing client", e);
+            }
         }
+
         return response;
     }
-
 
     public static Response get(String url) throws URISyntaxException {
         return get(new URI(url));
