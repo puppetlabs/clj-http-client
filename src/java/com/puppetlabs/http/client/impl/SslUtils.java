@@ -2,7 +2,7 @@ package com.puppetlabs.http.client.impl;
 
 import com.puppetlabs.certificate_authority.CertificateAuthority;
 import com.puppetlabs.http.client.HttpClientException;
-import com.puppetlabs.http.client.RequestOptions;
+import com.puppetlabs.http.client.ClientOptions;
 import com.puppetlabs.http.client.SyncHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public class SslUtils {
         throw new HttpClientException(msg, t);
     }
 
-    public static RequestOptions configureSsl(RequestOptions options) {
+    public static ClientOptions configureSsl(ClientOptions options) {
         if (options.getSslContext() != null) {
             return options;
         }

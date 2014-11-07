@@ -1,21 +1,14 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.certificate_authority.CertificateAuthority;
+
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.Promise;
 import com.puppetlabs.http.client.impl.SslUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileReader;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 
 public class SyncHttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHttpClient.class);
@@ -26,14 +19,14 @@ public class SyncHttpClient {
         throw new HttpClientException(msg, t);
     }
 
-    public static Response request(RequestOptions options) {
+    public static Response request(RequestOptions requestOptions, ClientOptions clientOptions) {
         // TODO: if we end up implementing an async version of the java API,
         // we should refactor this implementation so that it is based on the
         // async one, as Patrick has done in the clojure API.
 
-        options = SslUtils.configureSsl(options);
+        clientOptions = SslUtils.configureSsl(clientOptions);
 
-        Promise<Response> promise =  JavaClient.request(options, null);
+        Promise<Response> promise =  JavaClient.request(requestOptions, clientOptions, null);
 
         Response response = null;
         try {
@@ -52,67 +45,67 @@ public class SyncHttpClient {
         return get(new URI(url));
     }
     public static Response get(URI uri) {
-        return get(new RequestOptions(uri));
+        return get(new RequestOptions(uri), new ClientOptions());
     }
-    public static Response get(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.GET));
+    public static Response get(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.GET), clientOptions);
     }
 
     public static Response head(String url) throws URISyntaxException {
         return head(new URI(url));
     }
     public static Response head(URI uri) {
-        return head(new RequestOptions(uri));
+        return head(new RequestOptions(uri), new ClientOptions());
     }
-    public static Response head(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.HEAD));
+    public static Response head(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.HEAD), clientOptions);
     }
 
     public static Response post(String url) throws URISyntaxException {
         return post(new URI(url));
     }
-    public static Response post(URI uri) { return post(new RequestOptions(uri)); }
-    public static Response post(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.POST));
+    public static Response post(URI uri) { return post(new RequestOptions(uri), new ClientOptions()); }
+    public static Response post(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.POST), clientOptions);
     }
 
     public static Response put(String url) throws URISyntaxException {
         return put(new URI(url));
     }
-    public static Response put(URI uri) { return put(new RequestOptions(uri)); }
-    public static Response put(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.PUT));
+    public static Response put(URI uri) { return put(new RequestOptions(uri), new ClientOptions()); }
+    public static Response put(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.PUT), clientOptions);
     }
 
     public static Response delete(String url) throws URISyntaxException {
         return delete(new URI(url));
     }
-    public static Response delete(URI uri) { return delete(new RequestOptions(uri)); }
-    public static Response delete(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.DELETE));
+    public static Response delete(URI uri) { return delete(new RequestOptions(uri), new ClientOptions()); }
+    public static Response delete(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.DELETE), clientOptions);
     }
 
     public static Response trace(String url) throws URISyntaxException {
         return trace(new URI(url));
     }
-    public static Response trace(URI uri) { return trace(new RequestOptions(uri)); }
-    public static Response trace(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.TRACE));
+    public static Response trace(URI uri) { return trace(new RequestOptions(uri), new ClientOptions()); }
+    public static Response trace(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.TRACE), clientOptions);
     }
 
     public static Response options(String url) throws URISyntaxException {
         return options(new URI(url));
     }
-    public static Response options(URI uri) { return options(new RequestOptions(uri)); }
-    public static Response options(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.OPTIONS));
+    public static Response options(URI uri) { return options(new RequestOptions(uri), new ClientOptions()); }
+    public static Response options(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.OPTIONS), clientOptions);
     }
 
     public static Response patch(String url) throws URISyntaxException {
         return patch(new URI(url));
     }
-    public static Response patch(URI uri) { return patch(new RequestOptions(uri)); }
-    public static Response patch(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.PATCH));
+    public static Response patch(URI uri) { return patch(new RequestOptions(uri), new ClientOptions()); }
+    public static Response patch(RequestOptions requestOptions, ClientOptions clientOptions) {
+        return request(requestOptions.setMethod(HttpMethod.PATCH), clientOptions);
     }
 }
