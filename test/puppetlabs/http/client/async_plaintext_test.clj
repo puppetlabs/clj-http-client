@@ -120,12 +120,7 @@
           (let [response (.patch client request-options)]
             (is (= 200 (.getStatus (.deref response))))
             (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "client closes properly"
-          (.close client)
-          ; This sleep is here to avoid a race condition, as sometimes the get
-          ; request is made before the client can finish being closed
-          (Thread/sleep 1)
-          (is (thrown? IllegalStateException (.get client request-options))))))
+        (.close client)))
     (testing "clojure async client"
       (let [client (async/create-client {})]
         (testing "HEAD request with persistent async client"

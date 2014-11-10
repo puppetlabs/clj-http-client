@@ -124,9 +124,7 @@
           (let [response (.patch client request-options)]
             (is (= 200 (.getStatus response)))
             (is (= "Hello, World!" (slurp (.getBody response))))))
-        (.close client)
-        (is (thrown? HttpClientException
-                     (.get client request-options)))))
+        (.close client)))
     (testing "persistent clojure client"
       (let [client (sync/create-client {})]
         (testing "HEAD request with persistent sync client"
