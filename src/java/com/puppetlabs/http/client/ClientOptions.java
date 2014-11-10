@@ -17,6 +17,25 @@ public class ClientOptions {
     private boolean followRedirects = true;
 
     public ClientOptions() { }
+    public ClientOptions(SSLContext sslContext,
+                         String sslCert,
+                         String sslKey,
+                         String sslCaCert,
+                         String[] sslProtocols,
+                         String[] sslCipherSuites,
+                         boolean insecure,
+                         boolean forceRedirects,
+                         boolean followRedirects) {
+        this.sslContext = sslContext;
+        this.sslCert = sslCert;
+        this.sslKey = sslKey;
+        this.sslCaCert = sslCaCert;
+        this.sslProtocols = sslProtocols;
+        this.sslCipherSuites = sslCipherSuites;
+        this.insecure = insecure;
+        this.forceRedirects = forceRedirects;
+        this.followRedirects = followRedirects;
+    }
 
     public SSLContext getSslContext() {
         return sslContext;

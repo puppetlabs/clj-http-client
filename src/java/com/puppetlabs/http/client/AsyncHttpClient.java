@@ -1,6 +1,10 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.*;
+import com.puppetlabs.http.client.impl.Promise;
+import com.puppetlabs.http.client.impl.SslUtils;
+import com.puppetlabs.http.client.impl.JavaClient;
+import com.puppetlabs.http.client.impl.PersistentAsyncHttpClient;
+import com.puppetlabs.http.client.impl.CoercedClientOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +30,11 @@ public class AsyncHttpClient {
         return get(new URI(url));
     }
     public static Promise<Response> get(URI uri) {
-        return get(new RequestOptions(uri), new ClientOptions());
+        return get(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> get(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> get(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.GET), clientOptions);
     }
 
@@ -36,9 +42,11 @@ public class AsyncHttpClient {
         return head(new URI(url));
     }
     public static Promise<Response> head(URI uri) {
-        return head(new RequestOptions(uri), new ClientOptions());
+        return head(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> head(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> head(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.HEAD), clientOptions);
     }
 
@@ -46,9 +54,11 @@ public class AsyncHttpClient {
         return post(new URI(url));
     }
     public static Promise<Response> post(URI uri) {
-        return post(new RequestOptions(uri), new ClientOptions());
+        return post(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> post(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> post(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.POST), clientOptions);
     }
 
@@ -56,9 +66,11 @@ public class AsyncHttpClient {
         return put(new URI(url));
     }
     public static Promise<Response> put(URI uri) {
-        return put(new RequestOptions(uri), new ClientOptions());
+        return put(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> put(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> put(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.PUT), clientOptions);
     }
 
@@ -66,9 +78,11 @@ public class AsyncHttpClient {
         return delete(new URI(url));
     }
     public static Promise<Response> delete(URI uri) {
-        return delete(new RequestOptions(uri), new ClientOptions());
+        return delete(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> delete(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> delete(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.DELETE), clientOptions);
     }
 
@@ -76,9 +90,11 @@ public class AsyncHttpClient {
         return trace(new URI(url));
     }
     public static Promise<Response> trace(URI uri) {
-        return trace(new RequestOptions(uri), new ClientOptions());
+        return trace(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> trace(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> trace(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.TRACE), clientOptions);
     }
 
@@ -86,9 +102,11 @@ public class AsyncHttpClient {
         return options(new URI(url));
     }
     public static Promise<Response> options(URI uri) {
-        return options(new RequestOptions(uri), new ClientOptions());
+        return options(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> options(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> options(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.OPTIONS), clientOptions);
     }
 
@@ -96,9 +114,11 @@ public class AsyncHttpClient {
         return patch(new URI(url));
     }
     public static Promise<Response> patch(URI uri) {
-        return patch(new RequestOptions(uri), new ClientOptions());
+        return patch(new SimpleRequestOptions(uri));
     }
-    public static Promise<Response> patch(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Promise<Response> patch(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.PATCH), clientOptions);
     }
 }

@@ -52,9 +52,11 @@ public class SyncHttpClient {
         return get(new URI(url));
     }
     public static Response get(URI uri) {
-        return get(new RequestOptions(uri), new ClientOptions());
+        return get(new SimpleRequestOptions(uri));
     }
-    public static Response get(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response get(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.GET), clientOptions);
     }
 
@@ -62,57 +64,71 @@ public class SyncHttpClient {
         return head(new URI(url));
     }
     public static Response head(URI uri) {
-        return head(new RequestOptions(uri), new ClientOptions());
+        return head(new SimpleRequestOptions(uri));
     }
-    public static Response head(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response head(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.HEAD), clientOptions);
     }
 
     public static Response post(String url) throws URISyntaxException {
         return post(new URI(url));
     }
-    public static Response post(URI uri) { return post(new RequestOptions(uri), new ClientOptions()); }
-    public static Response post(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response post(URI uri) { return post(new SimpleRequestOptions(uri)); }
+    public static Response post(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.POST), clientOptions);
     }
 
     public static Response put(String url) throws URISyntaxException {
         return put(new URI(url));
     }
-    public static Response put(URI uri) { return put(new RequestOptions(uri), new ClientOptions()); }
-    public static Response put(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response put(URI uri) { return put(new SimpleRequestOptions(uri)); }
+    public static Response put(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.PUT), clientOptions);
     }
 
     public static Response delete(String url) throws URISyntaxException {
         return delete(new URI(url));
     }
-    public static Response delete(URI uri) { return delete(new RequestOptions(uri), new ClientOptions()); }
-    public static Response delete(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response delete(URI uri) { return delete(new SimpleRequestOptions(uri)); }
+    public static Response delete(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.DELETE), clientOptions);
     }
 
     public static Response trace(String url) throws URISyntaxException {
         return trace(new URI(url));
     }
-    public static Response trace(URI uri) { return trace(new RequestOptions(uri), new ClientOptions()); }
-    public static Response trace(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response trace(URI uri) { return trace(new SimpleRequestOptions(uri)); }
+    public static Response trace(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.TRACE), clientOptions);
     }
 
     public static Response options(String url) throws URISyntaxException {
         return options(new URI(url));
     }
-    public static Response options(URI uri) { return options(new RequestOptions(uri), new ClientOptions()); }
-    public static Response options(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response options(URI uri) { return options(new SimpleRequestOptions(uri)); }
+    public static Response options(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.OPTIONS), clientOptions);
     }
 
     public static Response patch(String url) throws URISyntaxException {
         return patch(new URI(url));
     }
-    public static Response patch(URI uri) { return patch(new RequestOptions(uri), new ClientOptions()); }
-    public static Response patch(RequestOptions requestOptions, ClientOptions clientOptions) {
+    public static Response patch(URI uri) { return patch(new SimpleRequestOptions(uri)); }
+    public static Response patch(SimpleRequestOptions simpleRequestOptions) {
+        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
         return request(requestOptions.setMethod(HttpMethod.PATCH), clientOptions);
     }
 }

@@ -25,6 +25,21 @@ public class RequestOptions {
     public RequestOptions(URI uri) {
         this.uri = uri;
     }
+    public RequestOptions (HttpAsyncClient client,
+                           URI uri,
+                           HttpMethod method,
+                           Map<String, String> headers,
+                           Object body,
+                           boolean decompressBody,
+                           ResponseBodyType as) {
+        this.client = client;
+        this.uri = uri;
+        this.method = method;
+        this.headers = headers;
+        this.body = body;
+        this.decompressBody = decompressBody;
+        this.as = as;
+    }
 
     public HttpAsyncClient getClient() {
         return client;

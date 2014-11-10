@@ -1,6 +1,7 @@
 (ns puppetlabs.http.client.sync-ssl-test
-  (:import (com.puppetlabs.http.client SyncHttpClient RequestOptions
-                                       HttpClientException ClientOptions)
+  (:import (com.puppetlabs.http.client SyncHttpClient
+                                       HttpClientException
+                                       SimpleRequestOptions)
            (javax.net.ssl SSLHandshakeException)
            (java.net URI)
            (org.apache.http ConnectionClosedException))
@@ -35,12 +36,11 @@
                    :ssl-cert    "./dev-resources/ssl/cert.pem"
                    :ssl-key     "./dev-resources/ssl/key.pem"}}
       (testing "java sync client"
-        (let [request-options (RequestOptions. (URI. "https://localhost:10080/hello/"))
-              client-options (.. (ClientOptions.)
-                                 (setSslCert "./dev-resources/ssl/cert.pem")
-                                 (setSslKey "./dev-resources/ssl/key.pem")
-                                 (setSslCaCert "./dev-resources/ssl/ca.pem"))
-              response (SyncHttpClient/get request-options client-options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "https://localhost:10080/hello/"))
+                                  (setSslCert "./dev-resources/ssl/cert.pem")
+                                  (setSslKey "./dev-resources/ssl/key.pem")
+                                  (setSslCaCert "./dev-resources/ssl/ca.pem"))
+              response (SyncHttpClient/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "clojure sync client"
@@ -62,10 +62,9 @@
                    :ssl-key     "./dev-resources/ssl/key.pem"
                    :client-auth "want"}}
       (testing "java sync client"
-        (let [request-options (RequestOptions. (URI. "https://localhost:10080/hello/"))
-              client-options (.. (ClientOptions.)
-                                 (setSslCaCert "./dev-resources/ssl/ca.pem"))
-              response (SyncHttpClient/get request-options client-options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "https://localhost:10080/hello/"))
+                                  (setSslCaCert "./dev-resources/ssl/ca.pem"))
+              response (SyncHttpClient/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "clojure sync client"
@@ -85,11 +84,10 @@
                    :ssl-key     "./dev-resources/ssl/key.pem"
                    :client-auth "want"}}
       (testing "java sync client"
-        (let [request-options (RequestOptions. (URI. "https://localhost:10081/hello/"))
-              client-options (.. (ClientOptions.)
-                                 (setSslCaCert "./dev-resources/ssl/alternate-ca.pem"))]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "https://localhost:10081/hello/"))
+                                  (setSslCaCert "./dev-resources/ssl/alternate-ca.pem"))]
           (try
-            (SyncHttpClient/get request-options client-options)
+            (SyncHttpClient/get request-options)
             ; fail if we don't get an exception
             (is (not true) "expected HttpClientException")
             (catch HttpClientException e
@@ -128,16 +126,15 @@
 
 (defn java-https-get-with-protocols
   [client-protocols client-cipher-suites]
-  (let [request-options (RequestOptions. (URI. "https://localhost:10080/hello/"))
-        client-options (.. (ClientOptions.)
-                           (setSslCert "./dev-resources/ssl/cert.pem")
-                           (setSslKey "./dev-resources/ssl/key.pem")
-                           (setSslCaCert "./dev-resources/ssl/ca.pem"))]
+  (let [request-options (.. (SimpleRequestOptions. (URI. "https://localhost:10080/hello/"))
+                            (setSslCert "./dev-resources/ssl/cert.pem")
+                            (setSslKey "./dev-resources/ssl/key.pem")
+                            (setSslCaCert "./dev-resources/ssl/ca.pem"))]
     (if client-protocols
-      (.setSslProtocols client-options (into-array String client-protocols)))
+      (.setSslProtocols request-options (into-array String client-protocols)))
     (if client-cipher-suites
-      (.setSslCipherSuites client-options (into-array String client-cipher-suites)))
-    (SyncHttpClient/get request-options client-options)))
+      (.setSslCipherSuites request-options (into-array String client-cipher-suites)))
+    (SyncHttpClient/get request-options)))
 
 (defn clj-https-get-with-protocols
   [client-protocols client-cipher-suites]

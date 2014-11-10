@@ -15,6 +15,7 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
@@ -389,6 +390,33 @@ public class JavaClient {
             default:
                 throw new HttpClientException("Unsupported body type: " + as);
         }
+    }
+
+    public static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
+        HttpAsyncClient client = simpleOptions.getClient();
+        URI uri = simpleOptions.getUri();
+        HttpMethod method = simpleOptions.getMethod();
+        Map<String, String> headers = simpleOptions.getHeaders();
+        Object body = simpleOptions.getBody();
+        boolean decompressBody = simpleOptions.getDecompressBody();
+        ResponseBodyType as = simpleOptions.getAs();
+        return new RequestOptions(client, uri, method, headers, body, decompressBody, as);
+    }
+
+    public static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
+        SSLContext sslContext = simpleOptions.getSslContext();
+        String sslCert = simpleOptions.getSslCert();
+        String sslKey = simpleOptions.getSslKey();
+        String sslCaCert = simpleOptions.getSslCaCert();
+        String[] sslProtocols = simpleOptions.getSslProtocols();
+        String[] sslCipherSuites = simpleOptions.getSslCipherSuites();
+        boolean insecure = simpleOptions.getInsecure();
+        boolean forceRedirects = simpleOptions.getForceRedirects();
+        boolean followRedirects = simpleOptions.getFollowRedirects();
+
+        return new ClientOptions(sslContext, sslCert, sslKey, sslCaCert,
+                                 sslProtocols, sslCipherSuites, insecure,
+                                 forceRedirects, followRedirects);
     }
 
 }
