@@ -1,5 +1,5 @@
 (ns puppetlabs.http.client.sync-ssl-test
-  (:import (com.puppetlabs.http.client SyncHttpClient
+  (:import (com.puppetlabs.http.client Sync
                                        HttpClientException
                                        SimpleRequestOptions)
            (javax.net.ssl SSLHandshakeException)
@@ -40,7 +40,7 @@
                                   (setSslCert "./dev-resources/ssl/cert.pem")
                                   (setSslKey "./dev-resources/ssl/key.pem")
                                   (setSslCaCert "./dev-resources/ssl/ca.pem"))
-              response (SyncHttpClient/get request-options)]
+              response (Sync/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "clojure sync client"
@@ -64,7 +64,7 @@
       (testing "java sync client"
         (let [request-options (.. (SimpleRequestOptions. (URI. "https://localhost:10080/hello/"))
                                   (setSslCaCert "./dev-resources/ssl/ca.pem"))
-              response (SyncHttpClient/get request-options)]
+              response (Sync/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "clojure sync client"
@@ -87,7 +87,7 @@
         (let [request-options (.. (SimpleRequestOptions. (URI. "https://localhost:10081/hello/"))
                                   (setSslCaCert "./dev-resources/ssl/alternate-ca.pem"))]
           (try
-            (SyncHttpClient/get request-options)
+            (Sync/get request-options)
             ; fail if we don't get an exception
             (is (not true) "expected HttpClientException")
             (catch HttpClientException e
@@ -134,7 +134,7 @@
       (.setSslProtocols request-options (into-array String client-protocols)))
     (if client-cipher-suites
       (.setSslCipherSuites request-options (into-array String client-cipher-suites)))
-    (SyncHttpClient/get request-options)))
+    (Sync/get request-options)))
 
 (defn clj-https-get-with-protocols
   [client-protocols client-cipher-suites]

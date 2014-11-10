@@ -3,7 +3,7 @@ package com.puppetlabs.http.client.impl;
 import com.puppetlabs.certificate_authority.CertificateAuthority;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.ClientOptions;
-import com.puppetlabs.http.client.SyncHttpClient;
+import com.puppetlabs.http.client.Sync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +16,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
 public class SslUtils {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SyncHttpClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
 
     private static void logAndRethrow(String msg, Throwable t) {
         LOGGER.error(msg, t);
