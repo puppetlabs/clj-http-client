@@ -14,10 +14,8 @@ import java.net.URISyntaxException;
 public class Async {
     private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
 
-    private static Promise<Response> request(RequestOptions requestOptions, ClientOptions clientOptions) {
-        clientOptions = SslUtils.configureSsl(clientOptions);
-
-        return JavaClient.request(requestOptions, clientOptions, null);
+    private static Promise<Response> request(SimpleRequestOptions requestOptions) {
+        return JavaClient.request(requestOptions, null);
     }
 
     public static AsyncHttpClient createClient(ClientOptions clientOptions) {
@@ -33,9 +31,7 @@ public class Async {
         return get(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> get(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.GET), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.GET));
     }
 
     public static Promise<Response> head(String url) throws URISyntaxException {
@@ -45,9 +41,7 @@ public class Async {
         return head(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> head(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.HEAD), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.HEAD));
     }
 
     public static Promise<Response> post(String url) throws URISyntaxException {
@@ -57,9 +51,7 @@ public class Async {
         return post(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> post(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.POST), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.POST));
     }
 
     public static Promise<Response> put(String url) throws URISyntaxException {
@@ -69,9 +61,7 @@ public class Async {
         return put(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> put(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.PUT), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.PUT));
     }
 
     public static Promise<Response> delete(String url) throws URISyntaxException {
@@ -81,9 +71,7 @@ public class Async {
         return delete(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> delete(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.DELETE), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.DELETE));
     }
 
     public static Promise<Response> trace(String url) throws URISyntaxException {
@@ -93,9 +81,7 @@ public class Async {
         return trace(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> trace(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.TRACE), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.TRACE));
     }
 
     public static Promise<Response> options(String url) throws URISyntaxException {
@@ -105,9 +91,7 @@ public class Async {
         return options(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> options(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.OPTIONS), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.OPTIONS));
     }
 
     public static Promise<Response> patch(String url) throws URISyntaxException {
@@ -117,8 +101,6 @@ public class Async {
         return patch(new SimpleRequestOptions(uri));
     }
     public static Promise<Response> patch(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.PATCH), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.PATCH));
     }
 }

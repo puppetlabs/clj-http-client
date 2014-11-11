@@ -20,14 +20,14 @@ public class Sync {
         throw new HttpClientException(msg, t);
     }
 
-    private static Response request(RequestOptions requestOptions, ClientOptions clientOptions) {
+    private static Response request(SimpleRequestOptions requestOptions) {
         // TODO: if we end up implementing an async version of the java API,
         // we should refactor this implementation so that it is based on the
         // async one, as Patrick has done in the clojure API.
 
-        clientOptions = SslUtils.configureSsl(clientOptions);
+        //clientOptions = SslUtils.configureSsl(clientOptions);
 
-        Promise<Response> promise =  JavaClient.request(requestOptions, clientOptions, null);
+        Promise<Response> promise =  JavaClient.request(requestOptions, null);
 
         Response response = null;
         try {
@@ -55,9 +55,7 @@ public class Sync {
         return get(new SimpleRequestOptions(uri));
     }
     public static Response get(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.GET), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.GET));
     }
 
     public static Response head(String url) throws URISyntaxException {
@@ -67,9 +65,7 @@ public class Sync {
         return head(new SimpleRequestOptions(uri));
     }
     public static Response head(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.HEAD), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.HEAD));
     }
 
     public static Response post(String url) throws URISyntaxException {
@@ -77,9 +73,7 @@ public class Sync {
     }
     public static Response post(URI uri) { return post(new SimpleRequestOptions(uri)); }
     public static Response post(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.POST), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.POST));
     }
 
     public static Response put(String url) throws URISyntaxException {
@@ -87,9 +81,7 @@ public class Sync {
     }
     public static Response put(URI uri) { return put(new SimpleRequestOptions(uri)); }
     public static Response put(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.PUT), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.PUT));
     }
 
     public static Response delete(String url) throws URISyntaxException {
@@ -97,9 +89,7 @@ public class Sync {
     }
     public static Response delete(URI uri) { return delete(new SimpleRequestOptions(uri)); }
     public static Response delete(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.DELETE), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.DELETE));
     }
 
     public static Response trace(String url) throws URISyntaxException {
@@ -107,9 +97,7 @@ public class Sync {
     }
     public static Response trace(URI uri) { return trace(new SimpleRequestOptions(uri)); }
     public static Response trace(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.TRACE), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.TRACE));
     }
 
     public static Response options(String url) throws URISyntaxException {
@@ -117,9 +105,7 @@ public class Sync {
     }
     public static Response options(URI uri) { return options(new SimpleRequestOptions(uri)); }
     public static Response options(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.OPTIONS), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.OPTIONS));
     }
 
     public static Response patch(String url) throws URISyntaxException {
@@ -127,8 +113,6 @@ public class Sync {
     }
     public static Response patch(URI uri) { return patch(new SimpleRequestOptions(uri)); }
     public static Response patch(SimpleRequestOptions simpleRequestOptions) {
-        RequestOptions requestOptions = JavaClient.extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = JavaClient.extractClientOptions(simpleRequestOptions);
-        return request(requestOptions.setMethod(HttpMethod.PATCH), clientOptions);
+        return request(simpleRequestOptions.setMethod(HttpMethod.PATCH));
     }
 }

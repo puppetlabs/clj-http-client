@@ -187,7 +187,9 @@ public class JavaClient {
         return context;
     }
 
-    public static Promise<Response> request(final RequestOptions requestOptions, final ClientOptions clientOptions, final IResponseCallback callback) {
+    public static Promise<Response> request(final SimpleRequestOptions simpleRequestOptions, final IResponseCallback callback) {
+        RequestOptions requestOptions = extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = SslUtils.configureSsl(extractClientOptions(simpleRequestOptions));
         CoercedClientOptions coercedClientOptions = coerceClientOptions(clientOptions);
 
         final CloseableHttpAsyncClient client = createClient(coercedClientOptions);
@@ -392,7 +394,7 @@ public class JavaClient {
         }
     }
 
-    public static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
+    private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
         HttpAsyncClient client = simpleOptions.getClient();
         URI uri = simpleOptions.getUri();
         HttpMethod method = simpleOptions.getMethod();
@@ -403,7 +405,7 @@ public class JavaClient {
         return new RequestOptions(client, uri, method, headers, body, decompressBody, as);
     }
 
-    public static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
+    private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
         SSLContext sslContext = simpleOptions.getSslContext();
         String sslCert = simpleOptions.getSslCert();
         String sslKey = simpleOptions.getSslKey();
