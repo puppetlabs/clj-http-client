@@ -1,19 +1,10 @@
 package com.puppetlabs.http.client;
 
-import org.apache.http.nio.client.HttpAsyncClient;
-//import org.httpkit.client.HttpClient;
-//
-//import org.httpkit.client.IFilter;
-//import org.httpkit.client.MultipartEntity;
-
-import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
 public class RequestOptions {
-    private HttpAsyncClient client = null;
-
     private URI uri;
     private HttpMethod method = null;
     private Map<String, String> headers;
@@ -25,28 +16,18 @@ public class RequestOptions {
     public RequestOptions(URI uri) {
         this.uri = uri;
     }
-    public RequestOptions (HttpAsyncClient client,
-                           URI uri,
+    public RequestOptions (URI uri,
                            HttpMethod method,
                            Map<String, String> headers,
                            Object body,
                            boolean decompressBody,
                            ResponseBodyType as) {
-        this.client = client;
         this.uri = uri;
         this.method = method;
         this.headers = headers;
         this.body = body;
         this.decompressBody = decompressBody;
         this.as = as;
-    }
-
-    public HttpAsyncClient getClient() {
-        return client;
-    }
-    public RequestOptions setClient(HttpAsyncClient client) {
-        this.client = client;
-        return this;
     }
 
     public URI getUri() {

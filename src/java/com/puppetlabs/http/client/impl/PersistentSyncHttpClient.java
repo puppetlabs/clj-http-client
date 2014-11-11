@@ -15,7 +15,7 @@ import java.net.URISyntaxException;
 
 public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
-    private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
     public PersistentSyncHttpClient(CloseableHttpAsyncClient client) {
         this.client = client;

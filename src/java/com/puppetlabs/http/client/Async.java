@@ -12,7 +12,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 public class Async {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Async.class);
 
     private static Promise<Response> request(SimpleRequestOptions requestOptions) {
         return JavaClient.request(requestOptions, null);

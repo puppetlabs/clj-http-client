@@ -1,15 +1,11 @@
 package com.puppetlabs.http.client;
 
-import org.apache.http.nio.client.HttpAsyncClient;
-
 import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
 public class SimpleRequestOptions {
-    private HttpAsyncClient client = null;
-
     private URI uri;
     private HttpMethod method = null;
     private Map<String, String> headers;
@@ -29,14 +25,6 @@ public class SimpleRequestOptions {
     public SimpleRequestOptions (String url) throws URISyntaxException { this.uri = new URI(url); }
     public SimpleRequestOptions(URI uri) {
         this.uri = uri;
-    }
-
-    public HttpAsyncClient getClient() {
-        return client;
-    }
-    public SimpleRequestOptions setClient(HttpAsyncClient client) {
-        this.client = client;
-        return this;
     }
 
     public URI getUri() {

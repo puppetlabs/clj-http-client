@@ -25,8 +25,6 @@ public class Sync {
         // we should refactor this implementation so that it is based on the
         // async one, as Patrick has done in the clojure API.
 
-        //clientOptions = SslUtils.configureSsl(clientOptions);
-
         Promise<Response> promise =  JavaClient.request(requestOptions, null);
 
         Response response = null;

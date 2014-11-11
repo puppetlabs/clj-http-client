@@ -16,7 +16,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
 public class SslUtils {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SslUtils.class);
 
     private static void logAndRethrow(String msg, Throwable t) {
         LOGGER.error(msg, t);

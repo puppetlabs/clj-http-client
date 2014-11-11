@@ -395,14 +395,13 @@ public class JavaClient {
     }
 
     private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
-        HttpAsyncClient client = simpleOptions.getClient();
         URI uri = simpleOptions.getUri();
         HttpMethod method = simpleOptions.getMethod();
         Map<String, String> headers = simpleOptions.getHeaders();
         Object body = simpleOptions.getBody();
         boolean decompressBody = simpleOptions.getDecompressBody();
         ResponseBodyType as = simpleOptions.getAs();
-        return new RequestOptions(client, uri, method, headers, body, decompressBody, as);
+        return new RequestOptions(uri, method, headers, body, decompressBody, as);
     }
 
     private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
