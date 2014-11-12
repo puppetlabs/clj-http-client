@@ -30,14 +30,8 @@
 
 (defn request
   [req]
-  (let [client (async/create-default-client (extract-client-opts req))]
-    (try
-      (let [{:keys [error] :as resp} @(async/request-with-client req nil client)]
-        (if error
-          (throw error)
-          resp))
-      (finally
-        (.close client)))))
+  (with-open [client (async/create-default-client (extract-client-opts req))]
+    (request-with-client req client)))
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]
