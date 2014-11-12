@@ -1,6 +1,6 @@
 (ns puppetlabs.http.client.sync-plaintext-test
-  (:import (com.puppetlabs.http.client SyncHttpClient RequestOptions
-                                       HttpClientException ResponseBodyType)
+  (:import (com.puppetlabs.http.client Sync RequestOptions SimpleRequestOptions
+                                       HttpClientException ResponseBodyType ClientOptions)
            (javax.net.ssl SSLHandshakeException)
            (java.io ByteArrayInputStream InputStream)
            (java.nio.charset Charset)
@@ -38,8 +38,8 @@
         [jetty9/jetty9-service test-web-service]
         {:webserver {:port 10000}}
         (testing "java sync client"
-          (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                response (java-method options)]
+          (let [request-options (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                response (java-method request-options)]
             (is (= 200 (.getStatus response)))
             (is (= "Hello, World!" (slurp (.getBody response))))))
         (testing "clojure sync client"
@@ -53,8 +53,8 @@
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client"
-        (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
-              response (SyncHttpClient/head options)]
+        (let [request-options (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+              response (Sync/head request-options)]
           (is (= 200 (.getStatus response)))
           (is (= nil (.getBody response)))))
       (testing "clojure sync client"
@@ -63,67 +63,105 @@
           (is (= nil (:body response))))))))
 
 (deftest sync-client-get-test
-  (basic-test "GET" #(SyncHttpClient/get %) sync/get))
+  (basic-test "GET" #(Sync/get %) sync/get))
 
 (deftest sync-client-post-test
-  (basic-test "POST" #(SyncHttpClient/post %) sync/post))
+  (basic-test "POST" #(Sync/post %) sync/post))
 
 (deftest sync-client-put-test
-  (basic-test "PUT" #(SyncHttpClient/put %) sync/put))
+  (basic-test "PUT" #(Sync/put %) sync/put))
 
 (deftest sync-client-delete-test
-  (basic-test "DELETE" #(SyncHttpClient/delete %) sync/delete))
+  (basic-test "DELETE" #(Sync/delete %) sync/delete))
 
 (deftest sync-client-trace-test
-  (basic-test "TRACE" #(SyncHttpClient/trace %) sync/trace))
+  (basic-test "TRACE" #(Sync/trace %) sync/trace))
 
 (deftest sync-client-options-test
-  (basic-test "OPTIONS" #(SyncHttpClient/options %) sync/options))
+  (basic-test "OPTIONS" #(Sync/options %) sync/options))
 
 (deftest sync-client-patch-test
-  (basic-test "PATCH" #(SyncHttpClient/patch %) sync/patch))
+  (basic-test "PATCH" #(Sync/patch %) sync/patch))
 
 (deftest sync-client-persistent-test
   (testlogging/with-test-logging
     (testutils/with-app-with-config app
     [jetty9/jetty9-service test-web-service]
     {:webserver {:port 10000}}
-    (let [client (sync/create-client {})]
-      (testing "HEAD request with persistent sync client"
-        (let [response (common/head client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= nil (:body response)))))
-      (testing "GET request with persistent sync client"
-        (let [response (common/get client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (testing "POST request with persistent sync client"
-        (let [response (common/post client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (testing "PUT request with persistent sync client"
-        (let [response (common/put client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (testing "DELETE request with persistent sync client"
-        (let [response (common/delete client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (testing "TRACE request with persistent sync client"
-        (let [response (common/trace client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (testing "OPTIONS request with persistent sync client"
-        (let [response (common/options client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (testing "PATCH request with persistent sync client"
-        (let [response (common/patch client "http://localhost:10000/hello/")]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))
-      (common/close client)
-      (is (thrown? IllegalStateException
-                   (common/get client "http://localhost:10000/hello")))))))
+    (testing "persistent java client"
+      (let [request-options (RequestOptions. "http://localhost:10000/hello/")
+            client-options (ClientOptions.)
+            client (Sync/createClient client-options)]
+        (testing "HEAD request with persistent sync client"
+          (let [response (.head client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= nil (.getBody response)))))
+        (testing "GET request with persistent sync client"
+          (let [response (.get client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (testing "POST request with persistent sync client"
+          (let [response (.post client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (testing "PUT request with persistent sync client"
+          (let [response (.put client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (testing "DELETE request with persistent sync client"
+          (let [response (.delete client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (testing "TRACE request with persistent sync client"
+          (let [response (.trace client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (testing "OPTIONS request with persistent sync client"
+          (let [response (.options client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (testing "PATCH request with persistent sync client"
+          (let [response (.patch client request-options)]
+            (is (= 200 (.getStatus response)))
+            (is (= "Hello, World!" (slurp (.getBody response))))))
+        (.close client)))
+    (testing "persistent clojure client"
+      (let [client (sync/create-client {})]
+        (testing "HEAD request with persistent sync client"
+          (let [response (common/head client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= nil (:body response)))))
+        (testing "GET request with persistent sync client"
+          (let [response (common/get client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "POST request with persistent sync client"
+          (let [response (common/post client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "PUT request with persistent sync client"
+          (let [response (common/put client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "DELETE request with persistent sync client"
+          (let [response (common/delete client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "TRACE request with persistent sync client"
+          (let [response (common/trace client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "OPTIONS request with persistent sync client"
+          (let [response (common/options client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "PATCH request with persistent sync client"
+          (let [response (common/patch client "http://localhost:10000/hello/")]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
+        (common/close client)
+        (is (thrown? IllegalStateException
+                     (common/get client "http://localhost:10000/hello"))))))))
 
 (deftest sync-client-as-test
   (testlogging/with-test-logging
@@ -131,22 +169,22 @@
       [jetty9/jetty9-service test-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client: :as unspecified"
-        (let [options (RequestOptions. (URI. "http://localhost:10000/hello/"))
-              response (SyncHttpClient/get options)]
+        (let [request-options (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+              response (Sync/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (instance? InputStream (.getBody response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "java sync client: :as :stream"
-        (let [options (.. (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (setAs ResponseBodyType/STREAM))
-              response (SyncHttpClient/get options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                                  (setAs ResponseBodyType/STREAM))
+              response (Sync/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (instance? InputStream (.getBody response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "java sync client: :as :text"
-        (let [options (.. (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (setAs ResponseBodyType/TEXT))
-              response (SyncHttpClient/get options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                                  (setAs ResponseBodyType/TEXT))
+              response (Sync/get request-options)]
           (is (= 200 (.getStatus response)))
           (is (string? (.getBody response)))
           (is (= "Hello, World!" (.getBody response)))))
@@ -203,9 +241,9 @@
       [jetty9/jetty9-service test-header-web-service]
       {:webserver {:port 10000}}
       (testing "java sync client"
-        (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (.setHeaders {"fooheader" "foo"}))
-              response (SyncHttpClient/post options)]
+        (let [request-options (-> (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                                  (.setHeaders {"fooheader" "foo"}))
+              response (Sync/post request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "foo" (slurp (.getBody response))))
           (is (= "foo" (-> (.getHeaders response) (.get "myrespheader"))))))
@@ -229,10 +267,10 @@
                      context))
 (defn- validate-java-request
   [body-to-send headers-to-send expected-content-type expected-response-body]
-  (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                    (.setBody body-to-send)
-                    (.setHeaders headers-to-send))
-        response (SyncHttpClient/post options)]
+  (let [request-options (-> (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                            (.setBody body-to-send)
+                            (.setHeaders headers-to-send))
+        response (Sync/post request-options)]
     (is (= 200 (.getStatus response)))
     (is (= (-> (.getHeaders response)
                (.get "content-type"))
@@ -279,12 +317,12 @@
                                "text/plain; charset=ISO-8859-1"
                                "foo?"))
       (testing "java sync client: input stream body for post request"
-        (let [options (-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                          (.setBody (ByteArrayInputStream.
-                                      (.getBytes "foo�" "UTF-8")))
-                          (.setHeaders {"Content-Type"
-                                        "text/plain; charset=UTF-8"}))
-              response (SyncHttpClient/post options)]
+        (let [request-options (-> (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                                  (.setBody (ByteArrayInputStream.
+                                              (.getBytes "foo�" "UTF-8")))
+                                  (.setHeaders {"Content-Type"
+                                                "text/plain; charset=UTF-8"}))
+              response (Sync/post request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "foo�" (slurp (.getBody response))))))
       (testing "clojure sync client: string body for post request with explicit
@@ -343,10 +381,10 @@
       [jetty9/jetty9-service test-compression-web-service]
       {:webserver {:port 10000}}
       (testing (str "java sync client: compression headers / response: " desc)
-        (let [java-opts (cond-> (RequestOptions. (URI. "http://localhost:10000/hello/"))
-                                (contains? opts :decompress-body) (.setDecompressBody (:decompress-body opts))
-                                (contains? opts :headers) (.setHeaders (:headers opts)))
-              response (SyncHttpClient/get java-opts)]
+        (let [request-opts (cond-> (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
+                                   (contains? opts :decompress-body) (.setDecompressBody (:decompress-body opts))
+                                   (contains? opts :headers) (.setHeaders (:headers opts)))
+              response (Sync/get request-opts)]
           (is (= 200 (.getStatus response)))
           (is (= accept-encoding (.. response getHeaders (get "orig-accept-encoding"))))
           (is (= content-encoding (.. response getOrigContentEncoding)))
@@ -381,8 +419,8 @@
       [jetty9/jetty9-service test-params-web-service]
       {:webserver {:port 8080}}
       (testing "URL Query Parameters work with the Java client"
-        (let [options (RequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))]
-          (let [response (SyncHttpClient/get options)]
+        (let [request-options (SimpleRequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))]
+          (let [response (Sync/get request-options)]
             (is (= 200 (.getStatus response)))
             (is (= queryparams (read-string (slurp (.getBody response))))))))
 
@@ -402,25 +440,25 @@
       {:webserver {:port 8080}}
       (testing (str "redirects on POST not followed by Java client "
                     "when forceRedirects option not set to true")
-        (let [options  (RequestOptions. (URI. "http://localhost:8080/hello"))
-              response (SyncHttpClient/post options)]
+        (let [request-options  (SimpleRequestOptions. (URI. "http://localhost:8080/hello"))
+              response (Sync/post request-options)]
           (is (= 302 (.getStatus response)))))
       (testing "redirects on POST followed by Java client when option is set"
-        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
-                          (setForceRedirects true))
-              response (SyncHttpClient/post options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "http://localhost:8080/hello"))
+                                  (setForceRedirects true))
+              response (Sync/post request-options)]
           (is (= 200 (.getStatus response)))
           (is (= "Hello, World!" (slurp (.getBody response))))))
       (testing "redirects not followed by Java client when :follow-redirects is false"
-        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
-                          (setFollowRedirects false))
-              response (SyncHttpClient/get options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "http://localhost:8080/hello"))
+                                  (setFollowRedirects false))
+              response (Sync/get request-options)]
           (is (= 302 (.getStatus response)))))
       (testing ":follow-redirects overrides :force-redirects for Java client"
-        (let [options (.. (RequestOptions. (URI. "http://localhost:8080/hello"))
-                          (setFollowRedirects false)
-                          (setForceRedirects true))
-              response (SyncHttpClient/get options)]
+        (let [request-options (.. (SimpleRequestOptions. (URI. "http://localhost:8080/hello"))
+                                  (setFollowRedirects false)
+                                  (setForceRedirects true))
+              response (Sync/get request-options)]
           (is (= 302 (.getStatus response)))))
       (testing (str "redirects on POST not followed by clojure client "
                     "when :force-redirects is not set to true")

@@ -13,7 +13,7 @@
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client HttpMethod HttpClientException
-                                       RequestOptions)
+                                       ClientOptions)
            (org.apache.http.nio.client HttpAsyncClient)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (org.apache.http.client.methods HttpGet HttpHead HttpPost HttpPut HttpTrace HttpDelete HttpOptions HttpPatch)
@@ -291,7 +291,7 @@
     (:ssl-context ssl-ctxt-opts)
     (if (contains? ssl-prot-opts :ssl-protocols)
       (into-array String (:ssl-protocols ssl-prot-opts))
-      RequestOptions/DEFAULT_SSL_PROTOCOLS)
+      ClientOptions/DEFAULT_SSL_PROTOCOLS)
     (if (contains? ssl-prot-opts :cipher-suites)
       (into-array String (:cipher-suites ssl-prot-opts)))
     SSLIOSessionStrategy/BROWSER_COMPATIBLE_HOSTNAME_VERIFIER))

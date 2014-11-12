@@ -15,6 +15,7 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
@@ -93,29 +94,9 @@ public class JavaClient {
         return contentType;
     }
 
-    private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
+    private static CoercedRequestOptions coerceRequestOptions(RequestOptions options, HttpMethod method) {
         URI uri = options.getUri();
 
-        SSLContext sslContext = null;
-        if (options.getSslContext() != null) {
-            sslContext = options.getSslContext();
-        } else if (options.getInsecure()) {
-            sslContext = getInsecureSslContext();
-        }
-
-        String[] sslProtocols = null;
-        if (options.getSslProtocols() != null) {
-            sslProtocols = options.getSslProtocols();
-        } else {
-            sslProtocols = RequestOptions.DEFAULT_SSL_PROTOCOLS;
-        }
-
-        String[] sslCipherSuites = null;
-        if (options.getSslCipherSuites() != null) {
-            sslCipherSuites = options.getSslCipherSuites();
-        }
-
-        HttpMethod method = options.getMethod();
         if (method == null) {
             method = HttpMethod.GET;
         }
@@ -145,10 +126,33 @@ public class JavaClient {
             body = new InputStreamEntity((InputStream)options.getBody());
         }
 
+        return new CoercedRequestOptions(uri, method, headers, body);
+    }
+
+    public static CoercedClientOptions coerceClientOptions(ClientOptions options) {
+        SSLContext sslContext = null;
+        if (options.getSslContext() != null) {
+            sslContext = options.getSslContext();
+        } else if (options.getInsecure()) {
+            sslContext = getInsecureSslContext();
+        }
+
+        String[] sslProtocols = null;
+        if (options.getSslProtocols() != null) {
+            sslProtocols = options.getSslProtocols();
+        } else {
+            sslProtocols = ClientOptions.DEFAULT_SSL_PROTOCOLS;
+        }
+
+        String[] sslCipherSuites = null;
+        if (options.getSslCipherSuites() != null) {
+            sslCipherSuites = options.getSslCipherSuites();
+        }
+
         boolean forceRedirects = options.getForceRedirects();
         boolean followRedirects = options.getFollowRedirects();
 
-        return new CoercedRequestOptions(uri, method, headers, body, sslContext, sslProtocols, sslCipherSuites, forceRedirects, followRedirects);
+        return new CoercedClientOptions(sslContext, sslProtocols, sslCipherSuites, forceRedirects, followRedirects);
     }
 
     private static SSLContext getInsecureSslContext() {
@@ -182,14 +186,26 @@ public class JavaClient {
         return context;
     }
 
-    public static Promise<Response> request(final RequestOptions options, final IResponseCallback callback) {
-        CoercedRequestOptions coercedOptions = coerceRequestOptions(options);
+    public static Promise<Response> request(final SimpleRequestOptions simpleRequestOptions, final HttpMethod method, final IResponseCallback callback) {
+        RequestOptions requestOptions = extractRequestOptions(simpleRequestOptions);
+        ClientOptions clientOptions = SslUtils.configureSsl(extractClientOptions(simpleRequestOptions));
+        CoercedClientOptions coercedClientOptions = coerceClientOptions(clientOptions);
 
-        final CloseableHttpAsyncClient client = createClient(coercedOptions);
+        final CloseableHttpAsyncClient client = createClient(coercedClientOptions);
 
-        HttpRequestBase request = constructRequest(coercedOptions.getMethod(),
-                coercedOptions.getUri(), coercedOptions.getBody());
-        request.setHeaders(coercedOptions.getHeaders());
+        return requestWithClient(requestOptions, method, callback, client, false);
+    }
+
+    public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
+                                                      final HttpMethod method,
+                                                      final IResponseCallback callback,
+                                                      final CloseableHttpAsyncClient client,
+                                                      final boolean persistent) {
+        CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
+
+        HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
+                coercedRequestOptions.getUri(), coercedRequestOptions.getBody());
+        request.setHeaders(coercedRequestOptions.getHeaders());
 
         final Promise<Response> promise = new Promise<Response>();
 
@@ -207,41 +223,41 @@ public class JavaClient {
                         headers.put(h.getName().toLowerCase(), h.getValue());
                     }
                     String origContentEncoding = headers.get("content-encoding");
-                    if (options.getDecompressBody()) {
+                    if (requestOptions.getDecompressBody()) {
                         body = decompress((InputStream)body, headers);
                     }
                     ContentType contentType = null;
                     if (headers.get("content-type") != null) {
                         contentType = ContentType.parse(headers.get("content-type"));
                     }
-                    if (options.getAs() != ResponseBodyType.STREAM) {
-                        body = coerceBodyType((InputStream)body, options.getAs(), contentType);
+                    if (requestOptions.getAs() != ResponseBodyType.STREAM) {
+                        body = coerceBodyType((InputStream)body, requestOptions.getAs(), contentType);
                     }
-                    deliverResponse(client, options,
-                            new Response(options, origContentEncoding, body,
+                    deliverResponse(client, requestOptions,
+                            new Response(requestOptions, origContentEncoding, body,
                                     headers, httpResponse.getStatusLine().getStatusCode(),
                                     contentType),
-                            callback, promise);
+                            callback, promise, persistent);
                 } catch (Exception e) {
-                    deliverResponse(client, options, new Response(options, e), callback, promise);
+                    deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise, persistent);
                 }
             }
 
             @Override
             public void failed(Exception e) {
-                deliverResponse(client, options, new Response(options, e), callback, promise);
+                deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise, persistent);
             }
 
             @Override
             public void cancelled() {
-                deliverResponse(client, options, new Response(options, new HttpClientException("Request cancelled", null)), callback, promise);
+                deliverResponse(client, requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise, persistent);
             }
         });
 
         return promise;
     }
 
-    private static CloseableHttpAsyncClient createClient(CoercedRequestOptions coercedOptions) {
+    public static CloseableHttpAsyncClient createClient(CoercedClientOptions coercedOptions) {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
             clientBuilder.setSSLStrategy(
@@ -278,7 +294,7 @@ public class JavaClient {
 
     private static void deliverResponse(CloseableHttpAsyncClient client, RequestOptions options,
                                         Response httpResponse, IResponseCallback callback,
-                                        Promise<Response> promise) {
+                                        Promise<Response> promise, boolean persistent) {
         try {
             if (callback != null) {
                 try {
@@ -299,7 +315,9 @@ public class JavaClient {
             // great solution but avoids the deadlock until an implementation
             // that allows the originating request thread to perform the client
             // close can be done.
-            AsyncClose.close(client);
+            if (!persistent) {
+                AsyncClose.close(client);
+            }
         }
     }
 
@@ -374,6 +392,31 @@ public class JavaClient {
             default:
                 throw new HttpClientException("Unsupported body type: " + as);
         }
+    }
+
+    private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
+        URI uri = simpleOptions.getUri();
+        Map<String, String> headers = simpleOptions.getHeaders();
+        Object body = simpleOptions.getBody();
+        boolean decompressBody = simpleOptions.getDecompressBody();
+        ResponseBodyType as = simpleOptions.getAs();
+        return new RequestOptions(uri, headers, body, decompressBody, as);
+    }
+
+    private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
+        SSLContext sslContext = simpleOptions.getSslContext();
+        String sslCert = simpleOptions.getSslCert();
+        String sslKey = simpleOptions.getSslKey();
+        String sslCaCert = simpleOptions.getSslCaCert();
+        String[] sslProtocols = simpleOptions.getSslProtocols();
+        String[] sslCipherSuites = simpleOptions.getSslCipherSuites();
+        boolean insecure = simpleOptions.getInsecure();
+        boolean forceRedirects = simpleOptions.getForceRedirects();
+        boolean followRedirects = simpleOptions.getFollowRedirects();
+
+        return new ClientOptions(sslContext, sslCert, sslKey, sslCaCert,
+                                 sslProtocols, sslCipherSuites, insecure,
+                                 forceRedirects, followRedirects);
     }
 
 }
