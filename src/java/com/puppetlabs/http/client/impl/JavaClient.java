@@ -193,14 +193,13 @@ public class JavaClient {
 
         final CloseableHttpAsyncClient client = createClient(coercedClientOptions);
 
-        return requestWithClient(requestOptions, method, callback, client, false);
+        return requestWithClient(requestOptions, method, callback, client);
     }
 
     public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
                                                       final HttpMethod method,
                                                       final IResponseCallback callback,
-                                                      final CloseableHttpAsyncClient client,
-                                                      final boolean persistent) {
+                                                      final CloseableHttpAsyncClient client) {
         CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
         HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
@@ -233,24 +232,24 @@ public class JavaClient {
                     if (requestOptions.getAs() != ResponseBodyType.STREAM) {
                         body = coerceBodyType((InputStream)body, requestOptions.getAs(), contentType);
                     }
-                    deliverResponse(client, requestOptions,
+                    deliverResponse(requestOptions,
                             new Response(requestOptions, origContentEncoding, body,
                                     headers, httpResponse.getStatusLine().getStatusCode(),
                                     contentType),
-                            callback, promise, persistent);
+                            callback, promise);
                 } catch (Exception e) {
-                    deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise, persistent);
+                    deliverResponse(requestOptions, new Response(requestOptions, e), callback, promise);
                 }
             }
 
             @Override
             public void failed(Exception e) {
-                deliverResponse(client, requestOptions, new Response(requestOptions, e), callback, promise, persistent);
+                deliverResponse(requestOptions, new Response(requestOptions, e), callback, promise);
             }
 
             @Override
             public void cancelled() {
-                deliverResponse(client, requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise, persistent);
+                deliverResponse(requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise);
             }
         });
 
@@ -292,32 +291,18 @@ public class JavaClient {
         return client;
     }
 
-    private static void deliverResponse(CloseableHttpAsyncClient client, RequestOptions options,
-                                        Response httpResponse, IResponseCallback callback,
-                                        Promise<Response> promise, boolean persistent) {
-        try {
-            if (callback != null) {
-                try {
-                    promise.deliver(callback.handleResponse(httpResponse));
-                } catch (Exception ex) {
-                    promise.deliver(new Response(options, ex));
-                }
-            } else {
-                promise.deliver(httpResponse);
+    private static void deliverResponse(RequestOptions options,
+                                        Response httpResponse,
+                                        IResponseCallback callback,
+                                        Promise<Response> promise) {
+        if (callback != null) {
+            try {
+                promise.deliver(callback.handleResponse(httpResponse));
+            } catch (Exception ex) {
+                promise.deliver(new Response(options, ex));
             }
-        } finally {
-            // Call to AsyncClose.close added for TK-101.  Can't call client
-            // close from the current thread context because the Apache HTTP
-            // client library may have called through to this function from an
-            // i/o reactor thread and the client close might try to do a join on
-            // the i/o reactor threads, leading to a deadlock.  AsyncClose does
-            // the close on a different thread to avoid the deadlock.  Not a
-            // great solution but avoids the deadlock until an implementation
-            // that allows the originating request thread to perform the client
-            // close can be done.
-            if (!persistent) {
-                AsyncClose.close(client);
-            }
+        } else {
+            promise.deliver(httpResponse);
         }
     }
 

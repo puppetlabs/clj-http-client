@@ -4,7 +4,6 @@ import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.Response;
 import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.HttpMethod;
-import com.puppetlabs.http.client.Sync;
 import com.puppetlabs.http.client.SyncHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.slf4j.Logger;
@@ -27,7 +26,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     }
 
     private Response request(RequestOptions requestOptions, HttpMethod method) {
-        Promise<Response> promise =  JavaClient.requestWithClient(requestOptions, method, null, client, true);
+        Promise<Response> promise =  JavaClient.requestWithClient(requestOptions, method, null, client);
 
         Response response = null;
         try {
@@ -41,9 +40,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return response;
     }
 
-    public void close() {
-        AsyncClose.close(client);
-    }
+    public void close() {}
 
     public Response get(String url) throws URISyntaxException {
         return get(new URI(url));

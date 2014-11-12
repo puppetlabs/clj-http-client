@@ -24,7 +24,7 @@
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
-           (com.puppetlabs.http.client.impl AsyncClose Compression)
+           (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
@@ -226,24 +226,11 @@
     response))
 
 (schema/defn deliver-result
-  [client :- common/Client
-   result :- common/ResponsePromise
+  [result :- common/ResponsePromise
    opts :- common/UserRequestOptions
    callback :- common/ResponseCallbackFn
    response :- common/Response]
-  (try
-    (deliver result (callback-response opts callback response))
-    (finally
-      ;; Call to AsyncClose/close added for TK-101.  Can't call client close
-      ;; from the current thread context because the Apache HTTP client library
-      ;; may have called through to this function from an i/o reactor thread and
-      ;; the client close might try to do a join on the i/o reactor threads,
-      ;; leading to a deadlock.  AsyncClose does the close on a different thread
-      ;; to avoid the deadlock.  Not a great solution but avoids the deadlock
-      ;; until an implementation that allows the originating request thread to
-      ;; perform the client close can be done.
-      (if (not (:persistent opts))
-        (AsyncClose/close client)))))
+  (deliver result (callback-response opts callback response)))
 
 (schema/defn future-callback
   [client :- common/Client
@@ -256,16 +243,16 @@
         (let [response (cond-> (response-map opts http-response)
                                (:decompress-body opts) (decompress)
                                (not= :stream (:as opts)) (coerce-body-type))]
-          (deliver-result client result opts callback response))
+          (deliver-result result opts callback response))
         (catch Exception e
           (log/warn e "Error when delivering response")
-          (deliver-result client result opts callback
+          (deliver-result result opts callback
                           (error-response opts e)))))
     (failed [this e]
-      (deliver-result client result opts callback
+      (deliver-result result opts callback
                       (error-response opts e)))
     (cancelled [this]
-      (deliver-result client result opts callback
+      (deliver-result result opts callback
                       (error-response
                         opts
                         (HttpClientException. "Request cancelled"))))))
@@ -282,7 +269,7 @@
 
 (schema/defn extract-request-opts :- common/RequestOptions
   [opts :- common/UserRequestOptions]
-  (select-keys opts [:url :method :headers :body :decompress-body :as :persistent :query-params]))
+  (select-keys opts [:url :method :headers :body :decompress-body :as :query-params]))
 
 (schema/defn ^:always-validate ssl-strategy :- SSLIOSessionStrategy
   [ssl-ctxt-opts :- common/SslContextOptions
@@ -328,12 +315,11 @@
   [opts :- common/RawUserRequestClientOptions
    callback :- common/ResponseCallbackFn
    client]
-  (let [persistent (not (nil? client))
-        defaults {:headers         {}
+  (let [defaults {:headers         {}
                   :body            nil
                   :decompress-body true
                   :as              :stream}
-        opts (assoc (merge defaults opts) :persistent persistent)
+        opts (merge defaults opts)
         client-opts (extract-client-opts opts)
         request-opts (extract-request-opts opts)
         client (or client (create-default-client client-opts))
