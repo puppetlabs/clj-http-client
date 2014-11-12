@@ -124,7 +124,10 @@
           (let [response (.patch client request-options)]
             (is (= 200 (.getStatus response)))
             (is (= "Hello, World!" (slurp (.getBody response))))))
-        (.close client)))
+        (testing "client closes properly"
+          (.close client)
+          (is (thrown? IllegalStateException
+                       (.get client request-options))))))
     (testing "persistent clojure client"
       (let [client (sync/create-client {})]
         (testing "HEAD request with persistent sync client"
@@ -159,9 +162,11 @@
           (let [response (common/patch client "http://localhost:10000/hello/")]
             (is (= 200 (:status response)))
             (is (= "Hello, World!" (slurp (:body response))))))
-        (common/close client)
-        (is (thrown? IllegalStateException
-                     (common/get client "http://localhost:10000/hello"))))))))
+        (testing "client closes properly"
+          (common/close client)
+          (is (thrown? IllegalStateException
+                       (common/get client
+                                   "http://localhost:10000/hello")))))))))
 
 (deftest sync-client-as-test
   (testlogging/with-test-logging

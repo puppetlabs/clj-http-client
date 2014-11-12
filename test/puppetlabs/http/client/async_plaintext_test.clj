@@ -67,7 +67,10 @@
           (let [response (.patch client request-options)]
             (is (= 200 (.getStatus (.deref response))))
             (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (.close client)))
+        (testing "client closes properly"
+          (.close client)
+          (is (thrown? IllegalStateException
+                       (.get client request-options))))))
     (testing "clojure async client"
       (let [client (async/create-client {})]
         (testing "HEAD request with persistent async client"
@@ -104,7 +107,9 @@
             (is (= "Hello, World!" (slurp (:body @response))))))
         (testing "client closes properly"
           (common/close client)
-          (is (thrown? IllegalStateException (common/get client "http://localhost:10000/hello/")))))))))
+          (is (thrown? IllegalStateException
+                       (common/get client
+                                   "http://localhost:10000/hello/")))))))))
 
 (deftest request-with-client-test
   (testlogging/with-test-logging
