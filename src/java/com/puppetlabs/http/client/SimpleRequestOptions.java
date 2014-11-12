@@ -7,7 +7,6 @@ import java.util.Map;
 
 public class SimpleRequestOptions {
     private URI uri;
-    private HttpMethod method = null;
     private Map<String, String> headers;
     private SSLContext sslContext;
     private String sslCert;
@@ -32,14 +31,6 @@ public class SimpleRequestOptions {
     }
     public SimpleRequestOptions setUri(URI uri) {
         this.uri = uri;
-        return this;
-    }
-
-    public HttpMethod getMethod() {
-        return method;
-    }
-    public SimpleRequestOptions setMethod(HttpMethod method) {
-        this.method = method;
         return this;
     }
 

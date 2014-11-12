@@ -26,8 +26,8 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         throw new HttpClientException(msg, t);
     }
 
-    private Response request(RequestOptions requestOptions) {
-        Promise<Response> promise =  JavaClient.requestWithClient(requestOptions, null, client, true);
+    private Response request(RequestOptions requestOptions, HttpMethod method) {
+        Promise<Response> promise =  JavaClient.requestWithClient(requestOptions, method, null, client, true);
 
         Response response = null;
         try {
@@ -52,7 +52,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return get(new RequestOptions(uri));
     }
     public Response get(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.GET));
+        return request(requestOptions, HttpMethod.GET);
     }
 
     public Response head(String url) throws URISyntaxException {
@@ -62,7 +62,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return head(new RequestOptions(uri));
     }
     public Response head(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.HEAD));
+        return request(requestOptions, HttpMethod.HEAD);
     }
 
     public Response post(String url) throws URISyntaxException {
@@ -72,7 +72,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return post(new RequestOptions(uri));
     }
     public Response post(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.POST));
+        return request(requestOptions, HttpMethod.POST);
     }
 
     public Response put(String url) throws URISyntaxException {
@@ -82,7 +82,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return put(new RequestOptions(uri));
     }
     public Response put(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.PUT));
+        return request(requestOptions, HttpMethod.PUT);
     }
 
     public Response delete(String url) throws URISyntaxException {
@@ -92,7 +92,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return delete(new RequestOptions(uri));
     }
     public Response delete(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.DELETE));
+        return request(requestOptions, HttpMethod.DELETE);
     }
 
     public Response trace(String url) throws URISyntaxException {
@@ -102,7 +102,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return trace(new RequestOptions(uri));
     }
     public Response trace(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.TRACE));
+        return request(requestOptions, HttpMethod.TRACE);
     }
 
     public Response options(String url) throws URISyntaxException {
@@ -112,7 +112,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return options(new RequestOptions(uri));
     }
     public Response options(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.OPTIONS));
+        return request(requestOptions, HttpMethod.OPTIONS);
     }
 
     public Response patch(String url) throws URISyntaxException {
@@ -122,6 +122,6 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return patch(new RequestOptions(uri));
     }
     public Response patch(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.PATCH));
+        return request(requestOptions, HttpMethod.PATCH);
     }
 }

@@ -24,8 +24,8 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         AsyncClose.close(client);
     }
 
-    private Promise<Response> request(RequestOptions requestOptions) {
-        return JavaClient.requestWithClient(requestOptions, null, client, true);
+    private Promise<Response> request(RequestOptions requestOptions, HttpMethod method) {
+        return JavaClient.requestWithClient(requestOptions, method, null, client, true);
     }
 
     public Promise<Response> get(String url) throws URISyntaxException {
@@ -35,7 +35,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return get(new RequestOptions(uri));
     }
     public Promise<Response> get(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.GET));
+        return request(requestOptions, HttpMethod.GET);
     }
 
     public Promise<Response> head(String url) throws URISyntaxException {
@@ -45,7 +45,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return head(new RequestOptions(uri));
     }
     public Promise<Response> head(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.HEAD));
+        return request(requestOptions, HttpMethod.HEAD);
     }
 
     public Promise<Response> post(String url) throws URISyntaxException {
@@ -55,7 +55,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return post(new RequestOptions(uri));
     }
     public Promise<Response> post(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.POST));
+        return request(requestOptions, HttpMethod.POST);
     }
 
     public Promise<Response> put(String url) throws URISyntaxException {
@@ -65,7 +65,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return put(new RequestOptions(uri));
     }
     public Promise<Response> put(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.PUT));
+        return request(requestOptions, HttpMethod.PUT);
     }
 
     public Promise<Response> delete(String url) throws URISyntaxException {
@@ -75,7 +75,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return delete(new RequestOptions(uri));
     }
     public Promise<Response> delete(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.DELETE));
+        return request(requestOptions, HttpMethod.DELETE);
     }
 
     public Promise<Response> trace(String url) throws URISyntaxException {
@@ -85,7 +85,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return trace(new RequestOptions(uri));
     }
     public Promise<Response> trace(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.TRACE));
+        return request(requestOptions, HttpMethod.TRACE);
     }
 
     public Promise<Response> options(String url) throws URISyntaxException {
@@ -95,7 +95,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return options(new RequestOptions(uri));
     }
     public Promise<Response> options(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.OPTIONS));
+        return request(requestOptions, HttpMethod.OPTIONS);
     }
 
     public Promise<Response> patch(String url) throws URISyntaxException {
@@ -105,6 +105,6 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return patch(new RequestOptions(uri));
     }
     public Promise<Response> patch(RequestOptions requestOptions) {
-        return request(requestOptions.setMethod(HttpMethod.PATCH));
+        return request(requestOptions, HttpMethod.PATCH);
     }
 }

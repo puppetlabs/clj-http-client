@@ -20,12 +20,12 @@ public class Sync {
         throw new HttpClientException(msg, t);
     }
 
-    private static Response request(SimpleRequestOptions requestOptions) {
+    private static Response request(SimpleRequestOptions requestOptions, HttpMethod method) {
         // TODO: if we end up implementing an async version of the java API,
         // we should refactor this implementation so that it is based on the
         // async one, as Patrick has done in the clojure API.
 
-        Promise<Response> promise =  JavaClient.request(requestOptions, null);
+        Promise<Response> promise =  JavaClient.request(requestOptions, method, null);
 
         Response response = null;
         try {
@@ -53,7 +53,7 @@ public class Sync {
         return get(new SimpleRequestOptions(uri));
     }
     public static Response get(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.GET));
+        return request(simpleRequestOptions, HttpMethod.GET);
     }
 
     public static Response head(String url) throws URISyntaxException {
@@ -63,7 +63,7 @@ public class Sync {
         return head(new SimpleRequestOptions(uri));
     }
     public static Response head(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.HEAD));
+        return request(simpleRequestOptions, HttpMethod.HEAD);
     }
 
     public static Response post(String url) throws URISyntaxException {
@@ -71,7 +71,7 @@ public class Sync {
     }
     public static Response post(URI uri) { return post(new SimpleRequestOptions(uri)); }
     public static Response post(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.POST));
+        return request(simpleRequestOptions, HttpMethod.POST);
     }
 
     public static Response put(String url) throws URISyntaxException {
@@ -79,7 +79,7 @@ public class Sync {
     }
     public static Response put(URI uri) { return put(new SimpleRequestOptions(uri)); }
     public static Response put(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.PUT));
+        return request(simpleRequestOptions, HttpMethod.PUT);
     }
 
     public static Response delete(String url) throws URISyntaxException {
@@ -87,7 +87,7 @@ public class Sync {
     }
     public static Response delete(URI uri) { return delete(new SimpleRequestOptions(uri)); }
     public static Response delete(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.DELETE));
+        return request(simpleRequestOptions, HttpMethod.DELETE);
     }
 
     public static Response trace(String url) throws URISyntaxException {
@@ -95,7 +95,7 @@ public class Sync {
     }
     public static Response trace(URI uri) { return trace(new SimpleRequestOptions(uri)); }
     public static Response trace(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.TRACE));
+        return request(simpleRequestOptions, HttpMethod.TRACE);
     }
 
     public static Response options(String url) throws URISyntaxException {
@@ -103,7 +103,7 @@ public class Sync {
     }
     public static Response options(URI uri) { return options(new SimpleRequestOptions(uri)); }
     public static Response options(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.OPTIONS));
+        return request(simpleRequestOptions, HttpMethod.OPTIONS);
     }
 
     public static Response patch(String url) throws URISyntaxException {
@@ -111,6 +111,6 @@ public class Sync {
     }
     public static Response patch(URI uri) { return patch(new SimpleRequestOptions(uri)); }
     public static Response patch(SimpleRequestOptions simpleRequestOptions) {
-        return request(simpleRequestOptions.setMethod(HttpMethod.PATCH));
+        return request(simpleRequestOptions, HttpMethod.PATCH);
     }
 }

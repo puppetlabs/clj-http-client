@@ -6,7 +6,6 @@ import java.util.Map;
 
 public class RequestOptions {
     private URI uri;
-    private HttpMethod method = null;
     private Map<String, String> headers;
     private Object body;
     private boolean decompressBody = true;
@@ -17,13 +16,11 @@ public class RequestOptions {
         this.uri = uri;
     }
     public RequestOptions (URI uri,
-                           HttpMethod method,
                            Map<String, String> headers,
                            Object body,
                            boolean decompressBody,
                            ResponseBodyType as) {
         this.uri = uri;
-        this.method = method;
         this.headers = headers;
         this.body = body;
         this.decompressBody = decompressBody;
@@ -35,14 +32,6 @@ public class RequestOptions {
     }
     public RequestOptions setUri(URI uri) {
         this.uri = uri;
-        return this;
-    }
-
-    public HttpMethod getMethod() {
-        return method;
-    }
-    public RequestOptions setMethod(HttpMethod method) {
-        this.method = method;
         return this;
     }
 

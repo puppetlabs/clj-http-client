@@ -94,10 +94,9 @@ public class JavaClient {
         return contentType;
     }
 
-    private static CoercedRequestOptions coerceRequestOptions(RequestOptions options) {
+    private static CoercedRequestOptions coerceRequestOptions(RequestOptions options, HttpMethod method) {
         URI uri = options.getUri();
 
-        HttpMethod method = options.getMethod();
         if (method == null) {
             method = HttpMethod.GET;
         }
@@ -187,21 +186,22 @@ public class JavaClient {
         return context;
     }
 
-    public static Promise<Response> request(final SimpleRequestOptions simpleRequestOptions, final IResponseCallback callback) {
+    public static Promise<Response> request(final SimpleRequestOptions simpleRequestOptions, final HttpMethod method, final IResponseCallback callback) {
         RequestOptions requestOptions = extractRequestOptions(simpleRequestOptions);
         ClientOptions clientOptions = SslUtils.configureSsl(extractClientOptions(simpleRequestOptions));
         CoercedClientOptions coercedClientOptions = coerceClientOptions(clientOptions);
 
         final CloseableHttpAsyncClient client = createClient(coercedClientOptions);
 
-        return requestWithClient(requestOptions, callback, client, false);
+        return requestWithClient(requestOptions, method, callback, client, false);
     }
 
     public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
+                                                      final HttpMethod method,
                                                       final IResponseCallback callback,
                                                       final CloseableHttpAsyncClient client,
                                                       final boolean persistent) {
-        CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions);
+        CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
         HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
                 coercedRequestOptions.getUri(), coercedRequestOptions.getBody());
@@ -396,12 +396,11 @@ public class JavaClient {
 
     private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
         URI uri = simpleOptions.getUri();
-        HttpMethod method = simpleOptions.getMethod();
         Map<String, String> headers = simpleOptions.getHeaders();
         Object body = simpleOptions.getBody();
         boolean decompressBody = simpleOptions.getDecompressBody();
         ResponseBodyType as = simpleOptions.getAs();
-        return new RequestOptions(uri, method, headers, body, decompressBody, as);
+        return new RequestOptions(uri, headers, body, decompressBody, as);
     }
 
     private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
