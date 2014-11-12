@@ -1,10 +1,11 @@
 package com.puppetlabs.http.client;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public interface SyncHttpClient {
-    public void close();
+public interface SyncHttpClient extends Closeable {
+    public Response request(RequestOptions requestOptions, HttpMethod method);
 
     public Response get(String url) throws URISyntaxException;
     public Response get(URI uri);

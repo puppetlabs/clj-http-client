@@ -2,12 +2,11 @@ package com.puppetlabs.http.client;
 
 import com.puppetlabs.http.client.impl.Promise;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public interface AsyncHttpClient {
-    public void close();
-
+public interface AsyncHttpClient extends Closeable{
     public Promise<Response> get(String url) throws URISyntaxException;
     public Promise<Response> get(URI uri);
     public Promise<Response> get(RequestOptions requestOptions);

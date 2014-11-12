@@ -6,6 +6,7 @@ import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.AsyncHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -16,7 +17,9 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         this.client = client;
     }
 
-    public void close() {}
+    public void close() throws IOException {
+        client.close();
+    }
 
     private Promise<Response> request(RequestOptions requestOptions, HttpMethod method) {
         return JavaClient.requestWithClient(requestOptions, method, null, client);

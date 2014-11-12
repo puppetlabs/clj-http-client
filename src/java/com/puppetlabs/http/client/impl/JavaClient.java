@@ -1,11 +1,32 @@
 package com.puppetlabs.http.client.impl;
 
-import com.puppetlabs.http.client.*;
+import com.puppetlabs.http.client.ClientOptions;
+import com.puppetlabs.http.client.HttpClientException;
+import com.puppetlabs.http.client.HttpMethod;
+import com.puppetlabs.http.client.RequestOptions;
+import com.puppetlabs.http.client.Response;
+import com.puppetlabs.http.client.ResponseBodyType;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.http.*;
+import org.apache.http.Consts;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.ParseException;
+import org.apache.http.ProtocolException;
 import org.apache.http.client.RedirectStrategy;
-import org.apache.http.client.methods.*;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpOptions;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpTrace;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -15,17 +36,18 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
 
-import javax.net.ssl.*;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -184,16 +206,6 @@ public class JavaClient {
             throw new HttpClientException("Unable to initialize insecure SSL context", e);
         }
         return context;
-    }
-
-    public static Promise<Response> request(final SimpleRequestOptions simpleRequestOptions, final HttpMethod method, final IResponseCallback callback) {
-        RequestOptions requestOptions = extractRequestOptions(simpleRequestOptions);
-        ClientOptions clientOptions = SslUtils.configureSsl(extractClientOptions(simpleRequestOptions));
-        CoercedClientOptions coercedClientOptions = coerceClientOptions(clientOptions);
-
-        final CloseableHttpAsyncClient client = createClient(coercedClientOptions);
-
-        return requestWithClient(requestOptions, method, callback, client);
     }
 
     public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
@@ -363,6 +375,8 @@ public class JavaClient {
 
     public static Object coerceBodyType(InputStream body, ResponseBodyType as,
                                          ContentType contentType) {
+        Object response = null;
+
         switch (as) {
             case TEXT:
                 String charset = "UTF-8";
@@ -370,38 +384,21 @@ public class JavaClient {
                     charset = contentType.getCharset().name();
                 }
                 try {
-                    return IOUtils.toString(body, charset);
+                    response = IOUtils.toString(body, charset);
                 } catch (IOException e) {
                     throw new HttpClientException("Unable to read body as string", e);
                 }
+                try {
+                    body.close();
+                } catch (IOException e) {
+                    throw new HttpClientException(
+                            "Unable to close response stream", e);
+                }
+                break;
             default:
                 throw new HttpClientException("Unsupported body type: " + as);
         }
+
+        return response;
     }
-
-    private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
-        URI uri = simpleOptions.getUri();
-        Map<String, String> headers = simpleOptions.getHeaders();
-        Object body = simpleOptions.getBody();
-        boolean decompressBody = simpleOptions.getDecompressBody();
-        ResponseBodyType as = simpleOptions.getAs();
-        return new RequestOptions(uri, headers, body, decompressBody, as);
-    }
-
-    private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
-        SSLContext sslContext = simpleOptions.getSslContext();
-        String sslCert = simpleOptions.getSslCert();
-        String sslKey = simpleOptions.getSslKey();
-        String sslCaCert = simpleOptions.getSslCaCert();
-        String[] sslProtocols = simpleOptions.getSslProtocols();
-        String[] sslCipherSuites = simpleOptions.getSslCipherSuites();
-        boolean insecure = simpleOptions.getInsecure();
-        boolean forceRedirects = simpleOptions.getForceRedirects();
-        boolean followRedirects = simpleOptions.getFollowRedirects();
-
-        return new ClientOptions(sslContext, sslCert, sslKey, sslCaCert,
-                                 sslProtocols, sslCipherSuites, insecure,
-                                 forceRedirects, followRedirects);
-    }
-
 }

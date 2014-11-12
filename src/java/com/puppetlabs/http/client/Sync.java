@@ -1,15 +1,17 @@
 package com.puppetlabs.http.client;
 
 import com.puppetlabs.http.client.impl.SslUtils;
-import com.puppetlabs.http.client.impl.Promise;
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.PersistentSyncHttpClient;
 import com.puppetlabs.http.client.impl.CoercedClientOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 public class Sync {
     private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
@@ -20,31 +22,62 @@ public class Sync {
         throw new HttpClientException(msg, t);
     }
 
-    private static Response request(SimpleRequestOptions requestOptions, HttpMethod method) {
+    private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
+        URI uri = simpleOptions.getUri();
+        Map<String, String> headers = simpleOptions.getHeaders();
+        Object body = simpleOptions.getBody();
+        boolean decompressBody = simpleOptions.getDecompressBody();
+        ResponseBodyType as = simpleOptions.getAs();
+        return new RequestOptions(uri, headers, body, decompressBody, as);
+    }
+
+    private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {
+        SSLContext sslContext = simpleOptions.getSslContext();
+        String sslCert = simpleOptions.getSslCert();
+        String sslKey = simpleOptions.getSslKey();
+        String sslCaCert = simpleOptions.getSslCaCert();
+        String[] sslProtocols = simpleOptions.getSslProtocols();
+        String[] sslCipherSuites = simpleOptions.getSslCipherSuites();
+        boolean insecure = simpleOptions.getInsecure();
+        boolean forceRedirects = simpleOptions.getForceRedirects();
+        boolean followRedirects = simpleOptions.getFollowRedirects();
+
+        return new ClientOptions(sslContext, sslCert, sslKey, sslCaCert,
+                sslProtocols, sslCipherSuites, insecure,
+                forceRedirects, followRedirects);
+    }
+
+    private static Response request(SimpleRequestOptions simpleRequestOptions,
+                                    HttpMethod method) {
         // TODO: if we end up implementing an async version of the java API,
         // we should refactor this implementation so that it is based on the
         // async one, as Patrick has done in the clojure API.
-
-        Promise<Response> promise =  JavaClient.request(requestOptions, method, null);
-
         Response response = null;
+        final SyncHttpClient client = createClient(
+                extractClientOptions(simpleRequestOptions));
         try {
-            response = promise.deref();
-        } catch (InterruptedException e) {
-            logAndRethrow("Error while waiting for http response", e);
+            response = client.request(
+                    extractRequestOptions(simpleRequestOptions),
+                    method);
         }
-        if (response.getError() != null) {
-            logAndRethrow("Error executing http request", response.getError());
+        finally {
+            try {
+                client.close();
+            }
+            catch (IOException e) {
+                logAndRethrow("Error closing client", e);
+            }
         }
         return response;
     }
 
     public static SyncHttpClient createClient(ClientOptions clientOptions) {
-        clientOptions = SslUtils.configureSsl(clientOptions);
-        CoercedClientOptions coercedClientOptions = JavaClient.coerceClientOptions(clientOptions);
-        return new PersistentSyncHttpClient(JavaClient.createClient(coercedClientOptions));
+        CoercedClientOptions coercedClientOptions =
+                JavaClient.coerceClientOptions(
+                        SslUtils.configureSsl(clientOptions));
+        return new PersistentSyncHttpClient(
+                JavaClient.createClient(coercedClientOptions));
     }
-
 
     public static Response get(String url) throws URISyntaxException {
         return get(new URI(url));
