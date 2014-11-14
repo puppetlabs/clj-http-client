@@ -18,6 +18,10 @@
                      :ssl-protocols :cipher-suites
                      :force-redirects :follow-redirects]))
 
+(schema/defn extract-request-opts :- common/RawUserRequestOptions
+  [opts :- common/RawUserRequestClientOptions]
+  (select-keys opts [:url :method :headers :body :decompress-body :as :query-params]))
+
 (defn request-with-client
   [req client]
   (let [{:keys [error] :as resp} @(async/request-with-client req nil client)]
@@ -31,7 +35,7 @@
 (defn request
   [req]
   (with-open [client (async/create-default-client (extract-client-opts req))]
-    (request-with-client req client)))
+    (request-with-client (extract-request-opts req) client)))
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]

@@ -261,10 +261,6 @@
   [opts :- common/ClientOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
 
-(schema/defn extract-request-opts :- common/RequestOptions
-  [opts :- common/UserRequestOptions]
-  (select-keys opts [:url :method :headers :body :decompress-body :as :query-params]))
-
 (schema/defn ^:always-validate ssl-strategy :- SSLIOSessionStrategy
   [ssl-ctxt-opts :- common/SslContextOptions
    ssl-prot-opts :- common/SslProtocolOptions]
@@ -305,8 +301,33 @@
     (.start client)
     client))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
+
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
-  [opts :- common/RawUserRequestClientOptions
+  "Issues an async HTTP request with the specified client and returns a promise
+   object to which the value of
+   `(callback {:opts _ :status _ :headers _ :body _})` or
+   `(callback {:opts _ :error _})` will be delivered.
+
+   When unspecified, `callback` is the identity function.
+
+   opts:
+
+   * :url
+   * :method - the HTTP method (:get, :head, :post, :put, :delete, :trace,
+               :options, :patch)
+   * :headers - a map of headers
+   * :body - the body; may be a String or any type supported by clojure's reader
+   * :decompress-body - if `true`, an 'accept-encoding' header with a value of
+        'gzip, deflate' will be added to the request, and the response will be
+        automatically decompressed if it contains a recognized 'content-encoding'
+        header.  defaults to `true`.
+   * :as - used to control the data type of the response body.  Supported values
+       are `:text` and `:stream`, which will return a `String` or an
+       `InputStream`, respectively.  Defaults to `:stream`.
+   * :query-params - used to set the query parameters of an http request"
+  [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
    client]
   (let [defaults {:headers         {}
@@ -314,7 +335,6 @@
                   :decompress-body true
                   :as              :stream}
         opts (merge defaults opts)
-        request-opts (extract-request-opts opts)
         {:keys [method url body] :as coerced-opts} (coerce-opts opts)
         request (construct-request method url)
         result (promise)]
@@ -322,36 +342,56 @@
     (when body
       (.setEntity request body))
     (.execute client request
-              (future-callback client result request-opts callback))
+              (future-callback client result opts callback))
     result))
 
-(schema/defn ^:always-validate request-with-reified-client :- common/ResponsePromise
-  [opts :- common/RawUserRequestOptions
-   callback :- common/ResponseCallbackFn
-   client]
-  (request-with-client opts callback client))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Public
-
 (schema/defn create-client :- common/HTTPClient
+  "Creates a client to be used for making one or more HTTP requests.
+
+   opts (base set):
+
+   * :force-redirects - used to set whether or not the client should follow
+       redirects on POST or PUT requests. Defaults to false.
+   * :follow-redirects - used to set whether or  not the client should follow
+       redirects in general. Defaults to true. If set to false, will override
+       the :force-redirects setting.
+   * :ssl-protocols - used to set the list of SSL protocols that the client
+       could select from when talking to the server. Defaults to 'TLSv1',
+       'TLSv1.1', and 'TLSv1.2'.
+   * :cipher-suites - used to set the cipher suites that the client could
+       select from when talking to the server. Defaults to the complete
+       set of suites supported by the underlying language runtime.
+
+   opts (ssl-specific where only one of the following combinations permitted):
+
+   * :ssl-context - an instance of SSLContext
+
+   OR
+
+   * :ssl-cert - path to a PEM file containing the client cert
+   * :ssl-key - path to a PEM file containing the client private key
+   * :ssl-ca-cert - path to a PEM file containing the CA cert
+
+   OR
+
+   * :ssl-ca-cert - path to a PEM file containing the CA cert"
   [opts :- common/ClientOptions]
   (let [client (create-default-client opts)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
-      (get [_ url opts] (request-with-reified-client (assoc opts :method :get :url url) nil client))
+      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) nil client))
       (head [this url] (common/head this url {}))
-      (head [_ url opts] (request-with-reified-client (assoc opts :method :head :url url) nil client))
+      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) nil client))
       (post [this url] (common/post this url {}))
-      (post [_ url opts] (request-with-reified-client (assoc opts :method :post :url url) nil client))
+      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) nil client))
       (put [this url] (common/put this url {}))
-      (put [_ url opts] (request-with-reified-client (assoc opts :method :put :url url) nil client))
+      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) nil client))
       (delete [this url] (common/delete this url {}))
-      (delete [_ url opts] (request-with-reified-client (assoc opts :method :delete :url url) nil client))
+      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) nil client))
       (trace [this url] (common/trace this url {}))
-      (trace [_ url opts] (request-with-reified-client (assoc opts :method :trace :url url) nil client))
+      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) nil client))
       (options [this url] (common/options this url {}))
-      (options [_ url opts] (request-with-reified-client (assoc opts :method :options :url url) nil client))
+      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) nil client))
       (patch [this url] (common/patch this url {}))
-      (patch [_ url opts] (request-with-reified-client (assoc opts :method :patch :url url) nil client))
+      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) nil client))
       (close [_] (.close client)))))
