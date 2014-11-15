@@ -145,7 +145,6 @@
                                                          (.deref response)))))))
               (finally
                 (.close client)))))
-
         (testing "URL Query Parameters work with the clojure client"
           (with-open [client (async/create-client {})]
             (let [opts     {:method       :get
@@ -155,7 +154,6 @@
                   response (common/get client "http://localhost:8080/params" opts)]
                 (is (= 200 (:status @response)))
                 (is (= queryparams (read-string (:body @response)))))))
-
         (testing "URL Query Parameters can be set directly in the URL"
           (with-open [client (async/create-client {})]
             (let [response (common/get client
@@ -163,7 +161,6 @@
                                        {:as :text})]
               (is (= 200 (:status @response)))
               (is (= (str {"paramone" "one"}) (:body @response))))))
-
         (testing (str "URL Query Parameters set in URL are overwritten if params "
                       "are also specified in options map")
           (with-open [client (async/create-client {})]
@@ -178,22 +175,75 @@
     (testutils/with-app-with-config app
       [jetty9/jetty9-service redirect-web-service]
       {:webserver {:port 8080}}
+      (testing (str "redirects on POST not followed by persistent Java client "
+                    "when forceRedirects option not set to true")
+        (let [client (Async/createClient (ClientOptions.))]
+          (try
+            (let [request-options  (RequestOptions.
+                                     (URI. "http://localhost:8080/hello"))
+                  response         (.post client request-options)]
+              (is (= 302 (.getStatus (.deref response)))))
+            (finally
+              (.close client)))))
+      (testing "redirects on POST followed by Java client when option is set"
+        (let [client (Async/createClient (.. (ClientOptions.)
+                                             (setForceRedirects true)))]
+          (try
+            (let [request-options (RequestOptions.
+                                    (URI. "http://localhost:8080/hello"))
+                  response        (.post client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response))))))
+            (finally
+              (.close client)))))
+      (testing "redirects not followed by Java client when :follow-redirects is false"
+        (let [client (Async/createClient (.. (ClientOptions.)
+                                             (setFollowRedirects false)))]
+          (try
+            (let [request-options (RequestOptions.
+                                    (URI. "http://localhost:8080/hello"))
+                  response        (.get client request-options)]
+              (is (= 302 (.getStatus (.deref response)))))
+            (finally
+              (.close client)))))
+      (testing ":follow-redirects overrides :force-redirects for Java client"
+        (let [client (Async/createClient (.. (ClientOptions.)
+                                             (setFollowRedirects false)
+                                             (setForceRedirects true)))]
+          (try
+            (let [request-options (RequestOptions.
+                                    (URI. "http://localhost:8080/hello"))
+                  response        (.get client request-options)]
+              (is (= 302 (.getStatus (.deref response)))))
+            (finally
+              (.close client)))))
+      (testing (str "redirects on POST not followed by clojure client "
+                    "when :force-redirects is not set to true")
+        (with-open [client (async/create-client {:force-redirects false})]
+          (let [opts     {:method :post
+                          :url    "http://localhost:8080/hello"
+                          :as     :text}
+                response (common/post client "http://localhost:8080/hello" opts)]
+            (is (= 302 (:status @response))))))
       (testing (str "redirects on POST followed by persistent clojure client "
                     "when option is set")
-        (let [client (async/create-client {:force-redirects true})
-              response (common/post client "http://localhost:8080/hello" {:as :text})]
-          (is (= 200 (:status @response)))
-          (is (= "Hello, World!" (:body @response)))
-          (common/close client)))
+        (with-open [client (async/create-client {:force-redirects true})]
+          (let [response (common/post client
+                                      "http://localhost:8080/hello"
+                                      {:as :text})]
+            (is (= 200 (:status @response)))
+            (is (= "Hello, World!" (:body @response))))))
       (testing (str "persistent clojure client does not follow redirects when "
                     ":follow-redirects is set to false")
-        (let [client (async/create-client {:follow-redirects false})
-              response (common/get client "http://localhost:8080/hello" {:as :text})]
-          (is (= 302 (:status @response)))
-          (common/close client)))
+        (with-open [client (async/create-client {:follow-redirects false})]
+          (let [response (common/get client
+                                     "http://localhost:8080/hello"
+                                     {:as :text})]
+            (is (= 302 (:status @response))))))
       (testing ":follow-redirects overrides :force-redirects with persistent clj client"
-        (let [client (async/create-client {:follow-redirects false
-                                           :force-redirects true})
-              response (common/get client "http://localhost:8080/hello" {:as :text})]
-          (is (= 302 (:status @response)))
-          (common/close client))))))
+        (with-open [client (async/create-client {:follow-redirects false
+                                                 :force-redirects true})]
+          (let [response (common/get client
+                                     "http://localhost:8080/hello"
+                                     {:as :text})]
+            (is (= 302 (:status @response)))))))))
