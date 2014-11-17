@@ -1,3 +1,25 @@
+## 0.4.0
+ This is a feature release which has some breaking changes.
+
+ * Support for non-client bound asynchronous requests has been removed from both
+   the Clojure and Java-layer APIs.  This includes all of the request functions
+   that previously existed in the `client.async` Clojure namespace and the
+   request methods in the `AsyncHttpClient` Java class.
+ * Add a Java-layer API for getting an instance of an HttpClient on which
+   multiple requests -- e.g.., GET, POST -- can be made.  Clients are created
+   via the `createClient` method on the new `Async` and `Sync` classes, for
+   a client that can make asynchronous or synchronous web requests, respectively.
+ * Non-client bound synchronous requests can still be performed through the Java
+   API but must now be done through the `Sync` classes rather than the
+   `SyncHttpClient` class.  The `SyncHttpClient` class is now used as the type
+   of the instance that the `Sync.createClient()` method returns.
+ * The Java `RequestOptions` class was refactored into new `ClientOptions` and
+   `RequestOptions` classes which can be used with the client-bound `Async`
+   and `Sync` APIs.  For non-client bound requests, options are now defined
+   via a `SimpleRequestOptions` class.
+ * Reworked connection close behavior to more robustly handle successful and
+   failed connections.
+
 ## 0.3.1
  This is a bugfix release.
 
