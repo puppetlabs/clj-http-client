@@ -12,6 +12,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
 
+(schema/defn extract-client-opts :- common/ClientOptions
+  [opts :- common/RawUserRequestClientOptions]
+  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key
+                     :ssl-protocols :cipher-suites
+                     :force-redirects :follow-redirects]))
+
+(schema/defn extract-request-opts :- common/RawUserRequestOptions
+  [opts :- common/RawUserRequestClientOptions]
+  (select-keys opts [:url :method :headers :body :decompress-body :as :query-params]))
+
 (defn request-with-client
   [req client]
   (let [{:keys [error] :as resp} @(async/request-with-client req nil client)]
@@ -19,16 +29,13 @@
       (throw error)
       resp)))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
 (defn request
   [req]
-  (let [{:keys [error] :as resp} @(async/request req nil)]
-    (if error
-      (throw error)
-      resp)))
+  (with-open [client (async/create-default-client (extract-client-opts req))]
+    (request-with-client (extract-request-opts req) client)))
 
 (schema/defn create-client :- common/HTTPClient
   [opts :- common/ClientOptions]

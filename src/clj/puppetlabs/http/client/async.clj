@@ -24,7 +24,7 @@
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
-           (com.puppetlabs.http.client.impl AsyncClose Compression)
+           (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
@@ -226,24 +226,11 @@
     response))
 
 (schema/defn deliver-result
-  [client :- common/Client
-   result :- common/ResponsePromise
+  [result :- common/ResponsePromise
    opts :- common/UserRequestOptions
    callback :- common/ResponseCallbackFn
    response :- common/Response]
-  (try
-    (deliver result (callback-response opts callback response))
-    (finally
-      ;; Call to AsyncClose/close added for TK-101.  Can't call client close
-      ;; from the current thread context because the Apache HTTP client library
-      ;; may have called through to this function from an i/o reactor thread and
-      ;; the client close might try to do a join on the i/o reactor threads,
-      ;; leading to a deadlock.  AsyncClose does the close on a different thread
-      ;; to avoid the deadlock.  Not a great solution but avoids the deadlock
-      ;; until an implementation that allows the originating request thread to
-      ;; perform the client close can be done.
-      (if (not (:persistent opts))
-        (AsyncClose/close client)))))
+  (deliver result (callback-response opts callback response)))
 
 (schema/defn future-callback
   [client :- common/Client
@@ -256,33 +243,23 @@
         (let [response (cond-> (response-map opts http-response)
                                (:decompress-body opts) (decompress)
                                (not= :stream (:as opts)) (coerce-body-type))]
-          (deliver-result client result opts callback response))
+          (deliver-result result opts callback response))
         (catch Exception e
           (log/warn e "Error when delivering response")
-          (deliver-result client result opts callback
+          (deliver-result result opts callback
                           (error-response opts e)))))
     (failed [this e]
-      (deliver-result client result opts callback
+      (deliver-result result opts callback
                       (error-response opts e)))
     (cancelled [this]
-      (deliver-result client result opts callback
+      (deliver-result result opts callback
                       (error-response
                         opts
                         (HttpClientException. "Request cancelled"))))))
 
-(schema/defn extract-client-opts :- common/ClientOptions
-  [opts :- common/UserRequestOptions]
-  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key
-                     :ssl-protocols :cipher-suites
-                     :force-redirects :follow-redirects]))
-
 (schema/defn extract-ssl-opts :- common/SslOptions
   [opts :- common/ClientOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
-
-(schema/defn extract-request-opts :- common/RequestOptions
-  [opts :- common/UserRequestOptions]
-  (select-keys opts [:url :method :headers :body :decompress-body :as :persistent :query-params]))
 
 (schema/defn ^:always-validate ssl-strategy :- SSLIOSessionStrategy
   [ssl-ctxt-opts :- common/SslContextOptions
@@ -324,19 +301,40 @@
     (.start client)
     client))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
+
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
-  [opts :- common/RawUserRequestClientOptions
+  "Issues an async HTTP request with the specified client and returns a promise
+   object to which the value of
+   `(callback {:opts _ :status _ :headers _ :body _})` or
+   `(callback {:opts _ :error _})` will be delivered.
+
+   When unspecified, `callback` is the identity function.
+
+   opts:
+
+   * :url
+   * :method - the HTTP method (:get, :head, :post, :put, :delete, :trace,
+               :options, :patch)
+   * :headers - a map of headers
+   * :body - the body; may be a String or any type supported by clojure's reader
+   * :decompress-body - if `true`, an 'accept-encoding' header with a value of
+        'gzip, deflate' will be added to the request, and the response will be
+        automatically decompressed if it contains a recognized 'content-encoding'
+        header.  defaults to `true`.
+   * :as - used to control the data type of the response body.  Supported values
+       are `:text` and `:stream`, which will return a `String` or an
+       `InputStream`, respectively.  Defaults to `:stream`.
+   * :query-params - used to set the query parameters of an http request"
+  [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
    client]
-  (let [persistent (not (nil? client))
-        defaults {:headers         {}
+  (let [defaults {:headers         {}
                   :body            nil
                   :decompress-body true
                   :as              :stream}
-        opts (assoc (merge defaults opts) :persistent persistent)
-        client-opts (extract-client-opts opts)
-        request-opts (extract-request-opts opts)
-        client (or client (create-default-client client-opts))
+        opts (merge defaults opts)
         {:keys [method url body] :as coerced-opts} (coerce-opts opts)
         request (construct-request method url)
         result (promise)]
@@ -344,126 +342,56 @@
     (when body
       (.setEntity request body))
     (.execute client request
-              (future-callback client result request-opts callback))
+              (future-callback client result opts callback))
     result))
 
-(schema/defn ^:always-validate request-with-reified-client :- common/ResponsePromise
-  [opts :- common/RawUserRequestOptions
-   callback :- common/ResponseCallbackFn
-   client]
-  (request-with-client opts callback client))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Public
-
-(schema/defn ^:always-validate request :- common/ResponsePromise
-  "Issues an async HTTP request and returns a promise object to which the value
-  of `(callback {:opts _ :status _ :headers _ :body _})` or
-     `(callback {:opts _ :error _})` will be delivered.
-
-  When unspecified, `callback` is the identity function.
-
-  Request options:
-
-  * :url
-  * :method - the HTTP method (:get, :head, :post, :put, :delete, :options, :patch
-  * :headers - a map of headers
-  * :body - the body; may be a String or any type supported by clojure's reader
-  * :decompress-body - if `true`, an 'accept-encoding' header with a value of
-       'gzip, deflate' will be added to the request, and the response will be
-       automatically decompressed if it contains a recognized 'content-encoding'
-       header.  defaults to `true`.
-  * :as - used to control the data type of the response body.  Supported values are
-      `:text` and `:stream`, which will return a `String` or an `InputStream`,
-      respectively.  Defaults to `:stream`.
-  * :query-params - used to set the query parameters of an http request
-  * :force-redirects - used to set whether or not the client should follow
-      redirects on POST or PUT requests. Defaults to false.
-  * :follow-redirects - used to set whether or  not the client should follow
-      redirects in general. Defaults to true. If set to false, will override
-      the :force-redirects setting.
-
-  SSL options:
-
-  * :ssl-context - an instance of SSLContext
-
-  OR
-
-  * :ssl-cert - path to a PEM file containing the client cert
-  * :ssl-key - path to a PEM file containing the client private key
-  * :ssl-ca-cert - path to a PEM file containing the CA cert"
-  ([opts :- common/RawUserRequestClientOptions]
-   (request opts nil))
-  ([opts :- common/RawUserRequestClientOptions
-    callback :- common/ResponseCallbackFn]
-   (request-with-client opts callback nil)))
-
 (schema/defn create-client :- common/HTTPClient
+  "Creates a client to be used for making one or more HTTP requests.
+
+   opts (base set):
+
+   * :force-redirects - used to set whether or not the client should follow
+       redirects on POST or PUT requests. Defaults to false.
+   * :follow-redirects - used to set whether or  not the client should follow
+       redirects in general. Defaults to true. If set to false, will override
+       the :force-redirects setting.
+   * :ssl-protocols - used to set the list of SSL protocols that the client
+       could select from when talking to the server. Defaults to 'TLSv1',
+       'TLSv1.1', and 'TLSv1.2'.
+   * :cipher-suites - used to set the cipher suites that the client could
+       select from when talking to the server. Defaults to the complete
+       set of suites supported by the underlying language runtime.
+
+   opts (ssl-specific where only one of the following combinations permitted):
+
+   * :ssl-context - an instance of SSLContext
+
+   OR
+
+   * :ssl-cert - path to a PEM file containing the client cert
+   * :ssl-key - path to a PEM file containing the client private key
+   * :ssl-ca-cert - path to a PEM file containing the CA cert
+
+   OR
+
+   * :ssl-ca-cert - path to a PEM file containing the CA cert"
   [opts :- common/ClientOptions]
   (let [client (create-default-client opts)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
-      (get [_ url opts] (request-with-reified-client (assoc opts :method :get :url url) nil client))
+      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) nil client))
       (head [this url] (common/head this url {}))
-      (head [_ url opts] (request-with-reified-client (assoc opts :method :head :url url) nil client))
+      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) nil client))
       (post [this url] (common/post this url {}))
-      (post [_ url opts] (request-with-reified-client (assoc opts :method :post :url url) nil client))
+      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) nil client))
       (put [this url] (common/put this url {}))
-      (put [_ url opts] (request-with-reified-client (assoc opts :method :put :url url) nil client))
+      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) nil client))
       (delete [this url] (common/delete this url {}))
-      (delete [_ url opts] (request-with-reified-client (assoc opts :method :delete :url url) nil client))
+      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) nil client))
       (trace [this url] (common/trace this url {}))
-      (trace [_ url opts] (request-with-reified-client (assoc opts :method :trace :url url) nil client))
+      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) nil client))
       (options [this url] (common/options this url {}))
-      (options [_ url opts] (request-with-reified-client (assoc opts :method :options :url url) nil client))
+      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) nil client))
       (patch [this url] (common/patch this url {}))
-      (patch [_ url opts] (request-with-reified-client (assoc opts :method :patch :url url) nil client))
+      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) nil client))
       (close [_] (.close client)))))
-
-(defn get
-  "Issue an asynchronous HTTP GET request. This will raise an exception if an
-  error is returned."
-  ([url] (get url {}))
-  ([url opts] (request (assoc opts :method :get :url url))))
-
-(defn head
-  "Issue an asynchronous HTTP head request. This will raise an exception if an
-  error is returned."
-  ([url] (head url {}))
-  ([url opts] (request (assoc opts :method :head :url url))))
-
-(defn post
-  "Issue an asynchronous HTTP POST request. This will raise an exception if an
-  error is returned."
-  ([url] (post url {}))
-  ([url opts] (request (assoc opts :method :post :url url))))
-
-(defn put
-  "Issue an asynchronous HTTP PUT request. This will raise an exception if an
-  error is returned."
-  ([url] (put url {}))
-  ([url opts] (request (assoc opts :method :put :url url))))
-
-(defn delete
-  "Issue an asynchronous HTTP DELETE request. This will raise an exception if an
-  error is returned."
-  ([url] (delete url {}))
-  ([url opts] (request (assoc opts :method :delete :url url))))
-
-(defn trace
-  "Issue an asynchronous HTTP TRACE request. This will raise an exception if an
-  error is returned."
-  ([url] (trace url {}))
-  ([url opts] (request (assoc opts :method :trace :url url))))
-
-(defn options
-  "Issue an asynchronous HTTP OPTIONS request. This will raise an exception if an
-  error is returned."
-  ([url] (options url {}))
-  ([url opts] (request (assoc opts :method :options :url url))))
-
-(defn patch
-  "Issue an asynchronous HTTP PATCH request. This will raise an exception if an
-  error is returned."
-  ([url] (patch url {}))
-  ([url opts] (request (assoc opts :method :patch :url url))))

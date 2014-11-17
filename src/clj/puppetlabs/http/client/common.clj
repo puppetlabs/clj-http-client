@@ -84,7 +84,6 @@
    :body                  Body
    :decompress-body       schema/Bool
    :as                    BodyType
-   (ok :persistent)       schema/Bool
    (ok :query-params)     {schema/Str schema/Str}})
 
 (def SslContextOptions
