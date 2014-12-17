@@ -101,13 +101,35 @@ provides getters and setters for all options.
 Note that the `RequestOptions` object has no `query-params` option like in the clojure request functions. All query
 parameters should be set in the `uri`.
 
+So, for example, say you have a Persistent synchronous client, `client, and you want to make a GET request
+against the URL `http://localhost:8080/test` with query parameter `abc` with value `def`. To make the request
+and print the body of the response, you could do the following:
+
+```java
+Response response = client.get(new URI("http://localhost:8080/test?abc=def"));
+System.out.println(response.getBody());
+```
+
 A synchronous HTTP client also provides the `request` method. This method takes two arguments:
 `RequestOptions requestOptions`, and `HttpMethod method`. `HttpMethod` is an enum with the following fields:
 `GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, PATCH`.
 
 The object returned by the `createClient()` method in the `Async` class is nearly identical to that returned by the
 `createClient()` method in the `Sync` class. However, the various request methods return a `Promise<Response>` instead
-of a `Response`, and the async client does NOT provide a `request` method.
+of a `Response`, and the async client does NOT provide a `request` method. So, in the above example, if client was
+instead asynchronous, you would do the following:
+
+```java
+Promise<Response> response = client.get(new URI("http://localhost:8080/test?abc=def"));
+System.out.println(response.deref().getBody());
+```
+
+### Closing the client
+
+Each persistent client provides a `close` method, which can be used to close the client. This method will close
+the client and clean up all resources associated with it. It must be called by the caller when finished using the
+client to make requests, as there is no implicit cleanup of the associated resources when the client is garbage
+collected. Once the client is closed, it can no longer be used to make requests.
 
 ## Making a Request without a persistent client
 
@@ -182,3 +204,14 @@ boolean followRedirects;
 ```
 
 The options are simply the union of the options available in the `ClientOptions` and `RequestOptions` classes.
+
+For example, say you wanted to make a request to the URL `http://localhost:8080/test` without a persistent client.
+You want the query parameter `abc` with value `def`, and you don't want redirects to be followed. In that case, you
+would do the following to print the body of the response:
+
+```java
+SimpleRequestOptions options = new SimpleRequestOptions(new URI("http://localhost:8080/test?abc=def"));
+options = options.setFollowRedirects(false);
+Response response = Sync.get(options);
+System.out.println(response.getBody());
+```
