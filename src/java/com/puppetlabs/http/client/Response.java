@@ -5,6 +5,11 @@ import org.apache.http.entity.ContentType;
 
 import java.util.Map;
 
+/**
+ * This class represents a response from an HTTP request.
+ *
+ * @author Chris Price
+ */
 public class Response {
     private RequestOptions options;
     private String origContentEncoding;
@@ -29,6 +34,7 @@ public class Response {
         this.status = status;
         this.contentType = contentType;
     }
+
 
     public RequestOptions getOptions() {
         return options;

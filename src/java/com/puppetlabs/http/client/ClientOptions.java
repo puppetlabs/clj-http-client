@@ -2,6 +2,15 @@ package com.puppetlabs.http.client;
 
 import javax.net.ssl.SSLContext;
 
+/**
+ * This class is a wrapper around a number of options for use
+ * in configuring a persistent HTTP Client.
+ *
+ * @author Chris Price
+ * @author Preben Ingvaldsen
+ * @see com.puppetlabs.http.client.Async#createClient(ClientOptions)
+ * @see com.puppetlabs.http.client.Sync#createClient(ClientOptions)
+ */
 public class ClientOptions {
     public static final String[] DEFAULT_SSL_PROTOCOLS =
             new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"};
@@ -16,7 +25,23 @@ public class ClientOptions {
     private boolean forceRedirects = false;
     private boolean followRedirects = true;
 
+    /**
+     * Constructor for the ClientOptions class.
+     */
     public ClientOptions() { }
+
+    /**
+     * Constructor for the ClientOptions class.
+     * @param sslContext The SSL context for the client.
+     * @param sslCert The path to a PEM file containing the client cert
+     * @param sslKey The path to a PEM file containing the client private key
+     * @param sslCaCert The path to a PEM file containing the CA cert
+     * @param sslProtocols The SSL protocols that the client can select from when talking to the server
+     * @param sslCipherSuites The cipher suites that the client can select from when talking to the server
+     * @param insecure Whether or not the client should use an insecure connection.
+     * @param forceRedirects Whether or not the client should follow redirects on POST or PUT requests. Defaults to false.
+     * @param followRedirects Whether or not the client should follow redirects in general. Defaults to true, and overrides forceRedirects.
+     */
     public ClientOptions(SSLContext sslContext,
                          String sslCert,
                          String sslKey,

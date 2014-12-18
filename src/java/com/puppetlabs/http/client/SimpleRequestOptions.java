@@ -5,6 +5,16 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
+/**
+ * This class represents is a wrapper around a number of options for use in
+ * making requests with the simple request functions contained in the Sync class.
+ * It is a combination of the options from ClientOptions and RequestOptions.
+ *
+ * @author Chris Price
+ * @author Preben Ingvaldsen
+ * @see com.puppetlabs.http.client.ClientOptions#ClientOptions(javax.net.ssl.SSLContext, String, String, String, String[], String[], boolean, boolean, boolean)
+ * @see com.puppetlabs.http.client.RequestOptions#RequestOptions(java.net.URI, java.util.Map, Object, boolean, ResponseBodyType)
+ */
 public class SimpleRequestOptions {
     private URI uri;
     private Map<String, String> headers;
