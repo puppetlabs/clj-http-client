@@ -10,8 +10,6 @@ import java.net.URISyntaxException;
  * This interface represents an asynchronous HTTP client with which
  * requests can be made. An object implementing this interface is returned by
  * {@link com.puppetlabs.http.client.Async#createClient(ClientOptions)}.
- *
- * @author Preben Ingvaldsen
  */
 public interface AsyncHttpClient extends Closeable{
 

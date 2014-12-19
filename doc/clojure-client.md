@@ -80,19 +80,21 @@ which is a map containing options for the HTTP request. These options are as fol
 * `:query-params`: optional; used to set the query parameters of an http request. This should be
   a map, where each key and each value is a String.
 
-For example, say you have a persistent client, `client`, and you want to make a GET request with
-query parameter `abc` with value `def` to the URL `http://localhost:8080/test`. If `client` were
-synchronous, you could make the request and print the body of the response like so:
+For example, say you want to make a GET request with
+query parameter `abc` with value `def` to the URL `http://localhost:8080/test`. If you wanted to use a
+persistent synchronous client, you could make the request and print the body of the response like so:
 
 ```clj
-(let [response (get client "http://localhost:8080/test" {:query-params {"abc" "def"}})]
+(let [client   (sync/create-client {})
+      response (get client "http://localhost:8080/test" {:query-params {"abc" "def"}})]
   (println (:body response))
 ```
 
-If `client` were asynchronous, you could make the request and print the body of the response like so:
+If you wanted to use an asynchronous client, you could make the request and print the body of the response like so:
 
 ```clj
-(let [response (get client "http://localhost:8080/test" {:query-params {"abc" "def"}})]
+(let [client   (async/create-client {})
+      response (get client "http://localhost:8080/test" {:query-params {"abc" "def"}})]
   (println (:body @response)))
 ```
 
@@ -129,7 +131,7 @@ close the client once the response is received. Each of these functions (barring
 accepted by the `create-client` function and all options accepted by the request functions for a persistent
 client.
 
-For example, say you want to make a GET request to the URL `http://localhost:8080/test' with query parameter
+For example, say you want to make a GET request to the URL `http://localhost:8080/test` with query parameter
 `abc` with value `def`, and you do not want redirects to be followed. In that case, you could do the following
 to make the request and print the body of the response:
 

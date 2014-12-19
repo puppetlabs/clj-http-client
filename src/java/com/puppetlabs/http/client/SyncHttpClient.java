@@ -8,8 +8,6 @@ import java.net.URISyntaxException;
  * This interface represents a synchronous HTTP client with which
  * requests can be made. An object implementing this interface is
  * returned by {@link com.puppetlabs.http.client.Sync#createClient(ClientOptions)}
- *
- * @author Preben Ingvaldsen
  */
 public interface SyncHttpClient extends Closeable {
 

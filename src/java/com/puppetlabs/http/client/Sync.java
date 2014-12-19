@@ -16,9 +16,6 @@ import java.util.Map;
 /**
  * This class allows for the creation of a persistent synchronous HTTP client. It also allows
  * for sending synchronous HTTP requests without a persistent HTTP client.
- *
- * @author Jeremy Barlow
- * @author Preben Ingvaldsen
  */
 public class Sync {
     private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);

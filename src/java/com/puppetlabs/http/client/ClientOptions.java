@@ -6,8 +6,6 @@ import javax.net.ssl.SSLContext;
  * This class is a wrapper around a number of options for use
  * in configuring a persistent HTTP Client.
  *
- * @author Chris Price
- * @author Preben Ingvaldsen
  * @see com.puppetlabs.http.client.Async#createClient(ClientOptions)
  * @see com.puppetlabs.http.client.Sync#createClient(ClientOptions)
  */
@@ -26,7 +24,9 @@ public class ClientOptions {
     private boolean followRedirects = true;
 
     /**
-     * Constructor for the ClientOptions class.
+     * Constructor for the ClientOptions class. When this constructor is called,
+     * insecure and forceRedirects will default to false, and followRedirects will default
+     * to true.
      */
     public ClientOptions() { }
 
@@ -39,8 +39,8 @@ public class ClientOptions {
      * @param sslProtocols The SSL protocols that the client can select from when talking to the server
      * @param sslCipherSuites The cipher suites that the client can select from when talking to the server
      * @param insecure Whether or not the client should use an insecure connection.
-     * @param forceRedirects Whether or not the client should follow redirects on POST or PUT requests. Defaults to false.
-     * @param followRedirects Whether or not the client should follow redirects in general. Defaults to true, and overrides forceRedirects.
+     * @param forceRedirects Whether or not the client should follow redirects on POST or PUT requests.
+     * @param followRedirects Whether or not the client should follow redirects in general.
      */
     public ClientOptions(SSLContext sslContext,
                          String sslCert,

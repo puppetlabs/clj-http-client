@@ -10,8 +10,6 @@ import java.util.Map;
  * making requests with the simple request functions contained in the Sync class.
  * It is a combination of the options from ClientOptions and RequestOptions.
  *
- * @author Chris Price
- * @author Preben Ingvaldsen
  * @see com.puppetlabs.http.client.ClientOptions#ClientOptions(javax.net.ssl.SSLContext, String, String, String, String[], String[], boolean, boolean, boolean)
  * @see com.puppetlabs.http.client.RequestOptions#RequestOptions(java.net.URI, java.util.Map, Object, boolean, ResponseBodyType)
  */
@@ -31,7 +29,21 @@ public class SimpleRequestOptions {
     private boolean forceRedirects = false;
     private boolean followRedirects = true;
 
+    /**
+     * Constructor for SimpleRequestOptions. When this constructor is used,
+     * insecure and forceRedirects default to false, and followRedirects and decompressBody
+     * default to true. as defaults to ResponseBodyType.STREAM.
+     * @param url the URL against which to make the HTTP request
+     * @throws URISyntaxException
+     */
     public SimpleRequestOptions (String url) throws URISyntaxException { this.uri = new URI(url); }
+
+    /**
+     * Constructor for SimpleRequestOptions. When this constructor is used,
+     * insecure and forceRedirects default to false, and followRedirects and decompressBody
+     * default to true. as defaults to ResponseBodyType.STREAM.
+     * @param uri the URI against which to make the HTTP request
+     */
     public SimpleRequestOptions(URI uri) {
         this.uri = uri;
     }

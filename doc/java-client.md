@@ -22,18 +22,22 @@ interfaces, which are linked above. The various request methods provided by thes
 a [`RequestOptions`](../src/java/com/puppetlabs/http/client/RequestOptions.java) object, information on
 which can be found in that class' javadoc strings, linked above.
 
-For example, say you have a Persistent synchronous client, `client`, and you want to make a GET request
+For example, say you want to make a GET request
 against the URL `http://localhost:8080/test` with query parameter `abc` with value `def`. To make the request
-and print the body of the response, you could do the following:
+and print the body of the response with a persistent synchronous client, you could do the following:
 
 ```java
+ClientOptions options = new ClientOptions();
+SyncHttpClient client = Sync.createClient(options);
 Response response = client.get(new URI("http://localhost:8080/test?abc=def"));
 System.out.println(response.getBody());
 ```
 
-If `client` was instead asynchronous, you would do the following:
+If instead you wanted to use an asynchronous client, you could do the following:
 
 ```java
+ClientOptions options = new ClientOptions();
+AsyncHttpClient client = Async.createClient(options);
 Promise<Response> response = client.get(new URI("http://localhost:8080/test?abc=def"));
 System.out.println(response.deref().getBody());
 ```

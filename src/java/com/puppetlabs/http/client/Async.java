@@ -9,9 +9,6 @@ import com.puppetlabs.http.client.impl.CoercedClientOptions;
  * This class allows you to create an AsyncHttpClient for use in making
  * HTTP Requests. It consists exclusively of a static method to create
  * a client.
- *
- * @author Jeremy Barlow
- * @author Preben Ingvaldsen
  */
 public class Async {
 
