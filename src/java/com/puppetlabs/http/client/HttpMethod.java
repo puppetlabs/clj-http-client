@@ -2,6 +2,9 @@ package com.puppetlabs.http.client;
 
 import org.apache.http.client.methods.*;
 
+/**
+ * This enum represents the various HTTP methods that can be used to make requests.
+ */
 public enum HttpMethod {
     GET(HttpGet.class),
     HEAD(HttpHead.class),

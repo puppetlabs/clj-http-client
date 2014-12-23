@@ -4,6 +4,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
+/**
+ * This class is a wrapper around a number of options for use in
+ * configuring an HTTP request.
+ */
 public class RequestOptions {
     private URI uri;
     private Map<String, String> headers;
@@ -11,10 +15,32 @@ public class RequestOptions {
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
 
+    /**
+     * Constructor for the RequestOptions class. When this constructor is called,
+     * decompressBody will default to true, and as will default to ResponseBodyType.STREAM
+     * @param url the URL against which to make the request
+     * @throws URISyntaxException
+     */
     public RequestOptions (String url) throws URISyntaxException { this.uri = new URI(url); }
+
+    /**
+     * Constructor for the RequestOptions class. When this constructor is called,
+     * decompressBody will default to true, and as will default to ResponseBodyType.STREAM
+     * @param uri the URI against which to make the request
+     */
     public RequestOptions(URI uri) {
         this.uri = uri;
     }
+
+    /**
+     * Constructor for the RequestOptions class
+     * @param uri the URI against which to make the request
+     * @param headers A map of headers. Can be null.
+     * @param body The body of the request. Can be null.
+     * @param decompressBody If true, an "accept-encoding" header with a value of "gzip, deflate" will be
+     *                       automatically decompressed if it contains a recognized "content-encoding" header.
+     * @param as Used to control the data type of the response body.
+     */
     public RequestOptions (URI uri,
                            Map<String, String> headers,
                            Object body,
