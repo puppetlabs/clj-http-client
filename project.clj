@@ -1,4 +1,4 @@
-(def ks-version "0.7.2")
+(def ks-version "1.0.0")
 (def tk-version "0.5.1")
 
 (defproject puppetlabs/http-client "0.4.1-SNAPSHOT"
