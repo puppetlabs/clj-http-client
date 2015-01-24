@@ -7,7 +7,7 @@
 ;; (:ssl-cert :ssl-key :ssl-ca-cert) to create the SSLContext. It is also
 ;; still possible to use an SSLEngine directly, and if this is present under
 ;; the key :sslengine it will be used before any other options are tried.
-;; 
+;;
 ;; See the puppetlabs.http.sync namespace for synchronous versions of all
 ;; these methods.
 
@@ -29,7 +29,7 @@
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
            (org.apache.http.conn.ssl SSLContexts))
-  (:require [puppetlabs.certificate-authority.core :as ssl]
+  (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.http.client.common :as common]

@@ -1,6 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
-import com.puppetlabs.certificate_authority.CertificateAuthority;
+import com.puppetlabs.ssl_utils.SSLUtils;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.ClientOptions;
 import com.puppetlabs.http.client.Sync;
@@ -33,7 +33,7 @@ public class SslUtils {
                 (options.getSslCaCert() != null)) {
             try {
                 options.setSslContext(
-                        CertificateAuthority.pemsToSSLContext(
+                        SSLUtils.pemsToSSLContext(
                                 new FileReader(options.getSslCert()),
                                 new FileReader(options.getSslKey()),
                                 new FileReader(options.getSslCaCert()))
@@ -60,7 +60,7 @@ public class SslUtils {
         if (options.getSslCaCert() != null) {
             try {
                 options.setSslContext(
-                        CertificateAuthority.caCertPemToSSLContext(
+                        SSLUtils.caCertPemToSSLContext(
                                 new FileReader(options.getSslCaCert()))
                 );
             } catch (KeyStoreException e) {

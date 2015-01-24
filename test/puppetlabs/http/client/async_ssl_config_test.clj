@@ -1,7 +1,7 @@
 (ns puppetlabs.http.client.async-ssl-config-test
   (:require [clojure.test :refer :all]
-            [clojure.java.io :refer [resource]] 
-            [puppetlabs.certificate-authority.core :as ssl]
+            [clojure.java.io :refer [resource]]
+            [puppetlabs.ssl-utils.core :as ssl]
             [puppetlabs.http.client.async :as http]
             [schema.test :as schema-test])
   (:import [javax.net.ssl SSLContext]))
