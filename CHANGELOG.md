@@ -1,3 +1,12 @@
+## 0.4.1
+ This is a maintenance release.
+
+ * Add documentation for making requests using the Java and Clojure clients.
+ * Upgrade jvm-ssl-utils (previously known as jvm-certificate-authority)
+   dependency to 0.7.0.
+ * Upgrade clj-kitchensink dependency to 1.0.0.
+ * Upgrade trapperkeeper dependency to 1.0.1.
+
 ## 0.4.0
  This is a feature release which has some breaking changes.
 
