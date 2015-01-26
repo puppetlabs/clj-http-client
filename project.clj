@@ -1,5 +1,5 @@
-(def ks-version "0.7.2")
-(def tk-version "0.5.1")
+(def ks-version "1.0.0")
+(def tk-version "1.0.1")
 
 (defproject puppetlabs/http-client "0.4.1-SNAPSHOT"
   :description "HTTP client wrapper"
@@ -12,7 +12,7 @@
   :pedantic? :abort
 
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [puppetlabs/certificate-authority "0.6.0"]
+                 [puppetlabs/ssl-utils "0.7.0"]
                  [org.clojure/tools.logging "0.2.6"]
                  [puppetlabs/kitchensink ~ks-version]
                  [org.slf4j/slf4j-api "1.7.6"]
