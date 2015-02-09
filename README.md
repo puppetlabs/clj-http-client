@@ -1,3 +1,4 @@
+IGNORE THIS, TESTING NOTIFICATION HOOK
 [![Build Status](https://travis-ci.org/puppetlabs/clj-http-client.png?branch=master)](https://travis-ci.org/puppetlabs/clj-http-client)
 
 # puppetlabs/http-client
