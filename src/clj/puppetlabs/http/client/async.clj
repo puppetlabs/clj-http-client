@@ -12,9 +12,7 @@
 ;; these methods.
 
 (ns puppetlabs.http.client.async
-  (:import (com.puppetlabs.http.client HttpMethod HttpClientException
-                                       ClientOptions)
-           (org.apache.http.nio.client HttpAsyncClient)
+  (:import (com.puppetlabs.http.client HttpClientException ClientOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (org.apache.http.client.methods HttpGet HttpHead HttpPost HttpPut HttpTrace HttpDelete HttpOptions HttpPatch)
            (org.apache.http.client.utils URIBuilder)
@@ -27,8 +25,7 @@
            (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
-           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
-           (org.apache.http.conn.ssl SSLContexts))
+           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]

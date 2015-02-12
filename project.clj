@@ -34,7 +34,7 @@
                                   [puppetlabs/trapperkeeper ~tk-version]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "0.9.0"]
-                                  [spyscope "0.1.4"]]
+                                  [spyscope "0.1.4" :exclusions [clj-time]]]
                    :injections [(require 'spyscope.core)]
                    ;; TK-143, enable SSLv3 for unit tests that exercise SSLv3
                    :jvm-opts ["-Djava.security.properties=./dev-resources/java.security"]}
