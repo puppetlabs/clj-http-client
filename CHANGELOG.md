@@ -1,3 +1,11 @@
+## 0.4.2
+ This is a bugfix release.
+ 
+ * [TK-145](https://tickets.puppetlabs.com/browse/TK-145) - Fixed a bug which
+   caused some HTTP requests to incorrectly have `charset=UTF-8` added to their
+   `Content-Type` headers.
+   
+
 ## 0.4.1
  This is a maintenance release.
 
