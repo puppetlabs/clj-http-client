@@ -1,3 +1,5 @@
 #!/bin/bash
 
-lein2 test
+set -e
+
+lein2 test :all
