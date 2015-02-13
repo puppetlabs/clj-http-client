@@ -114,21 +114,28 @@
                               query-params)]
       (.build uri-builder))))
 
-(defn- content-type
-  [{:keys [headers]}]
+(defn content-type
+  [body {:keys [headers]}]
   (if-let [content-type-value (some #(when (= "content-type"
                                            (clojure.string/lower-case (key %)))
                                        (val %))
                                     headers)]
-    (let [content-type (ContentType/parse content-type-value)]
-      (if (.getCharset content-type)
-        content-type
-        (ContentType/create (.getMimeType content-type) Consts/UTF_8)))))
+    ;; In the case when the caller provides the body as a string, and does not
+    ;; specify a charset, we choose one for them.  There will always be _some_
+    ;; charset used to encode the string, and in this case we choose UTF-8
+    ;; (instead of letting the underlying Apache HTTP client library
+    ;; choose ISO-8859-1) because UTF-8 is a more reasonable default.
+    (let [content-type (ContentType/parse content-type-value)
+          charset (.getCharset content-type)
+          should-choose-charset? (and (string? body) (not charset))]
+      (if should-choose-charset?
+        (ContentType/create (.getMimeType content-type) Consts/UTF_8)
+        content-type))))
 
 (defn- coerce-opts
   [{:keys [url body query-params] :as opts}]
   (let [url          (parse-url url query-params)
-        content-type (content-type opts)]
+        content-type (content-type body opts)]
     {:url     url
      :method  (clojure.core/get opts :method :get)
      :headers (prepare-headers opts content-type)
