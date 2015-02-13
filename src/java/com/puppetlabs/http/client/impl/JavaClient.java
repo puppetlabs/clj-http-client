@@ -83,7 +83,7 @@ public class JavaClient {
         return result.values().toArray(new Header[result.size()]);
     }
 
-    private static ContentType getContentType (RequestOptions options) {
+    public static ContentType getContentType (Object body, RequestOptions options) {
         ContentType contentType = null;
 
         Map<String, String> headers = options.getHeaders();
@@ -96,17 +96,18 @@ public class JavaClient {
                             contentType = ContentType.parse(contentTypeValue);
                         }
                         catch (ParseException e) {
-                            throw new HttpClientException(
-                                    "Unable to parse request content type", e);
+                            throw new HttpClientException("Unable to parse request content type", e);
                         }
                         catch (UnsupportedCharsetException e) {
-                            throw new HttpClientException(
-                                    "Unsupported content type charset", e);
+                            throw new HttpClientException("Unsupported content type charset", e);
                         }
-                        if (contentType.getCharset() == null) {
-                            contentType = ContentType.create(
-                                    contentType.getMimeType(),
-                                    Consts.UTF_8);
+                        // In the case when the caller provides the body as a string, and does not
+                        // specify a charset, we choose one for them.  There will always be _some_
+                        // charset used to encode the string, and in this case we choose UTF-8
+                        // (instead of letting the underlying Apache HTTP client library
+                        // choose ISO-8859-1) because UTF-8 is a more reasonable default.
+                        if (contentType.getCharset() == null && body instanceof String) {
+                            contentType = ContentType.create(contentType.getMimeType(), Consts.UTF_8);
                         }
                     }
                 }
@@ -123,7 +124,7 @@ public class JavaClient {
             method = HttpMethod.GET;
         }
 
-        ContentType contentType = getContentType(options);
+        ContentType contentType = getContentType(options.getBody(), options);
 
         Header[] headers = prepareHeaders(options, contentType);
 
