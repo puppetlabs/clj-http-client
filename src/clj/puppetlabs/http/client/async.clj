@@ -12,9 +12,7 @@
 ;; these methods.
 
 (ns puppetlabs.http.client.async
-  (:import (com.puppetlabs.http.client HttpMethod HttpClientException
-                                       ClientOptions)
-           (org.apache.http.nio.client HttpAsyncClient)
+  (:import (com.puppetlabs.http.client HttpClientException ClientOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (org.apache.http.client.methods HttpGet HttpHead HttpPost HttpPut HttpTrace HttpDelete HttpOptions HttpPatch)
            (org.apache.http.client.utils URIBuilder)
@@ -27,8 +25,7 @@
            (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
-           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
-           (org.apache.http.conn.ssl SSLContexts))
+           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -117,21 +114,28 @@
                               query-params)]
       (.build uri-builder))))
 
-(defn- content-type
-  [{:keys [headers]}]
+(defn content-type
+  [body {:keys [headers]}]
   (if-let [content-type-value (some #(when (= "content-type"
                                            (clojure.string/lower-case (key %)))
                                        (val %))
                                     headers)]
-    (let [content-type (ContentType/parse content-type-value)]
-      (if (.getCharset content-type)
-        content-type
-        (ContentType/create (.getMimeType content-type) Consts/UTF_8)))))
+    ;; In the case when the caller provides the body as a string, and does not
+    ;; specify a charset, we choose one for them.  There will always be _some_
+    ;; charset used to encode the string, and in this case we choose UTF-8
+    ;; (instead of letting the underlying Apache HTTP client library
+    ;; choose ISO-8859-1) because UTF-8 is a more reasonable default.
+    (let [content-type (ContentType/parse content-type-value)
+          charset (.getCharset content-type)
+          should-choose-charset? (and (string? body) (not charset))]
+      (if should-choose-charset?
+        (ContentType/create (.getMimeType content-type) Consts/UTF_8)
+        content-type))))
 
 (defn- coerce-opts
   [{:keys [url body query-params] :as opts}]
   (let [url          (parse-url url query-params)
-        content-type (content-type opts)]
+        content-type (content-type body opts)]
     {:url     url
      :method  (clojure.core/get opts :method :get)
      :headers (prepare-headers opts content-type)
