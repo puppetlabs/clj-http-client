@@ -1,13 +1,13 @@
 (ns puppetlabs.http.client.async-plaintext-test
-  (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions SimpleRequestOptions)
+  (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net URI)
-           (com.puppetlabs.http.client.impl PersistentAsyncHttpClient))
+           (java.net URI SocketTimeoutException ServerSocket))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
+            [puppetlabs.trapperkeeper.testutils.webserver :as testwebserver]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.async :as async]
@@ -16,7 +16,7 @@
 (use-fixtures :once schema-test/validate-schemas)
 
 (defn app
-  [req]
+  [_]
   {:status 200
    :body "Hello, World!"})
 
@@ -247,3 +247,108 @@
                                      "http://localhost:8080/hello"
                                      {:as :text})]
             (is (= 302 (:status @response)))))))))
+
+(deftest short-connect-timeout-persistent-java-test-async
+  (testing (str "connection times out properly for java persistent client "
+                "async request with short timeout")
+    (with-open [client (-> (ClientOptions.)
+                           (.setConnectTimeoutMilliseconds 250)
+                           (Async/createClient))]
+      (let [request-options     (RequestOptions. "http://127.0.0.255:65535")
+            time-before-connect (System/currentTimeMillis)]
+        (is (instance? SocketTimeoutException (-> client
+                                                  (.get request-options)
+                                                  (.deref)
+                                                  (.getError)))
+            "Unexpected result for connection attempt")
+        (is (elapsed-within-range? time-before-connect 2000)
+            "Connection attempt took significantly longer than timeout")))))
+
+(deftest short-connect-timeout-persistent-clojure-test-async
+  (testing (str "connection times out properly for clojure persistent client "
+                "async request with short timeout")
+    (with-open [client (async/create-client
+                         {:connect-timeout-milliseconds 250})]
+      (let [time-before-connect (System/currentTimeMillis)]
+        (is (instance? SocketTimeoutException
+                       (-> @(common/get client "http://127.0.0.255:65535")
+                           :error))
+            "Unexpected result for connection attempt")
+        (is (elapsed-within-range? time-before-connect 2000)
+            "Connection attempt took significantly longer than timeout")))))
+
+(deftest longer-connect-timeout-test-async
+  (testing "connection succeeds for async request with longer connect timeout"
+    (testlogging/with-test-logging
+      (testwebserver/with-test-webserver app port
+        (let [url (str "http://localhost:" port "/hello")]
+          (testing "java persistent async client"
+            (with-open [client (-> (ClientOptions.)
+                                   (.setConnectTimeoutMilliseconds 2000)
+                                   (Async/createClient))]
+              (let [response (-> client
+                                 (.get (RequestOptions. url))
+                                 (.deref))]
+                (is (= 200 (.getStatus response)))
+                (is (= "Hello, World!" (slurp (.getBody response)))))))
+          (testing "clojure persistent async client"
+            (with-open [client (async/create-client
+                                 {:connect-timeout-milliseconds 2000})]
+              (let [response @(common/get client url {:as :text})]
+                (is (= 200 (:status response)))
+                (is (= "Hello, World!" (:body response)))))))))))
+
+(deftest short-socket-timeout-persistent-java-test-async
+  (testing (str "socket read times out properly for persistent java async "
+                "request with short timeout")
+    (with-open [client (-> (ClientOptions.)
+                           (.setSocketTimeoutMilliseconds 1)
+                           (Async/createClient))
+                server (ServerSocket. 0)]
+      (let [request-options     (-> "http://127.0.0.1:"
+                                    (str (.getLocalPort server))
+                                    (RequestOptions.))
+            time-before-connect (System/currentTimeMillis)]
+        (is (instance? SocketTimeoutException (-> client
+                                                  (.get request-options)
+                                                  (.deref)
+                                                  (.getError)))
+            "Unexpected result for get attempt")
+        (is (elapsed-within-range? time-before-connect 2000)
+            "Get attempt took significantly longer than timeout")))))
+
+(deftest short-connect-timeout-persistent-clojure-test-async
+  (testing (str "socket read times out properly for clojure persistent client "
+                "async request with short timeout")
+    (with-open [client (async/create-client
+                         {:socket-timeout-milliseconds 250})
+                server (ServerSocket. 0)]
+      (let [url                 (str "http://127.0.0.1:" (.getLocalPort server))
+            time-before-connect (System/currentTimeMillis)]
+        (is (instance? SocketTimeoutException
+                       (-> @(common/get client url)
+                           :error))
+            "Unexpected result for get attempt")
+        (is (elapsed-within-range? time-before-connect 2000)
+            "Get attempt took significantly longer than timeout")))))
+
+(deftest longer-socket-timeout-test-async
+  (testing "connection succeeds for async request with longer socket timeout"
+    (testlogging/with-test-logging
+      (testwebserver/with-test-webserver app port
+        (let [url (str "http://localhost:" port "/hello")]
+          (testing "java persistent async client"
+            (with-open [client (-> (ClientOptions.)
+                                   (.setSocketTimeoutMilliseconds 2000)
+                                   (Async/createClient))]
+              (let [response (-> client
+                                 (.get (RequestOptions. url))
+                                 (.deref))]
+                (is (= 200 (.getStatus response)))
+                (is (= "Hello, World!" (slurp (.getBody response)))))))
+          (testing "clojure persistent async client"
+            (with-open [client (async/create-client
+                                 {:socket-timeout-milliseconds 2000})]
+              (let [response @(common/get client url {:as :text})]
+                (is (= 200 (:status response)))
+                (is (= "Hello, World!" (:body response)))))))))))

@@ -45,10 +45,15 @@ public class Sync {
         boolean insecure = simpleOptions.getInsecure();
         boolean forceRedirects = simpleOptions.getForceRedirects();
         boolean followRedirects = simpleOptions.getFollowRedirects();
+        int connectTimeoutMilliseconds =
+                simpleOptions.getConnectTimeoutMilliseconds();
+        int socketTimeoutMilliseconds =
+                simpleOptions.getSocketTimeoutMilliseconds();
 
         return new ClientOptions(sslContext, sslCert, sslKey, sslCaCert,
                 sslProtocols, sslCipherSuites, insecure,
-                forceRedirects, followRedirects);
+                forceRedirects, followRedirects, connectTimeoutMilliseconds,
+                socketTimeoutMilliseconds);
     }
 
     private static Response request(SimpleRequestOptions simpleRequestOptions,

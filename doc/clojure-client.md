@@ -19,6 +19,15 @@ The following are the base set of options supported by the `create-client` funct
 * `:follow-redirects`: used to set whether or not the client should follow
   redirects in general. Defaults to true. If set to false, will override
   the :force-redirects setting.
+* `:connect-timeout-milliseconds`: maximum number of milliseconds that the
+  client will wait for a connection to be established.  A value of 0 is
+  interpreted as infinite.  A negative value for or the absence of this option
+  is interpreted as undefined (system default).
+* `:socket-timeout-milliseconds`: maximum number of milliseconds that the
+  client will allow for no data to be available on the socket before closing the
+  underlying connection, 'SO_TIMEOUT' in socket terms.  A timeout of zero is
+  interpreted as an infinite timeout.  A negative value for or the absence of
+  this setting is interpreted as undefined (system default).
 * `:ssl-protocols`: an array used to set the list of SSL protocols that the client
   could select from when talking to the server. Defaults to 'TLSv1',
   'TLSv1.1', and 'TLSv1.2'.

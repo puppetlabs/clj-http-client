@@ -38,3 +38,8 @@
   (init [this context]
         (add-ring-handler redirect-test-handler "/hello")
         context))
+
+(defn elapsed-within-range?
+  [start-time-milliseconds duration-milliseconds]
+  (<= (System/currentTimeMillis) (+ start-time-milliseconds
+                                    duration-milliseconds)))
