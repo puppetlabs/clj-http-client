@@ -256,10 +256,10 @@
                            (Async/createClient))]
       (let [request-options     (RequestOptions. "http://127.0.0.255:65535")
             time-before-connect (System/currentTimeMillis)]
-        (is (instance? SocketTimeoutException (-> client
-                                                  (.get request-options)
-                                                  (.deref)
-                                                  (.getError)))
+        (is (connect-exception-thrown? (-> client
+                                           (.get request-options)
+                                           (.deref)
+                                           (.getError)))
             "Unexpected result for connection attempt")
         (is (elapsed-within-range? time-before-connect 2000)
             "Connection attempt took significantly longer than timeout")))))
@@ -270,9 +270,10 @@
     (with-open [client (async/create-client
                          {:connect-timeout-milliseconds 250})]
       (let [time-before-connect (System/currentTimeMillis)]
-        (is (instance? SocketTimeoutException
-                       (-> @(common/get client "http://127.0.0.255:65535")
-                           :error))
+        (is (connect-exception-thrown? (-> @(common/get
+                                              client
+                                              "http://127.0.0.255:65535")
+                                           :error))
             "Unexpected result for connection attempt")
         (is (elapsed-within-range? time-before-connect 2000)
             "Connection attempt took significantly longer than timeout")))))

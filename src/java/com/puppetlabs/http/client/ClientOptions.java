@@ -46,7 +46,7 @@ public class ClientOptions {
      * @param connectTimeoutMilliseconds Maximum number of milliseconds that
      *                                     the client will wait for a
      *                                     connection to be established.  A
-     *                                     value of 0 is interpreted as
+     *                                     value of zero is interpreted as
      *                                     infinite.  A negative value is
      *                                     interpreted as undefined (system
      *                                     default).

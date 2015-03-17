@@ -1,6 +1,8 @@
 (ns puppetlabs.http.client.test-common
   (:require [ring.middleware.params :as ring-params]
-            [puppetlabs.trapperkeeper.core :as tk]))
+            [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.testutils.logging :as testlogging])
+  (:import (java.net ConnectException SocketTimeoutException)))
 
 (defn query-params-test
   [req]
@@ -38,6 +40,13 @@
   (init [this context]
         (add-ring-handler redirect-test-handler "/hello")
         context))
+
+(defmacro connect-exception-thrown?
+  [& body]
+  `(try
+     (testlogging/with-test-logging ~@body)
+     (catch SocketTimeoutException _# true)
+     (catch ConnectException _# true)))
 
 (defn elapsed-within-range?
   [start-time-milliseconds duration-milliseconds]

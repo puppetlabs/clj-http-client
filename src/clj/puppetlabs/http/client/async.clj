@@ -383,7 +383,7 @@
        redirects in general. Defaults to true. If set to false, will override
        the :force-redirects setting.
    * :connect-timeout-milliseconds - maximum number of milliseconds that the
-       client will wait for a connection to be established.  A value of 0 is
+       client will wait for a connection to be established.  A value of zero is
        interpreted as infinite.  A negative value for or the absence of this
        option is interpreted as undefined (system default).
    * :socket-timeout-milliseconds - maximum number of milliseconds that the

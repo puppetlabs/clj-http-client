@@ -4,7 +4,7 @@
                                        HttpClientException)
            (java.io ByteArrayInputStream InputStream)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net URI SocketTimeoutException ServerSocket))
+           (java.net ConnectException ServerSocket SocketTimeoutException URI))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -511,7 +511,7 @@
           (is (= 302 (:status response)))
           (common/close client))))))
 
-(defmacro timeout-exception-thrown?
+(defmacro wrapped-connect-exception-thrown?
   [& body]
   `(try
      (testlogging/with-test-logging ~@body)
@@ -519,12 +519,30 @@
               "Expected HttpClientException but none thrown!"))
      (catch HttpClientException e#
        (if-let [cause# (.getCause e#)]
-         (if (instance? SocketTimeoutException cause#)
-           true
-           (throw (IllegalStateException.
-                    (str
-                      "Expected SocketTimeoutException cause but found: "
-                      cause#))))
+         (or (instance? SocketTimeoutException cause#)
+             (instance? ConnectException cause#)
+             (throw (IllegalStateException.
+                      (str
+                        "Expected SocketTimeoutException or ConnectException "
+                        "cause but found: " cause#))))
+         (throw (IllegalStateException.
+                  (str
+                    "Expected SocketTimeoutException or ConnectException but "
+                    "no cause found.  Message:" (.getMessage e#))))))))
+
+(defmacro wrapped-timeout-exception-thrown?
+  [& body]
+  `(try
+     (testlogging/with-test-logging ~@body)
+     (throw (IllegalStateException.
+              "Expected HttpClientException but none thrown!"))
+     (catch HttpClientException e#
+       (if-let [cause# (.getCause e#)]
+         (or (instance? SocketTimeoutException cause#)
+             (throw (IllegalStateException.
+                      (str
+                        "Expected SocketTimeoutException cause but found: "
+                        cause#))))
          (throw (IllegalStateException.
                   (str
                     "Expected SocketTimeoutException but no cause found.  "
@@ -537,7 +555,8 @@
                                   (SimpleRequestOptions.)
                                   (.setConnectTimeoutMilliseconds 250))
           time-before-connect (System/currentTimeMillis)]
-      (is (timeout-exception-thrown? (Sync/get request-options))
+      (is (wrapped-connect-exception-thrown?
+            (Sync/get request-options))
           "Unexpected result for connection attempt")
       (is (elapsed-within-range? time-before-connect 2000)
           "Connection attempt took significantly longer than timeout"))))
@@ -550,7 +569,8 @@
                            (Sync/createClient))]
       (let [request-options     (RequestOptions. "http://127.0.0.255:65535")
             time-before-connect (System/currentTimeMillis)]
-        (is (timeout-exception-thrown? (.get client request-options))
+        (is (wrapped-connect-exception-thrown?
+              (.get client request-options))
             "Unexpected result for connection attempt")
         (is (elapsed-within-range? time-before-connect 2000)
             "Connection attempt took significantly longer than timeout")))))
@@ -559,9 +579,9 @@
   (testing (str "connection times out properly for non-persistent clojure sync "
                 "request with short timeout")
     (let [time-before-connect (System/currentTimeMillis)]
-      (is (thrown? SocketTimeoutException
-                   (sync/get "http://127.0.0.255:65535"
-                             {:connect-timeout-milliseconds 250}))
+      (is (connect-exception-thrown?
+            (sync/get "http://127.0.0.255:65535"
+                      {:connect-timeout-milliseconds 250}))
           "Unexpected result for connection attempt")
       (is (elapsed-within-range? time-before-connect 2000)
           "Connection attempt took significantly longer than timeout"))))
@@ -572,8 +592,8 @@
     (with-open [client (sync/create-client
                          {:connect-timeout-milliseconds 250})]
       (let [time-before-connect (System/currentTimeMillis)]
-        (is (thrown? SocketTimeoutException
-                     (common/get client "http://127.0.0.255:65535"))
+        (is (connect-exception-thrown?
+              (common/get client "http://127.0.0.255:65535"))
             "Unexpected result for connection attempt")
         (is (elapsed-within-range? time-before-connect 2000)
             "Connection attempt took significantly longer than timeout")))))
@@ -618,7 +638,7 @@
                                     (SimpleRequestOptions.)
                                     (.setSocketTimeoutMilliseconds 250))
             time-before-connect (System/currentTimeMillis)]
-        (is (timeout-exception-thrown? (Sync/get request-options))
+        (is (wrapped-timeout-exception-thrown? (Sync/get request-options))
             "Unexpected result for get attempt")
         (is (elapsed-within-range? time-before-connect 2000)
             "Get attempt took significantly longer than timeout")))))
@@ -634,7 +654,7 @@
                                     (str (.getLocalPort server))
                                     (RequestOptions.))
             time-before-connect (System/currentTimeMillis)]
-        (is (timeout-exception-thrown? (.get client request-options))
+        (is (wrapped-timeout-exception-thrown? (.get client request-options))
             "Unexpected result for get attempt")
         (is (elapsed-within-range? time-before-connect 2000)
             "Get attempt took significantly longer than timeout")))))
