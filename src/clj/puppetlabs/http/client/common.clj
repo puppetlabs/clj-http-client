@@ -60,7 +60,9 @@
    (ok :ssl-protocols)    [schema/Str]
    (ok :cipher-suites) [schema/Str]
    (ok :force-redirects)  schema/Bool
-   (ok :follow-redirects) schema/Bool})
+   (ok :follow-redirects) schema/Bool
+   (ok :connect-timeout-milliseconds) schema/Int
+   (ok :socket-timeout-milliseconds) schema/Int})
 
 (def RawUserRequestOptions
   "The list of request options passed by a user into the
@@ -101,31 +103,33 @@
   (schema/either {} SslContextOptions SslCertOptions SslCaCertOptions))
 
 (def SslProtocolOptions
-  {(schema/optional-key :ssl-protocols) [schema/Str]
-   (schema/optional-key :cipher-suites) [schema/Str]})
+  {(ok :ssl-protocols) [schema/Str]
+   (ok :cipher-suites) [schema/Str]})
 
-(def RedirectOptions
-  {(schema/optional-key :force-redirects)  schema/Bool
-   (schema/optional-key :follow-redirects) schema/Bool})
+(def BaseClientOptions
+  {(ok :force-redirects)  schema/Bool
+   (ok :follow-redirects) schema/Bool
+   (ok :connect-timeout-milliseconds) schema/Int
+   (ok :socket-timeout-milliseconds) schema/Int})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after
   validating the RawUserRequestClientOptions and merging it with the defaults."
   (schema/either
-    (merge RequestOptions RedirectOptions)
-    (merge RequestOptions SslContextOptions SslProtocolOptions RedirectOptions)
-    (merge RequestOptions SslCaCertOptions SslProtocolOptions RedirectOptions)
-    (merge RequestOptions SslCertOptions SslProtocolOptions RedirectOptions)))
+    (merge RequestOptions BaseClientOptions)
+    (merge RequestOptions SslContextOptions SslProtocolOptions BaseClientOptions)
+    (merge RequestOptions SslCaCertOptions SslProtocolOptions BaseClientOptions)
+    (merge RequestOptions SslCertOptions SslProtocolOptions BaseClientOptions)))
 
 (def ClientOptions
   "The options from UserRequestOptions that are related to the
    instantiation/management of a client. This is everything
    from UserRequestOptions not included in RequestOptions."
   (schema/either
-    RedirectOptions
-    (merge SslContextOptions SslProtocolOptions RedirectOptions)
-    (merge SslCertOptions SslProtocolOptions RedirectOptions)
-    (merge SslCaCertOptions SslProtocolOptions RedirectOptions)))
+    BaseClientOptions
+    (merge SslContextOptions SslProtocolOptions BaseClientOptions)
+    (merge SslCertOptions SslProtocolOptions BaseClientOptions)
+    (merge SslCaCertOptions SslProtocolOptions BaseClientOptions)))
 
 (def ResponseCallbackFn
   (schema/maybe (schema/pred ifn?)))

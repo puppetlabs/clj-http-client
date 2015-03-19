@@ -25,7 +25,8 @@
            (com.puppetlabs.http.client.impl Compression)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
-           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy))
+           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
+           (org.apache.http.client.config RequestConfig))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -293,14 +294,36 @@
         :else
           (DefaultRedirectStrategy.))))
 
+(schema/defn request-config :- RequestConfig
+  [connect-timeout-milliseconds :- (schema/maybe schema/Int)
+   socket-timeout-milliseconds :- (schema/maybe schema/Int)]
+  (let [request-config-builder (RequestConfig/custom)]
+    (if connect-timeout-milliseconds
+      (.setConnectTimeout request-config-builder
+                          connect-timeout-milliseconds))
+    (if socket-timeout-milliseconds
+      (.setSocketTimeout request-config-builder
+                         socket-timeout-milliseconds))
+    (.build request-config-builder)))
+
 (schema/defn ^:always-validate create-default-client :- common/Client
   [opts :- common/ClientOptions]
   (let [ssl-ctxt-opts   (configure-ssl-ctxt (extract-ssl-opts opts))
         ssl-prot-opts   (select-keys opts [:ssl-protocols :cipher-suites])
         client-builder  (HttpAsyncClients/custom)
+        connect-timeout (:connect-timeout-milliseconds opts)
+        socket-timeout  (:socket-timeout-milliseconds opts)
         client          (do (when (:ssl-context ssl-ctxt-opts)
-                              (.setSSLStrategy client-builder (ssl-strategy ssl-ctxt-opts ssl-prot-opts)))
-                            (.setRedirectStrategy client-builder (redirect-strategy opts))
+                              (.setSSLStrategy client-builder
+                                               (ssl-strategy
+                                                 ssl-ctxt-opts ssl-prot-opts)))
+                            (.setRedirectStrategy client-builder
+                                                  (redirect-strategy opts))
+                            (if (or connect-timeout socket-timeout)
+                              (.setDefaultRequestConfig client-builder
+                                                        (request-config
+                                                          connect-timeout
+                                                          socket-timeout)))
                             (.build client-builder))]
     (.start client)
     client))
@@ -359,6 +382,16 @@
    * :follow-redirects - used to set whether or  not the client should follow
        redirects in general. Defaults to true. If set to false, will override
        the :force-redirects setting.
+   * :connect-timeout-milliseconds - maximum number of milliseconds that the
+       client will wait for a connection to be established.  A value of zero is
+       interpreted as infinite.  A negative value for or the absence of this
+       option is interpreted as undefined (system default).
+   * :socket-timeout-milliseconds - maximum number of milliseconds that the
+       client will allow for no data to be available on the socket before
+       closing the underlying connection, 'SO_TIMEOUT' in socket terms.  A
+       timeout of zero is interpreted as an infinite timeout.  A negative value
+       for or the absence of this setting is interpreted as undefined (system
+       default).
    * :ssl-protocols - used to set the list of SSL protocols that the client
        could select from when talking to the server. Defaults to 'TLSv1',
        'TLSv1.1', and 'TLSv1.2'.

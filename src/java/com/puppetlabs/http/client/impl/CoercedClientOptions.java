@@ -8,17 +8,23 @@ public class CoercedClientOptions {
     private final String[] sslCipherSuites;
     private final boolean forceRedirects;
     private final boolean followRedirects;
+    private final int connectTimeoutMilliseconds;
+    private final int socketTimeoutMilliseconds;
 
     public CoercedClientOptions(SSLContext sslContext,
                                 String[] sslProtocols,
                                 String[] sslCipherSuites,
                                 boolean forceRedirects,
-                                boolean followRedirects) {
+                                boolean followRedirects,
+                                int connectTimeoutMilliseconds,
+                                int socketTimeoutMilliseconds) {
         this.sslContext = sslContext;
         this.sslProtocols = sslProtocols;
         this.sslCipherSuites = sslCipherSuites;
         this.forceRedirects = forceRedirects;
         this.followRedirects = followRedirects;
+        this.connectTimeoutMilliseconds = connectTimeoutMilliseconds;
+        this.socketTimeoutMilliseconds = socketTimeoutMilliseconds;
     }
 
     public SSLContext getSslContext() { return sslContext; }
@@ -30,4 +36,12 @@ public class CoercedClientOptions {
     public boolean getForceRedirects() { return forceRedirects; }
 
     public boolean getFollowRedirects() { return followRedirects; }
+
+    public int getConnectTimeoutMilliseconds() {
+        return connectTimeoutMilliseconds;
+    }
+
+    public int getSocketTimeoutMilliseconds() {
+        return socketTimeoutMilliseconds;
+    }
 }

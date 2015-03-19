@@ -1,5 +1,6 @@
 (def ks-version "1.0.0")
-(def tk-version "1.0.1")
+(def tk-version "1.1.0")
+(def tk-jetty-version "1.2.0")
 
 (defproject puppetlabs/http-client "0.4.3-SNAPSHOT"
   :description "HTTP client wrapper"
@@ -11,8 +12,8 @@
   ;; requires lein 2.2.0+.
   :pedantic? :abort
 
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [puppetlabs/ssl-utils "0.7.0"]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [puppetlabs/ssl-utils "0.8.0"]
                  [org.clojure/tools.logging "0.2.6"]
                  [puppetlabs/kitchensink ~ks-version]
                  [org.slf4j/slf4j-api "1.7.6"]
@@ -33,7 +34,8 @@
   :profiles {:dev {:dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]
                                   [puppetlabs/trapperkeeper ~tk-version]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 "0.9.0"]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version :classifier "test"]
                                   [spyscope "0.1.4" :exclusions [clj-time]]]
                    :injections [(require 'spyscope.core)]
                    ;; TK-143, enable SSLv3 for unit tests that exercise SSLv3

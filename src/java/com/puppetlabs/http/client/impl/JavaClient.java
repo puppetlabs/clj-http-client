@@ -16,6 +16,8 @@ import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.ProtocolException;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.config.RequestConfig.Builder;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
@@ -174,8 +176,13 @@ public class JavaClient {
 
         boolean forceRedirects = options.getForceRedirects();
         boolean followRedirects = options.getFollowRedirects();
-
-        return new CoercedClientOptions(sslContext, sslProtocols, sslCipherSuites, forceRedirects, followRedirects);
+        int connectTimeoutMilliseconds =
+                options.getConnectTimeoutMilliseconds();
+        int socketTimeoutMilliseconds =
+                options.getSocketTimeoutMilliseconds();
+        return new CoercedClientOptions(sslContext, sslProtocols,
+                sslCipherSuites, forceRedirects, followRedirects,
+                connectTimeoutMilliseconds, socketTimeoutMilliseconds);
     }
 
     private static SSLContext getInsecureSslContext() {
@@ -299,9 +306,42 @@ public class JavaClient {
             redirectStrategy = new DefaultRedirectStrategy();
         }
         clientBuilder.setRedirectStrategy(redirectStrategy);
+
+        RequestConfig requestConfig = getRequestConfig(coercedOptions);
+
+        if (requestConfig != null) {
+            clientBuilder.setDefaultRequestConfig(requestConfig);
+        }
+
         CloseableHttpAsyncClient client = clientBuilder.build();
         client.start();
         return client;
+    }
+
+    private static RequestConfig getRequestConfig
+            (CoercedClientOptions options) {
+        RequestConfig config = null;
+
+        int connectTimeoutMilliseconds = options.getConnectTimeoutMilliseconds();
+        int socketTimeoutMilliseconds = options.getSocketTimeoutMilliseconds();
+
+        if (connectTimeoutMilliseconds >= 0 || socketTimeoutMilliseconds >= 0) {
+            Builder requestConfigBuilder = RequestConfig.custom();
+
+            if (connectTimeoutMilliseconds >= 0) {
+                requestConfigBuilder.setConnectTimeout
+                        (connectTimeoutMilliseconds);
+            }
+
+            if (socketTimeoutMilliseconds >= 0) {
+                requestConfigBuilder.setSocketTimeout
+                        (socketTimeoutMilliseconds);
+            }
+
+            config = requestConfigBuilder.build();
+        }
+
+        return config;
     }
 
     private static void deliverResponse(RequestOptions options,

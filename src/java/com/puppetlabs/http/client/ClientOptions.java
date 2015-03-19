@@ -22,6 +22,8 @@ public class ClientOptions {
     private boolean insecure = false;
     private boolean forceRedirects = false;
     private boolean followRedirects = true;
+    private int connectTimeoutMilliseconds = -1;
+    private int socketTimeoutMilliseconds = -1;
 
     /**
      * Constructor for the ClientOptions class. When this constructor is called,
@@ -41,6 +43,22 @@ public class ClientOptions {
      * @param insecure Whether or not the client should use an insecure connection.
      * @param forceRedirects Whether or not the client should follow redirects on POST or PUT requests.
      * @param followRedirects Whether or not the client should follow redirects in general.
+     * @param connectTimeoutMilliseconds Maximum number of milliseconds that
+     *                                     the client will wait for a
+     *                                     connection to be established.  A
+     *                                     value of zero is interpreted as
+     *                                     infinite.  A negative value is
+     *                                     interpreted as undefined (system
+     *                                     default).
+     * @param socketTimeoutMilliseconds Maximum number of milliseconds that
+     *                                    the client will allow for no data to
+     *                                    be available on the socket before
+     *                                    closing the underlying connection,
+     *                                    <code>SO_TIMEOUT</code> in socket
+     *                                    terms.  A timeout of zero is
+     *                                    interpreted as an infinite timeout.
+     *                                    A negative value is interpreted as
+     *                                    undefined (system default).
      */
     public ClientOptions(SSLContext sslContext,
                          String sslCert,
@@ -50,7 +68,9 @@ public class ClientOptions {
                          String[] sslCipherSuites,
                          boolean insecure,
                          boolean forceRedirects,
-                         boolean followRedirects) {
+                         boolean followRedirects,
+                         int connectTimeoutMilliseconds,
+                         int socketTimeoutMilliseconds) {
         this.sslContext = sslContext;
         this.sslCert = sslCert;
         this.sslKey = sslKey;
@@ -60,6 +80,8 @@ public class ClientOptions {
         this.insecure = insecure;
         this.forceRedirects = forceRedirects;
         this.followRedirects = followRedirects;
+        this.connectTimeoutMilliseconds = connectTimeoutMilliseconds;
+        this.socketTimeoutMilliseconds = socketTimeoutMilliseconds;
     }
 
     public SSLContext getSslContext() {
@@ -127,6 +149,26 @@ public class ClientOptions {
     public boolean getFollowRedirects() { return followRedirects; }
     public ClientOptions setFollowRedirects(boolean followRedirects) {
         this.followRedirects = followRedirects;
+        return this;
+    }
+
+    public int getConnectTimeoutMilliseconds() {
+        return connectTimeoutMilliseconds;
+    }
+
+    public ClientOptions setConnectTimeoutMilliseconds(
+            int connectTimeoutMilliseconds) {
+        this.connectTimeoutMilliseconds = connectTimeoutMilliseconds;
+        return this;
+    }
+
+    public int getSocketTimeoutMilliseconds() {
+        return socketTimeoutMilliseconds;
+    }
+
+    public ClientOptions setSocketTimeoutMilliseconds(
+            int socketTimeoutMilliseconds) {
+        this.socketTimeoutMilliseconds = socketTimeoutMilliseconds;
         return this;
     }
 }

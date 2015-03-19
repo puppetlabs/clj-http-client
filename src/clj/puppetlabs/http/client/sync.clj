@@ -16,7 +16,9 @@
   [opts :- common/RawUserRequestClientOptions]
   (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key
                      :ssl-protocols :cipher-suites
-                     :force-redirects :follow-redirects]))
+                     :force-redirects :follow-redirects
+                     :connect-timeout-milliseconds
+                     :socket-timeout-milliseconds]))
 
 (schema/defn extract-request-opts :- common/RawUserRequestOptions
   [opts :- common/RawUserRequestClientOptions]

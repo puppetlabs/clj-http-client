@@ -28,6 +28,9 @@ public class SimpleRequestOptions {
     private ResponseBodyType as = ResponseBodyType.STREAM;
     private boolean forceRedirects = false;
     private boolean followRedirects = true;
+    private int connectTimeoutMilliseconds = -1;
+    private int socketTimeoutMilliseconds = -1;
+
 
     /**
      * Constructor for SimpleRequestOptions. When this constructor is used,
@@ -151,6 +154,26 @@ public class SimpleRequestOptions {
     public boolean getFollowRedirects() { return followRedirects; }
     public SimpleRequestOptions setFollowRedirects(boolean followRedirects) {
         this.followRedirects = followRedirects;
+        return this;
+    }
+
+    public int getConnectTimeoutMilliseconds() {
+        return connectTimeoutMilliseconds;
+    }
+
+    public SimpleRequestOptions setConnectTimeoutMilliseconds(
+            int connectTimeoutMilliseconds) {
+        this.connectTimeoutMilliseconds = connectTimeoutMilliseconds;
+        return this;
+    }
+
+    public int getSocketTimeoutMilliseconds() {
+        return socketTimeoutMilliseconds;
+    }
+
+    public SimpleRequestOptions setSocketTimeoutMilliseconds(
+            int socketTimeoutMilliseconds) {
+        this.socketTimeoutMilliseconds = socketTimeoutMilliseconds;
         return this;
     }
 }
