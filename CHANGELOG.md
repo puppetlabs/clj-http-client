@@ -1,3 +1,14 @@
+## 0.4.3
+ This is a feature release.
+
+ * [TK-134](https://tickets.puppetlabs.com/browse/TK-134) - Introduced two new
+   optional client configuration settings:
+   - `connect-timeout-milliseconds`: maximum number of milliseconds that the
+      client will wait for a connection to be established.
+   - `socket-timeout-milliseconds`: maximum number of milliseconds that the
+      client will allow for no data to be available on the socket before
+      closing the underlying connection, 'SO_TIMEOUT' in socket terms.
+
 ## 0.4.2
  This is a bugfix release.
  
