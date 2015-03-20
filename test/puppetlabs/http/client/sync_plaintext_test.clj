@@ -671,7 +671,7 @@
         (is (elapsed-within-range? time-before-connect 2000)
             "Get attempt took significantly longer than timeout")))))
 
-(deftest short-connect-timeout-persistent-clojure-test-sync
+(deftest short-socket-timeout-persistent-clojure-test-sync
   (testing (str "socket read times out properly for clojure persistent client "
                 "sync request with short timeout")
     (with-open [client (sync/create-client
@@ -685,7 +685,7 @@
             "Get attempt took significantly longer than timeout")))))
 
 (deftest longer-socket-timeout-test-sync
-  (testing "connection succeeds for sync request with longer socket timeout"
+  (testing "get succeeds for sync request with longer socket timeout"
     (testlogging/with-test-logging
       (testwebserver/with-test-webserver app port
         (let [url (str "http://localhost:" port "/hello")]
