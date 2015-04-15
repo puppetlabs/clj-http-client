@@ -1,3 +1,9 @@
+## 0.4.4
+ This is a maintenance release.
+
+ * [TK-196](https://tickets.puppetlabs.com/browse/TK-196) - update prismatic
+   dependencies to the latest versions.
+
 ## 0.4.3
  This is a feature release.
 
