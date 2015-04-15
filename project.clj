@@ -20,7 +20,8 @@
                  [org.apache.httpcomponents/httpasyncclient "4.0.2"]
                  [org.apache.httpcomponents/httpcore "4.3.2"]
                  [commons-io "2.1"]
-                 [prismatic/schema "0.2.2"]]
+                 [prismatic/schema "0.4.0"]
+                 [prismatic/plumbing "0.4.2"]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -52,4 +53,4 @@
   :lein-release {:scm :git
                  :deploy-via :lein-deploy}
 
-  :plugins [[lein-release "1.0.5"]])
+  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]])

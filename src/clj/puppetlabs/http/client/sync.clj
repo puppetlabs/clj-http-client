@@ -39,7 +39,7 @@
   (with-open [client (async/create-default-client (extract-client-opts req))]
     (request-with-client (extract-request-opts req) client)))
 
-(schema/defn create-client :- common/HTTPClient
+(schema/defn create-client :- (schema/protocol common/HTTPClient)
   [opts :- common/ClientOptions]
   (let [client (async/create-default-client opts)]
     (reify common/HTTPClient
@@ -108,5 +108,3 @@
   error is returned."
   ([url] (patch url {}))
   ([url opts] (request (assoc opts :method :patch :url url))))
-
-

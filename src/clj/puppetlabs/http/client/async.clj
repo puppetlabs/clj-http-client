@@ -372,7 +372,7 @@
               (future-callback client result opts callback))
     result))
 
-(schema/defn create-client :- common/HTTPClient
+(schema/defn create-client :- (schema/protocol common/HTTPClient)
   "Creates a client to be used for making one or more HTTP requests.
 
    opts (base set):
