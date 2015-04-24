@@ -29,3 +29,9 @@
         (let [body "foo"]
           (is (= (compute-content-type body "text/html")
                  "text/html; charset=UTF-8")))))))
+
+(deftest nil-response-body-coerced-as-text
+  (testing "a nil response body is coerced into a string by async/coerce-body-type"
+    (let [resp {:body nil, :opts {:as :text}}]
+      (is (= {:body "", :opts {:as :text}}
+             (coerce-body-type resp))))))

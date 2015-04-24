@@ -52,3 +52,9 @@
         (let [body "foo"]
           (is (= (compute-content-type body "text/html")
                  "text/html; charset=UTF-8")))))))
+
+
+(deftest null-response-body-coerced-as-text
+  (testing "a null response body is coerced into a string by JavaClient.coerceBodyType"
+    (let [body nil]
+      (is (= "" (JavaClient/coerceBodyType body ResponseBodyType/TEXT nil))))))

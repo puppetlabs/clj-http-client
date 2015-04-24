@@ -425,12 +425,19 @@ public class JavaClient {
                     charset = contentType.getCharset().name();
                 }
                 try {
-                    response = IOUtils.toString(body, charset);
+                    if (body == null){
+                        response = "";
+                    }
+                    else{
+                        response = IOUtils.toString(body, charset);
+                    }
                 } catch (IOException e) {
                     throw new HttpClientException("Unable to read body as string", e);
                 }
                 try {
-                    body.close();
+                    if (body != null){
+                        body.close();
+                    }
                 } catch (IOException e) {
                     throw new HttpClientException(
                             "Unable to close response stream", e);

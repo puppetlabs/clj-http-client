@@ -199,7 +199,9 @@
 (defmethod coerce-body-type :text
   [resp]
   (let [charset (or (get-in resp [:content-type-params :charset] "UTF-8"))]
-    (assoc resp :body (slurp (:body resp) :encoding charset))))
+    (assoc resp :body (if (:body resp)
+                        (slurp (:body resp) :encoding charset)
+                        ""))))
 
 (defn- response-map
   [opts http-response]
