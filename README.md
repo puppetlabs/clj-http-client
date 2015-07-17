@@ -21,3 +21,8 @@ puppetlabs.http.client.sync. For information on using these namespaces, see the 
 
 Additionally, this library allows you to make requests using Java clients. For information
 on how to do this, see the page on [making requests with java clients](doc/java-client.md).
+
+## Support
+
+We use the [Trapperkeeper project on JIRA](https://tickets.puppetlabs.com/browse/TK)
+for tickets on clj-http-client, although Github issues are welcome too.
