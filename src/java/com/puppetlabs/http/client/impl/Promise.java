@@ -2,7 +2,7 @@ package com.puppetlabs.http.client.impl;
 
 import java.util.concurrent.CountDownLatch;
 
-public class Promise<T> {
+public class Promise<T> implements Deliverable<T> {
     private final CountDownLatch latch;
     private T value = null;
 

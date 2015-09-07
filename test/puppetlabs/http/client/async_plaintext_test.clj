@@ -1,8 +1,11 @@
 (ns puppetlabs.http.client.async-plaintext-test
-  (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions)
+  (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net URI SocketTimeoutException ServerSocket))
+           (java.net URI SocketTimeoutException ServerSocket)
+           (java.io PipedInputStream PipedOutputStream)
+           (java.util.concurrent TimeoutException))
   (:require [clojure.test :refer :all]
+            [clojure.java.io :as io]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
@@ -11,7 +14,8 @@
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.async :as async]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [clojure.tools.logging :as log]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -353,3 +357,94 @@
               (let [response @(common/get client url {:as :text})]
                 (is (= 200 (:status response)))
                 (is (= "Hello, World!" (:body response)))))))))))
+
+(defn- build-content-handler
+  [data initial-bytes-read? server-side-failure?]
+  (fn [_]
+    (let [outstream (PipedOutputStream.)
+          instream (PipedInputStream.)
+          _ (.connect instream outstream)
+          outwriter (io/make-writer outstream {})]
+      ;; Return the response immediately and asynchronously stream some data into it
+      (future
+       (.write outwriter data)
+       (.flush outwriter)
+       (if server-side-failure?
+         (throw (Exception. "Server side failure!")))
+       ; Block until the client confirms it has read the first few bytes
+       ; Socket time out ensures we don't block here forever in practice if it does wrong
+       (if initial-bytes-read?
+         (deref initial-bytes-read?))
+       ; Write the last of the data
+       (.write outwriter "xxxx")
+       (.close outwriter))
+      {:status 200
+       :body instream})))
+
+(defn- clojure-streaming-success
+  [data-size opts]
+  (testing (str "clojure streaming success: " data-size " bytes with opts " opts)
+    (let [data (apply str (repeat (- data-size 4) "x"))
+          ;; We check that we can read some bytes before all are transmitted only if:
+          ;; - :unbuffered-stream is enabled
+          ;; - the total traffic returned is more than about 40K to prevent buffering issues
+          ;;   i.e. data-size is large enough and not compressed
+          initial-bytes-read? (if (and (= :unbuffered-stream (:as opts))
+                                       (not (:decompress-body opts))
+                                       (> data-size (* 42 1024)))
+                                (promise))]
+      (testwebserver/with-test-webserver-and-config
+       (build-content-handler data initial-bytes-read? nil) port {:shutdown-timeout-seconds 1}
+       (with-open [client (async/create-client {:connect-timeout-milliseconds 1000 :socket-timeout-milliseconds 2000})]
+         (let [response @(common/get
+                          client
+                          (str "http://localhost:" port "/hello")
+                          opts)
+               {:keys [status body]} response]
+           (is (= 200 status))
+           (let [instream body
+                 buf (make-array Byte/TYPE 4)
+                 _ (.read instream buf)]
+             ;; Make sure we can read a few chars off of the stream
+             (is (= "xxxx" (String. buf "UTF-8")))
+             ;; Indicate we read some chars
+             (if initial-bytes-read? (deliver initial-bytes-read? true))
+             ;; Read the rest and validate the content
+             (let [final-string (str "xxxx" (slurp instream))]
+               (is (= (str data "xxxx") final-string))))))))))
+
+(defn- clojure-streaming-failure
+  [data-size opts]
+  (testing (str "clojure streaming failure: " data-size " bytes with opts " opts)
+    (let [data (apply str (repeat (- data-size 4) "x"))]
+      (try
+        (testwebserver/with-test-webserver-and-config
+         (build-content-handler data nil true) port {:shutdown-timeout-seconds 1}
+         (with-open [client (async/create-client {:connect-timeout-milliseconds 1000 :socket-timeout-milliseconds 2000})]
+           (let [response @(common/get
+                            client
+                            (str "http://localhost:" port "/hello")
+                            opts)
+                 {:keys [body error]} response]
+             (if (= :unbuffered-stream (:as opts))
+               (do
+                 (if error
+                   ;; If there's an error this should behave the same as :stream
+                   (is (instance? SocketTimeoutException error))
+                   ;; If there is no error, let's consume the body to get the exception
+                   (is (thrown? SocketTimeoutException (slurp body)))))
+               (do
+                 (is error)
+                 (is (instance? SocketTimeoutException error)))))))
+        (catch TimeoutException e
+          ;; Expected whenever a server-side failure is generated
+          )))))
+
+(deftest clojure-streaming
+  (testing "clojure streaming is consistent with different payload sizes and opts"
+    (testlogging/with-test-logging
+     (doseq [data-size [32 (* 64 1024) (* 1024 1024)]
+             decompress-body? [false true]
+             as [:unbuffered-stream :stream]]
+       (clojure-streaming-success data-size {:as as :decompress-body decompress-body?})
+       (clojure-streaming-failure data-size {:as as :decompress-body decompress-body?})))))

@@ -18,15 +18,17 @@
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.concurrent FutureCallback)
            (org.apache.http.message BasicHeader)
-           (org.apache.http Consts Header)
+           (org.apache.http Consts Header HttpRequest HttpResponse)
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
-           (com.puppetlabs.http.client.impl Compression)
+           (com.puppetlabs.http.client.impl Compression StreamingAsyncResponseConsumer FnDeliverable)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
-           (org.apache.http.client.config RequestConfig))
+           (org.apache.http.client.config RequestConfig)
+           (org.apache.http.nio.client.methods HttpAsyncMethods)
+           (org.apache.http.nio.client HttpAsyncClient))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -239,22 +241,29 @@
    response :- common/Response]
   (deliver result (callback-response opts callback response)))
 
-(schema/defn future-callback
-  [client :- common/Client
-   result :- common/ResponsePromise
+(schema/defn complete-response
+  [result :- common/ResponsePromise
+   opts :- common/RequestOptions
+   callback :- common/ResponseCallbackFn
+   http-response :- HttpResponse]
+  (try
+    (let [response (cond-> (response-map opts http-response)
+                           (and (:decompress-body opts)
+                                (not= :unbuffered-stream (:as opts))) (decompress)
+                           (and (not= :stream (:as opts))
+                                (not= :unbuffered-stream (:as opts))) (coerce-body-type))]
+      (deliver-result result opts callback response))
+    (catch Exception e
+      (deliver-result result opts callback
+                      (error-response opts e)))))
+
+(schema/defn future-callback :- FutureCallback
+  [result :- common/ResponsePromise
    opts :- common/RequestOptions
    callback :- common/ResponseCallbackFn]
   (reify FutureCallback
     (completed [this http-response]
-      (try
-        (let [response (cond-> (response-map opts http-response)
-                               (:decompress-body opts) (decompress)
-                               (not= :stream (:as opts)) (coerce-body-type))]
-          (deliver-result result opts callback response))
-        (catch Exception e
-          (log/warn e "Error when delivering response")
-          (deliver-result result opts callback
-                          (error-response opts e)))))
+      (complete-response result opts callback http-response))
     (failed [this e]
       (deliver-result result opts callback
                       (error-response opts e)))
@@ -330,6 +339,39 @@
     (.start client)
     client))
 
+(schema/defn execute-with-consumer
+  [client :- HttpAsyncClient
+   request :- HttpRequest
+   future-callback :- FutureCallback
+   result :- common/ResponsePromise
+   opts :- common/RequestOptions
+   callback :- common/ResponseCallbackFn]
+  (let [;; Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is 
+        ;; available then send the response body asynchronously
+        consumer (StreamingAsyncResponseConsumer.
+                  (FnDeliverable.
+                   (fn
+                     [http-response]
+                     (complete-response result opts callback http-response))))
+        ;; If an error occurs early in the request, the consumer may not get a chance to return the
+        ;; response using the FnDeliverable. This wrapper around the future-callback guarantees that
+        ;; happens. It also takes care of notifying the consumer of the final result.
+        streaming-complete-callback (reify
+                                      FutureCallback
+                                      (completed [this http-response]
+                                        (.setFinalResult consumer nil)
+                                        (.completed future-callback http-response))
+                                      (failed [this ex]
+                                        (.setFinalResult consumer ex)
+                                        (.failed future-callback ex))
+                                      (cancelled [this]
+                                        (.setFinalResult consumer nil)
+                                        (.cancelled future-callback)))]
+    (.execute client
+              (HttpAsyncMethods/create request)
+              consumer
+              streaming-complete-callback)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -358,7 +400,7 @@
    * :query-params - used to set the query parameters of an http request"
   [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
-   client]
+   client :- HttpAsyncClient]
   (let [defaults {:headers         {}
                   :body            nil
                   :decompress-body true
@@ -370,8 +412,10 @@
     (.setHeaders request (:headers coerced-opts))
     (when body
       (.setEntity request body))
-    (.execute client request
-              (future-callback client result opts callback))
+    (let [future-callback (future-callback result opts callback)]
+      (if (= :unbuffered-stream (:as opts))
+        (execute-with-consumer client request future-callback result opts callback)
+        (.execute client request future-callback)))
     result))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
