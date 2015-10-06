@@ -1,7 +1,7 @@
 (ns puppetlabs.http.client.async-plaintext-test
   (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net URI SocketTimeoutException ServerSocket)
+           (java.net URI SocketTimeoutException ServerSocket ConnectException)
            (java.io PipedInputStream PipedOutputStream)
            (java.util.concurrent TimeoutException))
   (:require [clojure.test :refer :all]
@@ -359,25 +359,27 @@
                 (is (= "Hello, World!" (:body response)))))))))))
 
 (defn- build-content-handler
-  [data initial-bytes-read? server-side-failure?]
+  [data initial-bytes-read? wait-forever?]
   (fn [_]
     (let [outstream (PipedOutputStream.)
-          instream (PipedInputStream.)
-          _ (.connect instream outstream)
-          outwriter (io/make-writer outstream {})]
+          instream (PipedInputStream. 4)]
+      (.connect instream outstream)
       ;; Return the response immediately and asynchronously stream some data into it
       (future
-       (.write outwriter data)
-       (.flush outwriter)
-       (if server-side-failure?
-         (throw (Exception. "Server side failure!")))
+       (.write outstream (.getBytes data))
+       (.flush outstream)
+       (if wait-forever?
+         ; The :socket-timeout-milliseconds setting on the client means we don't actually block forever and forces
+         ; a SocketTimeoutException on the underlying socket
+         (deref (promise)))
        ; Block until the client confirms it has read the first few bytes
-       ; Socket time out ensures we don't block here forever in practice if it does wrong
+       ; Again :socket-timeout-milliseconds on the client ensures we can't really get stuck here, even if the
+       ; test fails
        (if initial-bytes-read?
          (deref initial-bytes-read?))
        ; Write the last of the data
-       (.write outwriter "xxxx")
-       (.close outwriter))
+       (.write outstream (.getBytes "xxxx"))
+       (.close outstream))
       {:status 200
        :body instream})))
 
@@ -385,17 +387,17 @@
   [data-size opts]
   (testing (str "clojure streaming success: " data-size " bytes with opts " opts)
     (let [data (apply str (repeat (- data-size 4) "x"))
-          ;; We check that we can read some bytes before all are transmitted only if:
-          ;; - :unbuffered-stream is enabled
-          ;; - the total traffic returned is more than about 40K to prevent buffering issues
-          ;;   i.e. data-size is large enough and not compressed
+          ;; If :unbuffered-stream is enabled then we check that we can read some bytes from the response before all
+          ;; bytes have actually been transmitted
+          ;; We need to make sure the amount of data sent is enough to ensure it doesn't get buffered by the OS or Jetty
+          ;; About 64K seems to be the threshold
           initial-bytes-read? (if (and (= :unbuffered-stream (:as opts))
                                        (not (:decompress-body opts))
-                                       (> data-size (* 42 1024)))
+                                       (>= data-size (* 64 1024)))
                                 (promise))]
       (testwebserver/with-test-webserver-and-config
-       (build-content-handler data initial-bytes-read? nil) port {:shutdown-timeout-seconds 1}
-       (with-open [client (async/create-client {:connect-timeout-milliseconds 1000 :socket-timeout-milliseconds 2000})]
+       (build-content-handler data initial-bytes-read? false) port {:shutdown-timeout-seconds 1}
+       (with-open [client (async/create-client {:connect-timeout-milliseconds 100 :socket-timeout-milliseconds 20000})]
          (let [response @(common/get
                           client
                           (str "http://localhost:" port "/hello")
@@ -413,14 +415,14 @@
              (let [final-string (str "xxxx" (slurp instream))]
                (is (= (str data "xxxx") final-string))))))))))
 
-(defn- clojure-streaming-failure
+(defn- clojure-streaming-socket-timeout
   [data-size opts]
-  (testing (str "clojure streaming failure: " data-size " bytes with opts " opts)
+  (testing (str "clojure streaming socket timeout: " data-size " bytes with opts " opts)
     (let [data (apply str (repeat (- data-size 4) "x"))]
       (try
         (testwebserver/with-test-webserver-and-config
          (build-content-handler data nil true) port {:shutdown-timeout-seconds 1}
-         (with-open [client (async/create-client {:connect-timeout-milliseconds 1000 :socket-timeout-milliseconds 2000})]
+         (with-open [client (async/create-client {:connect-timeout-milliseconds 100 :socket-timeout-milliseconds 200})]
            (let [response @(common/get
                             client
                             (str "http://localhost:" port "/hello")
@@ -440,11 +442,24 @@
           ;; Expected whenever a server-side failure is generated
           )))))
 
+(defn- clojure-streaming-connection-error
+  [opts]
+  (testing (str "clojure streaming connect error")
+    (with-open [client (async/create-client {:connect-timeout-milliseconds 100})]
+      (let [response @(common/get
+                       client
+                       (str "http://localhost:" 12345 "/hello")
+                       opts)
+            {:keys [error]} response]
+        (is error)
+        (is (instance? ConnectException error))))))
+
 (deftest clojure-streaming
   (testing "clojure streaming is consistent with different payload sizes and opts"
     (testlogging/with-test-logging
-     (doseq [data-size [32 (* 64 1024) (* 1024 1024)]
+     (doseq [data-size [32 (* 1024) (* 1024 1024)]
              decompress-body? [false true]
              as [:unbuffered-stream :stream]]
        (clojure-streaming-success data-size {:as as :decompress-body decompress-body?})
-       (clojure-streaming-failure data-size {:as as :decompress-body decompress-body?})))))
+       (clojure-streaming-socket-timeout data-size {:as as :decompress-body decompress-body?})
+       (clojure-streaming-connection-error {:as as :decompress-body decompress-body?})))))

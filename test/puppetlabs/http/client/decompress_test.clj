@@ -31,12 +31,6 @@
       (DeflaterInputStream.)))
 
 (deftest gzip-compress-test
-  (testing "clojure gzip decompression"
-    (let [test-response {:headers {"content-encoding" "gzip"}
-                         :body    (gzip compressible-body)}
-          response (async/decompress test-response)]
-      (is (not (contains? (:headers response) "content-encoding")))
-      (is (= compressible-body (slurp (:body response))))))
   (testing "java gzip decompression"
     (let [headers (HashMap. {"content-encoding" "gzip"})
           response (JavaClient/decompress (gzip compressible-body) headers)]
@@ -44,12 +38,6 @@
       (is (= compressible-body (slurp response))))))
 
 (deftest deflate-compress-test
-  (testing "clojure deflate decompression"
-    (let [test-response {:headers {"content-encoding" "deflate"}
-                         :body    (deflate compressible-body)}
-          response (async/decompress test-response)]
-      (is (not (contains? (:headers response) "content-encoding")))
-      (is (= compressible-body (slurp (:body response))))))
   (testing "java gzip decompression"
     (let [headers (HashMap. {"content-encoding" "deflate"})
           response (JavaClient/decompress (deflate compressible-body) headers)]

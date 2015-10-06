@@ -25,7 +25,7 @@ public class ExceptionInsertingPipedInputStream extends PipedInputStream {
     @Override
     public synchronized int read() throws IOException {
         int read = super.read();
-        if (read == 1) {
+        if (read == -1) {
             checkFinalResult();
         }
         return read;
@@ -38,6 +38,12 @@ public class ExceptionInsertingPipedInputStream extends PipedInputStream {
             checkFinalResult();
         }
         return read;
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        checkFinalResult();
     }
 
 }

@@ -28,7 +28,8 @@
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
            (org.apache.http.client.config RequestConfig)
            (org.apache.http.nio.client.methods HttpAsyncMethods)
-           (org.apache.http.nio.client HttpAsyncClient))
+           (org.apache.http.nio.client HttpAsyncClient)
+           (org.apache.http.client.protocol ResponseContentEncoding))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.kitchensink.core :as ks]
@@ -170,24 +171,6 @@
     {}
     (.getAllHeaders http-response)))
 
-(defmulti decompress (fn [resp] (get-in resp [:headers "content-encoding"])))
-
-(defmethod decompress "gzip"
-  [resp]
-  (-> resp
-      (ks/dissoc-in [:headers "content-encoding"])
-      (update-in [:body] #(Compression/gunzip %))))
-
-(defmethod decompress "deflate"
-  [resp]
-  (-> resp
-     (ks/dissoc-in [:headers "content-encoding"])
-     (update-in [:body] #(Compression/inflate %))))
-
-(defmethod decompress nil
-  [resp]
-  resp)
-
 (defn- parse-content-type
   [content-type-header]
   (if (empty? content-type-header)
@@ -214,8 +197,11 @@
      :status                (.. http-response getStatusLine getStatusCode)
      :headers               headers
      :content-type          (parse-content-type (headers "content-type"))
-     :body                  (when-let [entity (.getEntity http-response)]
-                              (.getContent entity))}))
+     :body                  (do
+		              (if (:decompress-body opts)
+		                (.process (ResponseContentEncoding.) http-response nil))
+		              (when-let [entity (.getEntity http-response)]
+		                (.getContent entity)))}))
 
 (schema/defn error-response :- common/ErrorResponse
   [opts :- common/UserRequestOptions
@@ -248,8 +234,6 @@
    http-response :- HttpResponse]
   (try
     (let [response (cond-> (response-map opts http-response)
-                           (and (:decompress-body opts)
-                                (not= :unbuffered-stream (:as opts))) (decompress)
                            (and (not= :stream (:as opts))
                                 (not= :unbuffered-stream (:as opts))) (coerce-body-type))]
       (deliver-result result opts callback response))

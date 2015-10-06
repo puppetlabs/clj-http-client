@@ -1,11 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
-import org.apache.http.Header;
-import org.apache.http.HeaderElement;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.entity.DeflateDecompressingEntity;
-import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.AsyncByteConsumer;
@@ -36,25 +31,7 @@ public class StreamingAsyncResponseConsumer extends AsyncByteConsumer<HttpRespon
         PipedInputStream pis = new ExceptionInsertingPipedInputStream(ioExceptionPromise);
         pos = new PipedOutputStream();
         pos.connect(pis);
-        HttpEntity modifiedEntity = new BasicHttpEntity();
-        ((BasicHttpEntity) modifiedEntity).setContent(pis);
-        HttpEntity entity = response.getEntity();
-        if (entity != null) {
-            Header header = entity.getContentEncoding();
-            if (header != null) {
-                HeaderElement[] codecs = header.getElements();
-                for (HeaderElement codec : codecs) {
-                    if (codec.getName().equalsIgnoreCase("gzip")) {
-                        modifiedEntity = new GzipDecompressingEntity(modifiedEntity);
-                        break;
-                    } else if (codec.getName().equalsIgnoreCase("deflate")) {
-                        modifiedEntity = new DeflateDecompressingEntity(modifiedEntity);
-                        break;
-                    }
-                }
-            }
-        }
-        response.setEntity(modifiedEntity);
+        ((BasicHttpEntity) response.getEntity()).setContent(pis);
         this.response = response;
         promise.deliver(response);
     }
@@ -73,8 +50,10 @@ public class StreamingAsyncResponseConsumer extends AsyncByteConsumer<HttpRespon
         this.response = null;
         this.promise = null;
         try {
-            this.pos.close();
-            this.pos = null;
+            if (pos != null) {
+                this.pos.close();
+                this.pos = null;
+            }
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
