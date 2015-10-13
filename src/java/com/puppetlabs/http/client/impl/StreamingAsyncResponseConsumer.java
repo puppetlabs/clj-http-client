@@ -47,6 +47,7 @@ public class StreamingAsyncResponseConsumer extends AsyncByteConsumer<HttpRespon
 
     @Override
     protected void releaseResources() {
+        super.releaseResources();
         this.response = null;
         this.promise = null;
         try {
