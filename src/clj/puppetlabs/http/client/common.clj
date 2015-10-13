@@ -39,7 +39,7 @@
   (schema/maybe (schema/either String InputStream)))
 
 (def BodyType
-  (schema/enum :text :stream))
+  (schema/enum :text :stream :unbuffered-stream))
 
 (def RawUserRequestClientOptions
   "The list of Request and client options passed by a user into

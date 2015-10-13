@@ -83,9 +83,11 @@ which is a map containing options for the HTTP request. These options are as fol
   'gzip, deflate' will be added to the request, and the response will be
    automatically decompressed if it contains a recognized 'content-encoding'
    header.  Defaults to `true`.
-* `:as`: optional; used to control the data type of the response body.  Supported values
-  are `:text` and `:stream`, which will return a `String` or an
-  `InputStream`, respectively.  Defaults to `:stream`.
+* `:as`: optional; used to control the data type of the response body. Defaults to `:stream`. Supported values
+  are:
+ * `:text` which will return a `String` 
+ * `:stream` which will return an `InputStream`
+ * `:unbuffered-stream` which is a variant of `:stream` that will buffer as little data as possible
 * `:query-params`: optional; used to set the query parameters of an http request. This should be
   a map, where each key and each value is a String.
 
