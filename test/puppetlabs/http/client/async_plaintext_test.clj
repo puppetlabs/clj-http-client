@@ -6,7 +6,6 @@
            (java.util.concurrent TimeoutException)
            (java.util UUID))
   (:require [clojure.test :refer :all]
-            [clojure.java.io :as io]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
@@ -15,8 +14,7 @@
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.async :as async]
-            [schema.test :as schema-test]
-            [clojure.tools.logging :as log]))
+            [schema.test :as schema-test]))
 
 (use-fixtures :once schema-test/validate-schemas)
 

@@ -29,13 +29,12 @@
            (org.apache.http.client.config RequestConfig)
            (org.apache.http.nio.client.methods HttpAsyncMethods)
            (org.apache.http.nio.client HttpAsyncClient)
-           (org.apache.http.client.protocol ResponseContentEncoding))
+           (org.apache.http.client.protocol ResponseContentEncoding)
+           (org.apache.http.protocol BasicHttpContext))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
-            [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.http.client.common :as common]
-            [schema.core :as schema]
-            [clojure.tools.logging :as log])
+            [schema.core :as schema])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -192,16 +191,18 @@
   [opts http-response]
   (let [headers       (get-resp-headers http-response)
         orig-encoding (headers "content-encoding")]
-    {:opts                  opts
+    {:opts opts
      :orig-content-encoding orig-encoding
-     :status                (.. http-response getStatusLine getStatusCode)
-     :headers               headers
-     :content-type          (parse-content-type (headers "content-type"))
-     :body                  (do
-		              (if (:decompress-body opts)
-		                (.process (ResponseContentEncoding.) http-response nil))
-		              (when-let [entity (.getEntity http-response)]
-		                (.getContent entity)))}))
+     :status (.. http-response getStatusLine getStatusCode)
+     :headers headers
+     :content-type (parse-content-type (headers "content-type"))
+     :body (do
+             (if (:decompress-body opts)
+               (.process (ResponseContentEncoding.)
+                         http-response
+                         (BasicHttpContext.)))
+             (when-let [entity (.getEntity http-response)]
+               (.getContent entity)))}))
 
 (schema/defn error-response :- common/ErrorResponse
   [opts :- common/UserRequestOptions
