@@ -1,6 +1,6 @@
-(def ks-version "1.0.0")
-(def tk-version "1.1.0")
-(def tk-jetty-version "1.2.0")
+(def ks-version "1.2.0")
+(def tk-version "1.1.1")
+(def tk-jetty-version "1.5.0")
 
 (defproject puppetlabs/http-client "0.4.6-SNAPSHOT"
   :description "HTTP client wrapper"
@@ -12,16 +12,14 @@
   ;; requires lein 2.2.0+.
   :pedantic? :abort
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [puppetlabs/ssl-utils "0.8.0"]
-                 [org.clojure/tools.logging "0.2.6"]
-                 [puppetlabs/kitchensink ~ks-version]
-                 [org.slf4j/slf4j-api "1.7.6"]
-                 [org.apache.httpcomponents/httpasyncclient "4.0.2"]
-                 [org.apache.httpcomponents/httpcore "4.3.2"]
-                 [commons-io "2.1"]
-                 [prismatic/schema "0.4.0"]
-                 [prismatic/plumbing "0.4.2"]]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+
+                 [org.apache.httpcomponents/httpasyncclient "4.1.1"]
+                 [prismatic/schema "1.0.4"]
+                 [org.slf4j/slf4j-api "1.7.13"]
+                 [commons-io "2.4"]
+
+                 [puppetlabs/ssl-utils "0.8.1"]] 
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -36,9 +34,7 @@
                                   [puppetlabs/trapperkeeper ~tk-version]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version :classifier "test"]
-                                  [spyscope "0.1.4" :exclusions [clj-time]]]
-                   :injections [(require 'spyscope.core)]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version :classifier "test"]]
                    ;; TK-143, enable SSLv3 for unit tests that exercise SSLv3
                    :jvm-opts ["-Djava.security.properties=./dev-resources/java.security"]}
              :sources-jar {:java-source-paths ^:replace []
