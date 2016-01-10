@@ -1,3 +1,14 @@
+## 0.4.6
+ This is a maintenance release.
+
+* [TK-303](https://tickets.puppetlabs.com/browse/TK-303) - update dependencies to use Apache httpasyncclient v4.1.1. 
+
+## 0.4.5
+ This is a feature release, and probably should have been 0.5.0 in
+ order to comply with semantic versioning.
+
+* Add support for streaming responses in the Clojure API - (ca5ad63) Scott Walker <scott.walker@puppetlabs.com>
+
 ## 0.4.4
  This is a maintenance release.
 
