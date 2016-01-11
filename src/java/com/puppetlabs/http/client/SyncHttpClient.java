@@ -1,15 +1,22 @@
 package com.puppetlabs.http.client;
 
+import com.codahale.metrics.Timer;
+
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
-
+import java.util.SortedMap;
 /**
  * This interface represents a synchronous HTTP client with which
  * requests can be made. An object implementing this interface is
  * returned by {@link com.puppetlabs.http.client.Sync#createClient(ClientOptions)}
  */
 public interface SyncHttpClient extends Closeable {
+
+    /**
+     * @return a SortedMap of metric name to Timer instance
+     */
+    public SortedMap<String, Timer> getClientMetrics();
 
     /**
      * Makes a configurable HTTP request

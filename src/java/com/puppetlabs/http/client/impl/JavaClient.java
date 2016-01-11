@@ -5,6 +5,8 @@ import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.ResponseBodyType;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Consts;
@@ -14,6 +16,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.ProtocolException;
+import org.apache.http.RequestLine;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.config.RequestConfig.Builder;
@@ -59,6 +62,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
 
 public class JavaClient {
 
@@ -314,7 +318,8 @@ public class JavaClient {
                                          final HttpMethod method,
                                          final IResponseCallback callback,
                                          final CloseableHttpAsyncClient client,
-                                         final ResponseDeliveryDelegate responseDeliveryDelegate) {
+                                         final ResponseDeliveryDelegate responseDeliveryDelegate,
+                                         final MetricRegistry registry) {
 
         final CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
@@ -324,25 +329,35 @@ public class JavaClient {
 
         final HttpContext httpContext = HttpClientContext.create();
 
+        final Timer.Context timerContext = registry == null ? null : timer(registry, request).time();
+
         final FutureCallback<HttpResponse> futureCallback = new FutureCallback<HttpResponse>() {
             @Override
             public void completed(HttpResponse httpResponse) {
+                if (timerContext != null) {
+                    timerContext.stop();
+                }
                 completeResponse(responseDeliveryDelegate, requestOptions, callback, httpResponse, httpContext);
             }
 
             @Override
             public void failed(Exception e) {
+                if (timerContext != null) {
+                    timerContext.stop();
+                }
                 responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
             }
 
             @Override
             public void cancelled() {
+                if (timerContext != null) {
+                    timerContext.stop();
+                }
                 responseDeliveryDelegate.deliverResponse(requestOptions,
                         new HttpClientException("Request cancelled"),
                         callback);
             }
         };
-
         if (requestOptions.getAs() == ResponseBodyType.UNBUFFERED_STREAM) {
             executeWithConsumer(client, futureCallback, request);
         } else {
@@ -492,5 +507,18 @@ public class JavaClient {
         }
 
         return response;
+    }
+
+    private static Timer timer(MetricRegistry registry, HttpRequest request) {
+        final RequestLine requestLine = request.getRequestLine();
+        return registry.timer(MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(), requestLine.getMethod()));
+    }
+
+    public static SortedMap<String, Timer> getClientMetrics(MetricRegistry metricRegistry){
+        if (metricRegistry != null) {
+            return metricRegistry.getTimers(new ClientMetricFilter());
+        } else {
+            return null;
+        }
     }
 }

@@ -11,9 +11,10 @@
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
-           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate ClientMetricFilter)
            (org.apache.http.client.utils URIBuilder)
-           (org.apache.http.nio.client HttpAsyncClient))
+           (org.apache.http.nio.client HttpAsyncClient)
+           (com.codahale.metrics Timer))
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
@@ -122,6 +123,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
+(schema/defn get-client-metrics :- (schema/maybe common/Metrics)
+  "Returns the http client-specific metrics from the metric registry."
+  [metric-registry :- common/OptionalMetricRegistry]
+  (when metric-registry
+    (into {} (.getTimers metric-registry (ClientMetricFilter.)))))
+
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
   "Issues an async HTTP request with the specified client and returns a promise
    object to which the value of
@@ -147,7 +154,8 @@
    * :query-params - used to set the query parameters of an http request"
   [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
-   client :- HttpAsyncClient]
+   client :- HttpAsyncClient
+   metric-registry :- common/OptionalMetricRegistry]
   (let [result (promise)
         defaults {:headers         {}
                   :body            nil
@@ -157,7 +165,8 @@
         java-request-options (clojure-options->java opts)
         java-method (clojure-method->java opts)
         response-delivery-delegate (get-response-delivery-delegate opts result)]
-    (JavaClient/requestWithClient java-request-options java-method callback client response-delivery-delegate)
+    (JavaClient/requestWithClient java-request-options java-method callback
+                                  client response-delivery-delegate metric-registry)
     result))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
@@ -200,7 +209,10 @@
    OR
 
    * :ssl-ca-cert - path to a PEM file containing the CA cert"
-  [opts :- common/ClientOptions]
+  ([opts :- common/ClientOptions]
+   (create-client opts nil))
+  ([opts :- common/ClientOptions
+    metric-registry :- common/OptionalMetricRegistry]
    (let [client (create-default-client opts)]
      (reify common/HTTPClient
        (get [this url] (common/get this url {}))
@@ -216,9 +228,12 @@
        (trace [this url] (common/trace this url {}))
        (trace [this url opts] (common/make-request this url :trace opts))
        (options [this url] (common/options this url {}))
-       (options [this url opts] (common/make-request this url :post opts))
+       (options [this url opts] (common/make-request this url :options opts))
        (patch [this url] (common/patch this url {}))
        (patch [this url opts] (common/make-request this url :patch opts))
        (make-request [this url method] (common/make-request this url method {}))
-       (make-request [_ url method opts] (request-with-client (assoc opts :method method :url url) nil client))
-       (close [_] (.close client)))))
+       (make-request [_ url method opts] (request-with-client
+                                          (assoc opts :method method :url url)
+                                          nil client metric-registry))
+       (close [_] (.close client))
+       (get-client-metrics [_] (get-client-metrics metric-registry))))))

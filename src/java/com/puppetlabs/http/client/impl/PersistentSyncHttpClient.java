@@ -8,17 +8,22 @@ import com.puppetlabs.http.client.SyncHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.SortedMap;
 
 public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
+    private MetricRegistry metricRegistry;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
-    public PersistentSyncHttpClient(CloseableHttpAsyncClient client) {
+    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
         this.client = client;
+        this.metricRegistry = metricRegistry;
     }
 
     private static void logAndRethrow(String msg, Throwable t) {
@@ -26,10 +31,14 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         throw new HttpClientException(msg, t);
     }
 
+    public SortedMap<String, Timer> getClientMetrics(){
+        return JavaClient.getClientMetrics(metricRegistry);
+    }
+
     public Response request(RequestOptions requestOptions, HttpMethod method) {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
-        JavaClient.requestWithClient(requestOptions, method, null, client, responseDelivery);
+        JavaClient.requestWithClient(requestOptions, method, null, client, responseDelivery, metricRegistry);
         Response response = null;
         try {
             response = promise.deref();

@@ -1,10 +1,12 @@
 package com.puppetlabs.http.client;
 
+import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.impl.Promise;
 
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.SortedMap;
 
 /**
  * This interface represents an asynchronous HTTP client with which
@@ -12,6 +14,11 @@ import java.net.URISyntaxException;
  * {@link com.puppetlabs.http.client.Async#createClient(ClientOptions)}.
  */
 public interface AsyncHttpClient extends Closeable{
+
+    /**
+     * @return a SortedMap of metric name to Timer instance
+     */
+    public SortedMap<String, Timer> getClientMetrics();
 
     /**
      * Performs a GET request

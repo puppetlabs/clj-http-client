@@ -1,6 +1,7 @@
 (ns puppetlabs.http.client.common
   (:import (java.net URL)
            (javax.net.ssl SSLContext)
+           (com.codahale.metrics MetricRegistry Timer)
            (clojure.lang IBlockingDeref)
            (java.io InputStream)
            (java.nio.charset Charset))
@@ -20,7 +21,8 @@
   (options [this url] [this url opts])
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
-  (close [this]))
+  (close [this])
+  (get-client-metrics [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -149,3 +151,9 @@
 
 (def Response
   (schema/either NormalResponse ErrorResponse))
+
+(def OptionalMetricRegistry
+  (schema/maybe MetricRegistry))
+
+(def Metrics
+  {schema/Str Timer})
