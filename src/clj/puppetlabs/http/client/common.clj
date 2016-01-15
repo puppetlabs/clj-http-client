@@ -20,6 +20,7 @@
   (trace [this url] [this url opts])
   (options [this url] [this url opts])
   (patch [this url] [this url opts])
+  (make-request [this url method] [this url method opts])
   (close [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
