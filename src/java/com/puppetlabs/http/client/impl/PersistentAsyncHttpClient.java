@@ -22,7 +22,10 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
     }
 
     private Promise<Response> request(RequestOptions requestOptions, HttpMethod method) {
-        return JavaClient.requestWithClient(requestOptions, method, null, client);
+        final Promise<Response> promise = new Promise<>();
+        final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
+        JavaClient.requestWithClient(requestOptions, method, null, client, responseDelivery);
+        return promise;
     }
 
     public Promise<Response> get(String url) throws URISyntaxException {
