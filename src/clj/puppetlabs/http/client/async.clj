@@ -22,15 +22,15 @@
            (org.apache.http.nio.entity NStringEntity)
            (org.apache.http.entity InputStreamEntity ContentType)
            (java.io InputStream)
-           (com.puppetlabs.http.client.impl Compression StreamingAsyncResponseConsumer FnDeliverable)
+           (com.puppetlabs.http.client.impl StreamingAsyncResponseConsumer FnDeliverable)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
            (org.apache.http.client.config RequestConfig)
            (org.apache.http.nio.client.methods HttpAsyncMethods)
            (org.apache.http.nio.client HttpAsyncClient)
-           (org.apache.http.client.protocol ResponseContentEncoding)
-           (org.apache.http.protocol BasicHttpContext))
+           (org.apache.http.client.protocol ResponseContentEncoding HttpClientContext)
+           (org.apache.http.protocol HttpContext))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [clojure.string :as str]
             [puppetlabs.http.client.common :as common]
@@ -188,7 +188,7 @@
                         ""))))
 
 (defn- response-map
-  [opts http-response]
+  [opts http-response http-context]
   (let [headers       (get-resp-headers http-response)
         orig-encoding (headers "content-encoding")]
     {:opts opts
@@ -200,7 +200,7 @@
              (if (:decompress-body opts)
                (.process (ResponseContentEncoding.)
                          http-response
-                         (BasicHttpContext.)))
+                         http-context))
              (when-let [entity (.getEntity http-response)]
                (.getContent entity)))}))
 
@@ -232,9 +232,10 @@
   [result :- common/ResponsePromise
    opts :- common/RequestOptions
    callback :- common/ResponseCallbackFn
-   http-response :- HttpResponse]
+   http-response :- HttpResponse
+   http-context :- HttpContext]
   (try
-    (let [response (cond-> (response-map opts http-response)
+    (let [response (cond-> (response-map opts http-response http-context)
                            (and (not= :stream (:as opts))
                                 (not= :unbuffered-stream (:as opts))) (coerce-body-type))]
       (deliver-result result opts callback response))
@@ -245,10 +246,11 @@
 (schema/defn future-callback :- FutureCallback
   [result :- common/ResponsePromise
    opts :- common/RequestOptions
-   callback :- common/ResponseCallbackFn]
+   callback :- common/ResponseCallbackFn
+   http-context :- HttpContext]
   (reify FutureCallback
     (completed [this http-response]
-      (complete-response result opts callback http-response))
+      (complete-response result opts callback http-response http-context))
     (failed [this e]
       (deliver-result result opts callback
                       (error-response opts e)))
@@ -330,14 +332,15 @@
    future-callback :- FutureCallback
    result :- common/ResponsePromise
    opts :- common/RequestOptions
-   callback :- common/ResponseCallbackFn]
+   callback :- common/ResponseCallbackFn
+   http-context :- HttpContext]
   (let [;; Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is 
         ;; available then send the response body asynchronously
         consumer (StreamingAsyncResponseConsumer.
                   (FnDeliverable.
                    (fn
                      [http-response]
-                     (complete-response result opts callback http-response))))
+                     (complete-response result opts callback http-response http-context))))
         ;; If an error occurs early in the request, the consumer may not get a chance to return the
         ;; response using the FnDeliverable. This wrapper around the future-callback guarantees that
         ;; happens. It also takes care of notifying the consumer of the final result.
@@ -397,9 +400,10 @@
     (.setHeaders request (:headers coerced-opts))
     (when body
       (.setEntity request body))
-    (let [future-callback (future-callback result opts callback)]
+    (let [http-context (HttpClientContext/create)
+          future-callback (future-callback result opts callback http-context)]
       (if (= :unbuffered-stream (:as opts))
-        (execute-with-consumer client request future-callback result opts callback)
+        (execute-with-consumer client request future-callback result opts callback http-context)
         (.execute client request future-callback)))
     result))
 

@@ -29,6 +29,8 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpTrace;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.protocol.ResponseContentEncoding;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -38,6 +40,7 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
@@ -216,50 +219,113 @@ public class JavaClient {
         return context;
     }
 
+    private static void completeResponse(Promise<Response> promise,
+                                         RequestOptions requestOptions,
+                                         IResponseCallback callback,
+                                         HttpResponse httpResponse,
+                                         HttpContext httpContext) {
+        try {
+            Map<String, String> headers = new HashMap<>();
+            for (Header h : httpResponse.getAllHeaders()) {
+                headers.put(h.getName().toLowerCase(), h.getValue());
+            }
+            String origContentEncoding = headers.get("content-encoding");
+            if (requestOptions.getDecompressBody()) {
+                new ResponseContentEncoding().process(httpResponse, httpContext);
+            }
+            Object body = null;
+            HttpEntity entity = httpResponse.getEntity();
+            if (entity != null) {
+                body = entity.getContent();
+            }
+            ContentType contentType = null;
+            if (headers.get("content-type") != null) {
+                contentType = ContentType.parse(headers.get("content-type"));
+            }
+            if (requestOptions.getAs() == ResponseBodyType.TEXT) {
+                body = coerceBodyType((InputStream) body, requestOptions.getAs(), contentType);
+            }
+            deliverResponse(requestOptions,
+                    new Response(requestOptions, origContentEncoding, body,
+                            headers, httpResponse.getStatusLine().getStatusCode(),
+                            contentType),
+                    callback, promise);
+        } catch (Exception e) {
+            deliverResponse(requestOptions, new Response(requestOptions, e), callback, promise);
+        }
+    }
+
+    private static void executeWithConsumer(final CloseableHttpAsyncClient client,
+                                            final FutureCallback<HttpResponse> futureCallback,
+                                            final HttpRequestBase request) {
+        /*
+         * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
+         * then send the response body asynchronously
+         */
+        final StreamingAsyncResponseConsumer consumer = new StreamingAsyncResponseConsumer(new Deliverable<HttpResponse>() {
+            @Override
+            public void deliver(HttpResponse httpResponse) {
+                futureCallback.completed(httpResponse);
+            }
+        });
+
+        /*
+         * Normally the consumer returns the response as soon as it is available using the deliver() callback (above)
+         * which delegates to the supplied futureCallback.
+         *
+         * If an error occurs early in the request, the consumer may not get a chance to delivery the response. This
+         * streamingCompleteCallback wraps the supplied futureCallback and ensures:
+         *  - The supplied futureCallback is always eventually called even in error states
+         *  - Any exception that occurs during stream processing (after the response has been returned) is propagated
+         *    back to the client using the setFinalResult() method.
+         */
+        FutureCallback<HttpResponse> streamingCompleteCallback = new
+                FutureCallback<HttpResponse>() {
+                    @Override
+                    public void completed(HttpResponse httpResponse) {
+                        consumer.setFinalResult(null);
+                        futureCallback.completed(httpResponse);
+                    }
+
+                    @Override
+                    public void failed(Exception e) {
+                        if (e instanceof IOException) {
+                            consumer.setFinalResult((IOException) e);
+                        } else {
+                            consumer.setFinalResult(new IOException(e));
+                        }
+                        futureCallback.failed(e);
+                    }
+
+                    @Override
+                    public void cancelled() {
+                        consumer.setFinalResult(null);
+                        futureCallback.cancelled();
+                    }
+                };
+
+        client.execute(HttpAsyncMethods.create(request), consumer, streamingCompleteCallback);
+    }
+
     public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
                                                       final HttpMethod method,
                                                       final IResponseCallback callback,
                                                       final CloseableHttpAsyncClient client) {
+
         CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
         HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
                 coercedRequestOptions.getUri(), coercedRequestOptions.getBody());
         request.setHeaders(coercedRequestOptions.getHeaders());
 
-        final Promise<Response> promise = new Promise<Response>();
+        final HttpContext httpContext = HttpClientContext.create();
 
-        client.execute(request, new FutureCallback<org.apache.http.HttpResponse>() {
+        final Promise<Response> promise = new Promise<>();
+
+        FutureCallback futureCallback = new FutureCallback<HttpResponse>() {
             @Override
-            public void completed(org.apache.http.HttpResponse httpResponse) {
-                try {
-                    Object body = null;
-                    HttpEntity entity = httpResponse.getEntity();
-                    if (entity != null) {
-                        body = entity.getContent();
-                    }
-                    Map<String, String> headers = new HashMap<String, String>();
-                    for (Header h : httpResponse.getAllHeaders()) {
-                        headers.put(h.getName().toLowerCase(), h.getValue());
-                    }
-                    String origContentEncoding = headers.get("content-encoding");
-                    if (requestOptions.getDecompressBody()) {
-                        body = decompress((InputStream)body, headers);
-                    }
-                    ContentType contentType = null;
-                    if (headers.get("content-type") != null) {
-                        contentType = ContentType.parse(headers.get("content-type"));
-                    }
-                    if (requestOptions.getAs() != ResponseBodyType.STREAM) {
-                        body = coerceBodyType((InputStream)body, requestOptions.getAs(), contentType);
-                    }
-                    deliverResponse(requestOptions,
-                            new Response(requestOptions, origContentEncoding, body,
-                                    headers, httpResponse.getStatusLine().getStatusCode(),
-                                    contentType),
-                            callback, promise);
-                } catch (Exception e) {
-                    deliverResponse(requestOptions, new Response(requestOptions, e), callback, promise);
-                }
+            public void completed(HttpResponse httpResponse) {
+                completeResponse(promise, requestOptions, callback, httpResponse, httpContext);
             }
 
             @Override
@@ -271,7 +337,13 @@ public class JavaClient {
             public void cancelled() {
                 deliverResponse(requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise);
             }
-        });
+        };
+
+        if (requestOptions.getAs() == ResponseBodyType.UNBUFFERED_STREAM) {
+            executeWithConsumer(client, futureCallback, request);
+        } else {
+            client.execute(request, futureCallback);
+        }
 
         return promise;
     }
@@ -397,22 +469,6 @@ public class JavaClient {
         return request;
     }
 
-    public static InputStream decompress(InputStream compressed, Map<String, String> headers) {
-        String contentEncoding = headers.get("content-encoding");
-        if (contentEncoding == null) {
-            return compressed;
-        }
-        switch (contentEncoding) {
-            case "gzip":
-                headers.remove("content-encoding");
-                return Compression.gunzip(compressed);
-            case "deflate":
-                headers.remove("content-encoding");
-                return Compression.inflate(compressed);
-            default:
-                return compressed;
-        }
-    }
 
     public static Object coerceBodyType(InputStream body, ResponseBodyType as,
                                          ContentType contentType) {
