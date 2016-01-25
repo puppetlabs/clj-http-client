@@ -185,7 +185,8 @@
     :patch HttpMethod/PATCH
     :post HttpMethod/POST
     :put HttpMethod/PUT
-    :trace HttpMethod/TRACE))
+    :trace HttpMethod/TRACE
+    (throw (IllegalArgumentException. (format "Unsupported request method: %s" (:method opts))))))
 
 (defn- parse-url
   [{:keys [url query-params]}]
