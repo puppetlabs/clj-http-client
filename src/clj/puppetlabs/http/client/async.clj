@@ -334,7 +334,7 @@
    opts :- common/RequestOptions
    callback :- common/ResponseCallbackFn
    http-context :- HttpContext]
-  (let [;; Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is 
+  (let [;; Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is
         ;; available then send the response body asynchronously
         consumer (StreamingAsyncResponseConsumer.
                   (FnDeliverable.
@@ -451,19 +451,21 @@
   (let [client (create-default-client opts)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
-      (get [_ url opts] (request-with-client (assoc opts :method :get :url url) nil client))
+      (get [this url opts] (common/make-request this url :get opts))
       (head [this url] (common/head this url {}))
-      (head [_ url opts] (request-with-client (assoc opts :method :head :url url) nil client))
+      (head [this url opts] (common/make-request this url :head opts))
       (post [this url] (common/post this url {}))
-      (post [_ url opts] (request-with-client (assoc opts :method :post :url url) nil client))
+      (post [this url opts] (common/make-request this url :post opts))
       (put [this url] (common/put this url {}))
-      (put [_ url opts] (request-with-client (assoc opts :method :put :url url) nil client))
+      (put [this url opts] (common/make-request this url :put opts))
       (delete [this url] (common/delete this url {}))
-      (delete [_ url opts] (request-with-client (assoc opts :method :delete :url url) nil client))
+      (delete [this url opts] (common/make-request this url :delete opts))
       (trace [this url] (common/trace this url {}))
-      (trace [_ url opts] (request-with-client (assoc opts :method :trace :url url) nil client))
+      (trace [this url opts] (common/make-request this url :trace opts))
       (options [this url] (common/options this url {}))
-      (options [_ url opts] (request-with-client (assoc opts :method :options :url url) nil client))
+      (options [this url opts] (common/make-request this url :post opts))
       (patch [this url] (common/patch this url {}))
-      (patch [_ url opts] (request-with-client (assoc opts :method :patch :url url) nil client))
+      (patch [this url opts] (common/make-request this url :patch opts))
+      (make-request [this url method] (common/make-request this url method {}))
+      (make-request [_ url method opts] (request-with-client (assoc opts :method method :url url) nil client))
       (close [_] (.close client)))))

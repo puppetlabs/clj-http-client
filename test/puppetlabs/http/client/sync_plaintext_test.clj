@@ -162,6 +162,10 @@
           (let [response (common/patch client "http://localhost:10000/hello/")]
             (is (= 200 (:status response)))
             (is (= "Hello, World!" (slurp (:body response))))))
+        (testing "GET request via request function with persistent sync client"
+          (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
+            (is (= 200 (:status response)))
+            (is (= "Hello, World!" (slurp (:body response))))))
         (testing "client closes properly"
           (common/close client)
           (is (thrown? IllegalStateException
