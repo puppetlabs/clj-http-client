@@ -1,7 +1,14 @@
+## 0.5.0
+ This is a feature release.
+
+* [TK-312](https://tickets.puppetlabs.com/browse/TK-312) Unbuffered streams in Java to match clojure support released in 0.4.5.
+* Add request function to clojure client protocol.
+
+
 ## 0.4.6
  This is a maintenance release.
 
-* [TK-303](https://tickets.puppetlabs.com/browse/TK-303) - update dependencies to use Apache httpasyncclient v4.1.1. 
+* [TK-303](https://tickets.puppetlabs.com/browse/TK-303) - update dependencies to use Apache httpasyncclient v4.1.1.
 
 ## 0.4.5
  This is a feature release, and probably should have been 0.5.0 in
