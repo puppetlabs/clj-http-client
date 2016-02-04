@@ -14,52 +14,10 @@
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
            (org.apache.http.client.utils URIBuilder)
-           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate SslUtils)))
-  (:require [puppetlabs.ssl-utils.core :as ssl]
-            [puppetlabs.http.client.common :as common]
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate SslUtils))
+  (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Private SSL configuration functions
-
-(defn- initialize-ssl-context-from-pems
-  [req]
-  (-> req
-      (assoc :ssl-context (ssl/pems->ssl-context
-                            (:ssl-cert req)
-                            (:ssl-key req)
-                            (:ssl-ca-cert req)))
-      (dissoc :ssl-cert :ssl-key :ssl-ca-cert)))
-
-(defn- initialize-ssl-context-from-ca-pem
-  [req]
-  (-> req
-      (assoc :ssl-context (ssl/ca-cert-pem->ssl-context
-                            (:ssl-ca-cert req)))
-      (dissoc :ssl-ca-cert)))
-
-(defn- configure-ssl-from-pems
-  "Configures an SSLEngine in the request starting from a set of PEM files"
-  [req]
-  (initialize-ssl-context-from-pems req))
-
-(defn- configure-ssl-from-ca-pem
-  "Configures an SSLEngine in the request starting from a CA PEM file"
-  [req]
-  (initialize-ssl-context-from-ca-pem req))
-
-(schema/defn configure-ssl-ctxt :- (schema/either {} common/SslContextOptions)
-  "Configures a request map to have an SSLContext. It will use an existing one
-  (stored in :ssl-context) if already present, and will fall back to a set of
-  PEM files (stored in :ssl-cert, :ssl-key, and :ssl-ca-cert) if those are present.
-  If none of these are present this does not modify the request map."
-  [opts :- common/SslOptions]
-  (cond
-    (:ssl-context opts) opts
-    (every? opts [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems opts)
-    (:ssl-ca-cert opts) (configure-ssl-from-ca-pem opts)
-    :else opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
