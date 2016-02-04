@@ -13,14 +13,8 @@
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
-           (org.apache.http.impl.nio.client HttpAsyncClients)
            (org.apache.http.client.utils URIBuilder)
-           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
-           (org.apache.http.client RedirectStrategy)
-           (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
-           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
-           (org.apache.http.client.config RequestConfig)
-           (org.apache.http.nio.client HttpAsyncClient))
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate SslUtils)))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
@@ -70,71 +64,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
 
-(schema/defn extract-ssl-opts :- common/SslOptions
-  [opts :- common/ClientOptions]
-  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
-
-(schema/defn ^:always-validate ssl-strategy :- SSLIOSessionStrategy
-  [ssl-ctxt-opts :- common/SslContextOptions
-   ssl-prot-opts :- common/SslProtocolOptions]
-  (SSLIOSessionStrategy.
-    (:ssl-context ssl-ctxt-opts)
-    (if (contains? ssl-prot-opts :ssl-protocols)
-      (into-array String (:ssl-protocols ssl-prot-opts))
-      ClientOptions/DEFAULT_SSL_PROTOCOLS)
-    (if (contains? ssl-prot-opts :cipher-suites)
-      (into-array String (:cipher-suites ssl-prot-opts)))
-    SSLIOSessionStrategy/BROWSER_COMPATIBLE_HOSTNAME_VERIFIER))
-
-(schema/defn ^:always-validate redirect-strategy :- RedirectStrategy
-  [opts :- common/ClientOptions]
-  (let [follow-redirects (:follow-redirects opts)
-        force-redirects (:force-redirects opts)]
-    (cond
-      (and (not (nil? follow-redirects)) (not follow-redirects))
-        (proxy [RedirectStrategy] []
-          (isRedirected [req resp context]
-            false)
-          (getRedirect [req resp context]
-            nil))
-        force-redirects
-          (LaxRedirectStrategy.)
-        :else
-          (DefaultRedirectStrategy.))))
-
-(schema/defn request-config :- RequestConfig
-  [connect-timeout-milliseconds :- (schema/maybe schema/Int)
-   socket-timeout-milliseconds :- (schema/maybe schema/Int)]
-  (let [request-config-builder (RequestConfig/custom)]
-    (if connect-timeout-milliseconds
-      (.setConnectTimeout request-config-builder
-                          connect-timeout-milliseconds))
-    (if socket-timeout-milliseconds
-      (.setSocketTimeout request-config-builder
-                         socket-timeout-milliseconds))
-    (.build request-config-builder)))
-
 (schema/defn ^:always-validate create-default-client :- common/Client
-  [opts :- common/ClientOptions]
-  (let [ssl-ctxt-opts   (configure-ssl-ctxt (extract-ssl-opts opts))
-        ssl-prot-opts   (select-keys opts [:ssl-protocols :cipher-suites])
-        client-builder  (HttpAsyncClients/custom)
-        connect-timeout (:connect-timeout-milliseconds opts)
-        socket-timeout  (:socket-timeout-milliseconds opts)
-        client          (do (when (:ssl-context ssl-ctxt-opts)
-                              (.setSSLStrategy client-builder
-                                               (ssl-strategy
-                                                 ssl-ctxt-opts ssl-prot-opts)))
-                            (.setRedirectStrategy client-builder
-                                                  (redirect-strategy opts))
-                            (if (or connect-timeout socket-timeout)
-                              (.setDefaultRequestConfig client-builder
-                                                        (request-config
-                                                          connect-timeout
-                                                          socket-timeout)))
-                            (.build client-builder))]
-    (.start client)
-    client))
+  [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
+           follow-redirects force-redirects connect-timeout-milliseconds
+           socket-timeout-milliseconds]}:- common/ClientOptions]
+  (let [client-options (ClientOptions.)]
+    (cond-> client-options
+            (some? ssl-context) (.setSslContext ssl-context)
+            (some? ssl-cert) (.setSslCert ssl-cert)
+            (some? ssl-ca-cert) (.setSslCaCert ssl-ca-cert)
+            (some? ssl-key) (.setSslKey ssl-key)
+            (some? ssl-context) (.setSslContext ssl-context)
+            (some? ssl-protocols) (.setSslProtocols (into-array String ssl-protocols))
+            (some? cipher-suites) (.setSslCipherSuites (into-array String cipher-suites))
+            (some? force-redirects) (.setForceRedirects force-redirects)
+            (some? follow-redirects) (.setFollowRedirects follow-redirects)
+            (some? connect-timeout-milliseconds)
+            (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
+            (some? socket-timeout-milliseconds)
+            (.setSocketTimeoutMilliseconds socket-timeout-milliseconds))
+    (let [coerced-options (JavaClient/coerceClientOptions (SslUtils/configureSsl client-options))
+          client (JavaClient/createClient coerced-options)]
+      (.start client)
+      client)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Map the Ring request onto the Java API
@@ -242,7 +194,7 @@
    * :query-params - used to set the query parameters of an http request"
   [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
-   client :- HttpAsyncClient]
+   client :- common/Client]
   (let [result (promise)
         defaults {:headers         {}
                   :body            nil
