@@ -27,17 +27,17 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     }
 
     public Response request(RequestOptions requestOptions, HttpMethod method) {
-        Promise<Response> promise =
-                JavaClient.requestWithClient(requestOptions, method, null, client);
-
+        final Promise<Response> promise = new Promise<>();
+        final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
+        JavaClient.requestWithClient(requestOptions, method, null, client, responseDelivery);
         Response response = null;
         try {
             response = promise.deref();
+            if (response.getError() != null) {
+                logAndRethrow("Error executing http request", response.getError());
+            }
         } catch (InterruptedException e) {
             logAndRethrow("Error while waiting for http response", e);
-        }
-        if (response.getError() != null) {
-            logAndRethrow("Error executing http request", response.getError());
         }
         return response;
     }

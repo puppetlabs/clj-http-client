@@ -20,6 +20,12 @@
   {:status 200
    :body "Hello, World!"})
 
+(defn app-with-empty-content-type
+  [_]
+  {:headers {"content-type" ""}
+   :status 200
+   :body "Hello, World!"})
+
 (tk/defservice test-web-service
   [[:WebserverService add-ring-handler]]
   (init [this context]
@@ -105,10 +111,15 @@
           (let [response (common/patch client "http://localhost:10000/hello/")]
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "GET request via request function  with persistent async client"
+        (testing "GET request via request function with persistent async client"
           (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "Bad verb request via request function with persistent async client"
+          (is (thrown? IllegalArgumentException
+                       (common/make-request client
+                                            "http://localhost:10000/hello/"
+                                            :bad))))
         (testing "client closes properly"
           (common/close client)
           (is (thrown? IllegalStateException
@@ -357,3 +368,20 @@
               (let [response @(common/get client url {:as :text})]
                 (is (= 200 (:status response)))
                 (is (= "Hello, World!" (:body response)))))))))))
+
+(deftest empty-content-type-async
+  (testing "content-type parsing handles empty content-type"
+    (testlogging/with-test-logging
+      (testwebserver/with-test-webserver app-with-empty-content-type port
+         (let [url (str "http://localhost:" port "/hello")]
+           (testing "java persistent async client"
+             (with-open [client (-> (ClientOptions.)
+                                    (Async/createClient))]
+               (let [response (-> client
+                                  (.get (RequestOptions. url))
+                                  (.deref))]
+                 (is (= 200 (.getStatus response))))))
+           (testing "clojure persistent async client"
+             (with-open [client (async/create-client {})]
+               (let [response @(common/get client url {:as :text})]
+                 (is (= 200 (:status response)))))))))))

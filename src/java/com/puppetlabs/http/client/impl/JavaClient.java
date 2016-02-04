@@ -4,7 +4,6 @@ import com.puppetlabs.http.client.ClientOptions;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.RequestOptions;
-import com.puppetlabs.http.client.Response;
 import com.puppetlabs.http.client.ResponseBodyType;
 
 import org.apache.commons.io.IOUtils;
@@ -219,7 +218,7 @@ public class JavaClient {
         return context;
     }
 
-    private static void completeResponse(Promise<Response> promise,
+    private static void completeResponse(ResponseDeliveryDelegate responseDeliveryDelegate,
                                          RequestOptions requestOptions,
                                          IResponseCallback callback,
                                          HttpResponse httpResponse,
@@ -239,19 +238,22 @@ public class JavaClient {
                 body = entity.getContent();
             }
             ContentType contentType = null;
-            if (headers.get("content-type") != null) {
-                contentType = ContentType.parse(headers.get("content-type"));
+            String contentTypeValue = headers.get("content-type");
+            if (contentTypeValue != null && !contentTypeValue.isEmpty()) {
+                contentType = ContentType.parse(contentTypeValue);
             }
             if (requestOptions.getAs() == ResponseBodyType.TEXT) {
                 body = coerceBodyType((InputStream) body, requestOptions.getAs(), contentType);
             }
-            deliverResponse(requestOptions,
-                    new Response(requestOptions, origContentEncoding, body,
-                            headers, httpResponse.getStatusLine().getStatusCode(),
-                            contentType),
-                    callback, promise);
+            responseDeliveryDelegate.deliverResponse(requestOptions,
+                    origContentEncoding,
+                    body,
+                    headers,
+                    httpResponse.getStatusLine().getStatusCode(),
+                    contentType,
+                    callback);
         } catch (Exception e) {
-            deliverResponse(requestOptions, new Response(requestOptions, e), callback, promise);
+            responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
         }
     }
 
@@ -262,7 +264,8 @@ public class JavaClient {
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
          * then send the response body asynchronously
          */
-        final StreamingAsyncResponseConsumer consumer = new StreamingAsyncResponseConsumer(new Deliverable<HttpResponse>() {
+        final StreamingAsyncResponseConsumer consumer =
+                new StreamingAsyncResponseConsumer(new Deliverable<HttpResponse>() {
             @Override
             public void deliver(HttpResponse httpResponse) {
                 futureCallback.completed(httpResponse);
@@ -273,13 +276,13 @@ public class JavaClient {
          * Normally the consumer returns the response as soon as it is available using the deliver() callback (above)
          * which delegates to the supplied futureCallback.
          *
-         * If an error occurs early in the request, the consumer may not get a chance to delivery the response. This
+         * If an error occurs early in the request, the consumer may not get a chance to deliver the response. This
          * streamingCompleteCallback wraps the supplied futureCallback and ensures:
          *  - The supplied futureCallback is always eventually called even in error states
          *  - Any exception that occurs during stream processing (after the response has been returned) is propagated
          *    back to the client using the setFinalResult() method.
          */
-        FutureCallback<HttpResponse> streamingCompleteCallback = new
+        final FutureCallback<HttpResponse> streamingCompleteCallback = new
                 FutureCallback<HttpResponse>() {
                     @Override
                     public void completed(HttpResponse httpResponse) {
@@ -307,35 +310,36 @@ public class JavaClient {
         client.execute(HttpAsyncMethods.create(request), consumer, streamingCompleteCallback);
     }
 
-    public static Promise<Response> requestWithClient(final RequestOptions requestOptions,
-                                                      final HttpMethod method,
-                                                      final IResponseCallback callback,
-                                                      final CloseableHttpAsyncClient client) {
+    public static void requestWithClient(final RequestOptions requestOptions,
+                                         final HttpMethod method,
+                                         final IResponseCallback callback,
+                                         final CloseableHttpAsyncClient client,
+                                         final ResponseDeliveryDelegate responseDeliveryDelegate) {
 
-        CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
+        final CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
-        HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
+        final HttpRequestBase request = constructRequest(coercedRequestOptions.getMethod(),
                 coercedRequestOptions.getUri(), coercedRequestOptions.getBody());
         request.setHeaders(coercedRequestOptions.getHeaders());
 
         final HttpContext httpContext = HttpClientContext.create();
 
-        final Promise<Response> promise = new Promise<>();
-
-        FutureCallback futureCallback = new FutureCallback<HttpResponse>() {
+        final FutureCallback<HttpResponse> futureCallback = new FutureCallback<HttpResponse>() {
             @Override
             public void completed(HttpResponse httpResponse) {
-                completeResponse(promise, requestOptions, callback, httpResponse, httpContext);
+                completeResponse(responseDeliveryDelegate, requestOptions, callback, httpResponse, httpContext);
             }
 
             @Override
             public void failed(Exception e) {
-                deliverResponse(requestOptions, new Response(requestOptions, e), callback, promise);
+                responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
             }
 
             @Override
             public void cancelled() {
-                deliverResponse(requestOptions, new Response(requestOptions, new HttpClientException("Request cancelled", null)), callback, promise);
+                responseDeliveryDelegate.deliverResponse(requestOptions,
+                        new HttpClientException("Request cancelled"),
+                        callback);
             }
         };
 
@@ -344,8 +348,6 @@ public class JavaClient {
         } else {
             client.execute(request, futureCallback);
         }
-
-        return promise;
     }
 
     public static CloseableHttpAsyncClient createClient(CoercedClientOptions coercedOptions) {
@@ -414,21 +416,6 @@ public class JavaClient {
         }
 
         return config;
-    }
-
-    private static void deliverResponse(RequestOptions options,
-                                        Response httpResponse,
-                                        IResponseCallback callback,
-                                        Promise<Response> promise) {
-        if (callback != null) {
-            try {
-                promise.deliver(callback.handleResponse(httpResponse));
-            } catch (Exception ex) {
-                promise.deliver(new Response(options, ex));
-            }
-        } else {
-            promise.deliver(httpResponse);
-        }
     }
 
     private static HttpRequestBase constructRequest(HttpMethod httpMethod, URI uri, HttpEntity body) {

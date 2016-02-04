@@ -12,27 +12,16 @@
 ;; these methods.
 
 (ns puppetlabs.http.client.async
-  (:import (com.puppetlabs.http.client HttpClientException ClientOptions)
+  (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (org.apache.http.client.methods HttpGet HttpHead HttpPost HttpPut HttpTrace HttpDelete HttpOptions HttpPatch)
            (org.apache.http.client.utils URIBuilder)
-           (org.apache.http.concurrent FutureCallback)
-           (org.apache.http.message BasicHeader)
-           (org.apache.http Consts Header HttpRequest HttpResponse)
-           (org.apache.http.nio.entity NStringEntity)
-           (org.apache.http.entity InputStreamEntity ContentType)
-           (java.io InputStream)
-           (com.puppetlabs.http.client.impl StreamingAsyncResponseConsumer FnDeliverable)
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
            (org.apache.http.client RedirectStrategy)
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
            (org.apache.http.client.config RequestConfig)
-           (org.apache.http.nio.client.methods HttpAsyncMethods)
-           (org.apache.http.nio.client HttpAsyncClient)
-           (org.apache.http.client.protocol ResponseContentEncoding HttpClientContext)
-           (org.apache.http.protocol HttpContext))
+           (org.apache.http.nio.client HttpAsyncClient))
   (:require [puppetlabs.ssl-utils.core :as ssl]
-            [clojure.string :as str]
             [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
@@ -80,185 +69,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
-
-(defn- add-accept-encoding-header
-  [decompress-body? headers]
-  (if (and decompress-body?
-           (not (contains? headers "accept-encoding")))
-    (assoc headers "accept-encoding"
-                   (BasicHeader. "accept-encoding" "gzip, deflate"))
-    headers))
-
-(defn- add-content-type-header
-  [content-type headers]
-  (if content-type
-    (assoc headers "content-type" (BasicHeader. "Content-Type"
-                                                (.toString content-type)))
-    headers))
-
-(defn- prepare-headers
-  [{:keys [headers decompress-body]} content-type]
-  (->> headers
-       (reduce
-         (fn [acc [k v]]
-           (assoc acc (str/lower-case k) (BasicHeader. k v)))
-         {})
-       (add-accept-encoding-header decompress-body)
-       (add-content-type-header content-type)
-       vals
-       (into-array Header)))
-
-(defn- parse-url
-  [url query-params]
-  (if (nil? query-params)
-    url
-    (let [uri-builder (reduce #(.addParameter %1 (key %2) (val %2))
-                              (.clearParameters (URIBuilder. url))
-                              query-params)]
-      (.build uri-builder))))
-
-(defn content-type
-  [body {:keys [headers]}]
-  (if-let [content-type-value (some #(when (= "content-type"
-                                           (clojure.string/lower-case (key %)))
-                                       (val %))
-                                    headers)]
-    ;; In the case when the caller provides the body as a string, and does not
-    ;; specify a charset, we choose one for them.  There will always be _some_
-    ;; charset used to encode the string, and in this case we choose UTF-8
-    ;; (instead of letting the underlying Apache HTTP client library
-    ;; choose ISO-8859-1) because UTF-8 is a more reasonable default.
-    (let [content-type (ContentType/parse content-type-value)
-          charset (.getCharset content-type)
-          should-choose-charset? (and (string? body) (not charset))]
-      (if should-choose-charset?
-        (ContentType/create (.getMimeType content-type) Consts/UTF_8)
-        content-type))))
-
-(defn- coerce-opts
-  [{:keys [url body query-params] :as opts}]
-  (let [url          (parse-url url query-params)
-        content-type (content-type body opts)]
-    {:url     url
-     :method  (clojure.core/get opts :method :get)
-     :headers (prepare-headers opts content-type)
-     :body    (cond
-                (string? body) (if content-type
-                                 (NStringEntity. body content-type)
-                                 (NStringEntity. body))
-                (instance? InputStream body) (InputStreamEntity. body)
-                :else body)}))
-
-(defn- construct-request
-  [method url]
-  (condp = method
-    :get    (HttpGet. url)
-    :head   (HttpHead. url)
-    :post   (HttpPost. url)
-    :put    (HttpPut. url)
-    :delete (HttpDelete. url)
-    :trace  (HttpTrace. url)
-    :options (HttpOptions. url)
-    :patch  (HttpPatch. url)
-    (throw (IllegalArgumentException. (format "Unsupported request method: %s" method)))))
-
-(defn- get-resp-headers
-  [http-response]
-  (reduce
-    (fn [acc h]
-      (assoc acc (.. h getName toLowerCase) (.getValue h)))
-    {}
-    (.getAllHeaders http-response)))
-
-(defn- parse-content-type
-  [content-type-header]
-  (if (empty? content-type-header)
-    nil
-    (let [content-type (ContentType/parse content-type-header)]
-      {:mime-type (.getMimeType content-type)
-       :charset   (.getCharset content-type)})))
-
-(defmulti coerce-body-type (fn [resp] (get-in resp [:opts :as])))
-
-(defmethod coerce-body-type :text
-  [resp]
-  (let [charset (or (get-in resp [:content-type-params :charset] "UTF-8"))]
-    (assoc resp :body (if (:body resp)
-                        (slurp (:body resp) :encoding charset)
-                        ""))))
-
-(defn- response-map
-  [opts http-response http-context]
-  (let [headers       (get-resp-headers http-response)
-        orig-encoding (headers "content-encoding")]
-    {:opts opts
-     :orig-content-encoding orig-encoding
-     :status (.. http-response getStatusLine getStatusCode)
-     :headers headers
-     :content-type (parse-content-type (headers "content-type"))
-     :body (do
-             (if (:decompress-body opts)
-               (.process (ResponseContentEncoding.)
-                         http-response
-                         http-context))
-             (when-let [entity (.getEntity http-response)]
-               (.getContent entity)))}))
-
-(schema/defn error-response :- common/ErrorResponse
-  [opts :- common/UserRequestOptions
-   e :- Exception]
-  {:opts opts
-   :error e})
-
-(schema/defn callback-response :- common/Response
-  [opts :- common/UserRequestOptions
-   callback :- common/ResponseCallbackFn
-   response :- common/Response]
-  (if callback
-    (try
-      (callback response)
-      (catch Exception e
-        (error-response opts e)))
-    response))
-
-(schema/defn deliver-result
-  [result :- common/ResponsePromise
-   opts :- common/UserRequestOptions
-   callback :- common/ResponseCallbackFn
-   response :- common/Response]
-  (deliver result (callback-response opts callback response)))
-
-(schema/defn complete-response
-  [result :- common/ResponsePromise
-   opts :- common/RequestOptions
-   callback :- common/ResponseCallbackFn
-   http-response :- HttpResponse
-   http-context :- HttpContext]
-  (try
-    (let [response (cond-> (response-map opts http-response http-context)
-                           (and (not= :stream (:as opts))
-                                (not= :unbuffered-stream (:as opts))) (coerce-body-type))]
-      (deliver-result result opts callback response))
-    (catch Exception e
-      (deliver-result result opts callback
-                      (error-response opts e)))))
-
-(schema/defn future-callback :- FutureCallback
-  [result :- common/ResponsePromise
-   opts :- common/RequestOptions
-   callback :- common/ResponseCallbackFn
-   http-context :- HttpContext]
-  (reify FutureCallback
-    (completed [this http-response]
-      (complete-response result opts callback http-response http-context))
-    (failed [this e]
-      (deliver-result result opts callback
-                      (error-response opts e)))
-    (cancelled [this]
-      (deliver-result result opts callback
-                      (error-response
-                        opts
-                        (HttpClientException. "Request cancelled"))))))
 
 (schema/defn extract-ssl-opts :- common/SslOptions
   [opts :- common/ClientOptions]
@@ -326,39 +136,83 @@
     (.start client)
     client))
 
-(schema/defn execute-with-consumer
-  [client :- HttpAsyncClient
-   request :- HttpRequest
-   future-callback :- FutureCallback
-   result :- common/ResponsePromise
-   opts :- common/RequestOptions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Map the Ring request onto the Java API
+
+(schema/defn callback-response :- common/Response
+  [opts :- common/UserRequestOptions
    callback :- common/ResponseCallbackFn
-   http-context :- HttpContext]
-  (let [;; Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is
-        ;; available then send the response body asynchronously
-        consumer (StreamingAsyncResponseConsumer.
-                  (FnDeliverable.
-                   (fn
-                     [http-response]
-                     (complete-response result opts callback http-response http-context))))
-        ;; If an error occurs early in the request, the consumer may not get a chance to return the
-        ;; response using the FnDeliverable. This wrapper around the future-callback guarantees that
-        ;; happens. It also takes care of notifying the consumer of the final result.
-        streaming-complete-callback (reify
-                                      FutureCallback
-                                      (completed [this http-response]
-                                        (.setFinalResult consumer nil)
-                                        (.completed future-callback http-response))
-                                      (failed [this ex]
-                                        (.setFinalResult consumer ex)
-                                        (.failed future-callback ex))
-                                      (cancelled [this]
-                                        (.setFinalResult consumer nil)
-                                        (.cancelled future-callback)))]
-    (.execute client
-              (HttpAsyncMethods/create request)
-              consumer
-              streaming-complete-callback)))
+   response :- common/Response]
+  (if callback
+    (try
+      (callback response)
+      (catch Exception e
+        {:opts opts :error e}))
+    response))
+
+(schema/defn java-content-type->clj :- common/ContentType
+  [java-content-type]
+  (if java-content-type
+    {:mime-type (.getMimeType java-content-type)
+     :charset   (.getCharset java-content-type)}))
+
+(schema/defn get-response-delivery-delegate :- ResponseDeliveryDelegate
+  [opts :- common/UserRequestOptions
+   result :- common/ResponsePromise]
+  (reify ResponseDeliveryDelegate
+    (deliverResponse
+      [_ _ orig-encoding body headers status content-type callback]
+      (->> {:opts                  opts
+            :orig-content-encoding orig-encoding
+            :status                status
+            :headers               (into {} headers)
+            :content-type          (java-content-type->clj content-type)
+            :body                  body}
+           (callback-response opts callback)
+           (deliver result)))
+    (deliverResponse
+      [_ _ e callback]
+      (->> {:opts opts :error e}
+           (callback-response opts callback)
+           (deliver result)))))
+
+(schema/defn clojure-method->java
+  [opts :- common/UserRequestOptions]
+  (case (:method opts)
+    :delete HttpMethod/DELETE
+    :get HttpMethod/GET
+    :head HttpMethod/HEAD
+    :options HttpMethod/OPTIONS
+    :patch HttpMethod/PATCH
+    :post HttpMethod/POST
+    :put HttpMethod/PUT
+    :trace HttpMethod/TRACE
+    (throw (IllegalArgumentException. (format "Unsupported request method: %s" (:method opts))))))
+
+(defn- parse-url
+  [{:keys [url query-params]}]
+  (if (nil? query-params)
+    url
+    (let [uri-builder (reduce #(.addParameter %1 (key %2) (val %2))
+                              (.clearParameters (URIBuilder. url))
+                              query-params)]
+      (.build uri-builder))))
+
+(schema/defn clojure-response-body-type->java :- ResponseBodyType
+  [opts :- common/RequestOptions]
+  (case (:as opts)
+    :unbuffered-stream ResponseBodyType/UNBUFFERED_STREAM
+    :text ResponseBodyType/TEXT
+    ResponseBodyType/STREAM))
+
+(schema/defn clojure-options->java :- RequestOptions
+  [opts :- common/RequestOptions]
+  (-> (parse-url opts)
+      RequestOptions.
+      (.setAs (clojure-response-body-type->java opts))
+      (.setBody (:body opts))
+      (.setDecompressBody (clojure.core/get opts :decompress-body true))
+      (.setHeaders (:headers opts))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -389,22 +243,16 @@
   [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
    client :- HttpAsyncClient]
-  (let [defaults {:headers         {}
+  (let [result (promise)
+        defaults {:headers         {}
                   :body            nil
                   :decompress-body true
                   :as              :stream}
         opts (merge defaults opts)
-        {:keys [method url body] :as coerced-opts} (coerce-opts opts)
-        request (construct-request method url)
-        result (promise)]
-    (.setHeaders request (:headers coerced-opts))
-    (when body
-      (.setEntity request body))
-    (let [http-context (HttpClientContext/create)
-          future-callback (future-callback result opts callback http-context)]
-      (if (= :unbuffered-stream (:as opts))
-        (execute-with-consumer client request future-callback result opts callback http-context)
-        (.execute client request future-callback)))
+        java-request-options (clojure-options->java opts)
+        java-method (clojure-method->java opts)
+        response-delivery-delegate (get-response-delivery-delegate opts result)]
+    (JavaClient/requestWithClient java-request-options java-method callback client response-delivery-delegate)
     result))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)

@@ -180,8 +180,7 @@
   transmission"
   [decompress-body?]
   (testlogging/with-test-logging
-    (let [data (generate-data (* 32 1024 1024))
-          opts {:as :unbuffered-stream :decompress-body decompress-body?}]
+    (let [data (generate-data (* 32 1024 1024))]
 
       (testing " - check data can be streamed successfully"
         (let [send-more-data (promise)]
