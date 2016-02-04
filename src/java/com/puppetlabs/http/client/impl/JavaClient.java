@@ -252,7 +252,7 @@ public class JavaClient {
                     contentType,
                     callback);
         } catch (Exception e) {
-            responseDeliveryDelegate.deliverResponse(requestOptions, e);
+            responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
         }
     }
 
@@ -331,12 +331,14 @@ public class JavaClient {
 
             @Override
             public void failed(Exception e) {
-                responseDeliveryDelegate.deliverResponse(requestOptions, e);
+                responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
             }
 
             @Override
             public void cancelled() {
-                responseDeliveryDelegate.deliverResponse(requestOptions, new HttpClientException("Request cancelled"));
+                responseDeliveryDelegate.deliverResponse(requestOptions,
+                        new HttpClientException("Request cancelled"),
+                        callback);
             }
         };
 

@@ -15,6 +15,7 @@ public interface ResponseDeliveryDelegate {
 
 
     void deliverResponse(RequestOptions requestOptions,
-                         Exception e);
+                         Exception e,
+                         IResponseCallback callback);
 
 }

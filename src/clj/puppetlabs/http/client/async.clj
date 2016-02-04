@@ -20,8 +20,7 @@
            (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
            (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
            (org.apache.http.client.config RequestConfig)
-           (org.apache.http.nio.client HttpAsyncClient)
-           (org.apache.http.entity ContentType))
+           (org.apache.http.nio.client HttpAsyncClient))
   (:require [puppetlabs.ssl-utils.core :as ssl]
             [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
@@ -163,17 +162,19 @@
   (reify ResponseDeliveryDelegate
     (deliverResponse
       [_ _ orig-encoding body headers status content-type callback]
-      (let [response {:opts                  opts
-                      :orig-content-encoding orig-encoding
-                      :status                status
-                      :headers               (into {} headers)
-                      :content-type          (java-content-type->clj content-type)
-                      :body                  body}
-            response (callback-response opts callback response)]
-        (deliver result response)))
+      (->> {:opts                  opts
+            :orig-content-encoding orig-encoding
+            :status                status
+            :headers               (into {} headers)
+            :content-type          (java-content-type->clj content-type)
+            :body                  body}
+           (callback-response opts callback)
+           (deliver result)))
     (deliverResponse
-      [_ _ e]
-      (deliver result {:opts opts :error e}))))
+      [_ _ e callback]
+      (->> {:opts opts :error e}
+           (callback-response opts callback)
+           (deliver result)))))
 
 (schema/defn clojure-method->java
   [opts :- common/UserRequestOptions]

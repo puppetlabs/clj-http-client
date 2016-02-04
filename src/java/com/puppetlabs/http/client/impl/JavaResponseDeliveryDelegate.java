@@ -44,8 +44,10 @@ public final class JavaResponseDeliveryDelegate implements ResponseDeliveryDeleg
     }
 
     @Override
-    public void deliverResponse(RequestOptions requestOptions, Exception e) {
-        deliverResponse(new Response(requestOptions, e), requestOptions, null);
+    public void deliverResponse(RequestOptions requestOptions,
+                                Exception e,
+                                IResponseCallback callback) {
+        deliverResponse(new Response(requestOptions, e), requestOptions, callback);
     }
 
 }
