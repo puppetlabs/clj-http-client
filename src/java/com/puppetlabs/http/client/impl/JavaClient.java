@@ -238,8 +238,9 @@ public class JavaClient {
                 body = entity.getContent();
             }
             ContentType contentType = null;
-            if (headers.get("content-type") != null) {
-                contentType = ContentType.parse(headers.get("content-type"));
+            String contentTypeValue = headers.get("content-type");
+            if (contentTypeValue != null && !contentTypeValue.isEmpty()) {
+                contentType = ContentType.parse(contentTypeValue);
             }
             if (requestOptions.getAs() == ResponseBodyType.TEXT) {
                 body = coerceBodyType((InputStream) body, requestOptions.getAs(), contentType);
