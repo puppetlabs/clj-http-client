@@ -105,10 +105,15 @@
           (let [response (common/patch client "http://localhost:10000/hello/")]
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "GET request via request function  with persistent async client"
+        (testing "GET request via request function with persistent async client"
           (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
+        (testing "Bad verb request via request function with persistent async client"
+          (is (thrown? IllegalArgumentException
+                       (common/make-request client
+                                            "http://localhost:10000/hello/"
+                                            :bad))))
         (testing "client closes properly"
           (common/close client)
           (is (thrown? IllegalStateException
