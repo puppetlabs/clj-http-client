@@ -30,7 +30,6 @@
 
 (def UrlOrString (schema/either schema/Str URL))
 
-;; TODO: replace this with a protocol
 (def Client CloseableHttpAsyncClient)
 
 (def Headers
@@ -100,9 +99,6 @@
    :ssl-key     UrlOrString
    :ssl-ca-cert UrlOrString})
 
-(def SslOptions
-  (schema/either {} SslContextOptions SslCertOptions SslCaCertOptions))
-
 (def SslProtocolOptions
   {(ok :ssl-protocols) [schema/Str]
    (ok :cipher-suites) [schema/Str]})
@@ -156,5 +152,3 @@
 
 (def Response
   (schema/either NormalResponse ErrorResponse))
-
-

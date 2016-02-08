@@ -2,8 +2,6 @@
 ;; defined in puppetlabs.http.client
 
 (ns puppetlabs.http.client.sync
-  (:import (org.apache.http.impl.nio.client HttpAsyncClients)
-           (org.apache.http.impl.client LaxRedirectStrategy))
   (:require [puppetlabs.http.client.async :as async]
             [schema.core :as schema]
             [puppetlabs.http.client.common :as common])

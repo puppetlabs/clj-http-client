@@ -4,9 +4,7 @@
 ;; In the options to any request method, an existing SSLContext object can be
 ;; supplied under :ssl-context. If this is present it will be used. If it's
 ;; not, the wrapper will attempt to use a set of PEM files stored in
-;; (:ssl-cert :ssl-key :ssl-ca-cert) to create the SSLContext. It is also
-;; still possible to use an SSLEngine directly, and if this is present under
-;; the key :sslengine it will be used before any other options are tried.
+;; (:ssl-cert :ssl-key :ssl-ca-cert) to create the SSLContext.
 ;;
 ;; See the puppetlabs.http.sync namespace for synchronous versions of all
 ;; these methods.
@@ -32,7 +30,6 @@
             (some? ssl-cert) (.setSslCert ssl-cert)
             (some? ssl-ca-cert) (.setSslCaCert ssl-ca-cert)
             (some? ssl-key) (.setSslKey ssl-key)
-            (some? ssl-context) (.setSslContext ssl-context)
             (some? ssl-protocols) (.setSslProtocols (into-array String ssl-protocols))
             (some? cipher-suites) (.setSslCipherSuites (into-array String cipher-suites))
             (some? force-redirects) (.setForceRedirects force-redirects)
@@ -41,8 +38,10 @@
             (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
             (some? socket-timeout-milliseconds)
             (.setSocketTimeoutMilliseconds socket-timeout-milliseconds))
-    (let [coerced-options (JavaClient/coerceClientOptions (SslUtils/configureSsl client-options))
-          client (JavaClient/createClient coerced-options)]
+    (let [client (-> client-options
+                     SslUtils/configureSsl
+                     JavaClient/coerceClientOptions
+                     JavaClient/createClient)]
       (.start client)
       client)))
 
