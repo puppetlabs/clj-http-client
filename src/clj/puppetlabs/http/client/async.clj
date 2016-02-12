@@ -11,8 +11,9 @@
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
            (org.apache.http.client.utils URIBuilder)
-           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate SslUtils))
+           (org.apache.http.nio.client HttpAsyncClient))
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
@@ -20,7 +21,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
 
-(schema/defn ^:always-validate create-default-client :- common/Client
+(schema/defn ^:always-validate create-default-client :- HttpAsyncClient
   [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
            follow-redirects force-redirects connect-timeout-milliseconds
            socket-timeout-milliseconds]}:- common/ClientOptions]
@@ -38,12 +39,7 @@
             (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
             (some? socket-timeout-milliseconds)
             (.setSocketTimeoutMilliseconds socket-timeout-milliseconds))
-    (let [client (-> client-options
-                     SslUtils/configureSsl
-                     JavaClient/coerceClientOptions
-                     JavaClient/createClient)]
-      (.start client)
-      client)))
+    (JavaClient/createClient client-options)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Map the Ring request onto the Java API
@@ -151,7 +147,7 @@
    * :query-params - used to set the query parameters of an http request"
   [opts :- common/RawUserRequestOptions
    callback :- common/ResponseCallbackFn
-   client :- common/Client]
+   client :- HttpAsyncClient]
   (let [result (promise)
         defaults {:headers         {}
                   :body            nil

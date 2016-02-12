@@ -20,8 +20,6 @@ public class Async {
      * @return an AsyncHttpClient that can be used to make requests
      */
     public static AsyncHttpClient createClient(ClientOptions clientOptions) {
-        clientOptions = SslUtils.configureSsl(clientOptions);
-        CoercedClientOptions coercedClientOptions = JavaClient.coerceClientOptions(clientOptions);
-        return new PersistentAsyncHttpClient(JavaClient.createClient(coercedClientOptions));
+        return new PersistentAsyncHttpClient(JavaClient.createClient(clientOptions));
     }
 }

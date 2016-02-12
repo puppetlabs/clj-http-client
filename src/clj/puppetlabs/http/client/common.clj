@@ -1,7 +1,6 @@
 (ns puppetlabs.http.client.common
   (:import (java.net URL)
            (javax.net.ssl SSLContext)
-           (org.apache.http.impl.nio.client CloseableHttpAsyncClient)
            (clojure.lang IBlockingDeref)
            (java.io InputStream)
            (java.nio.charset Charset))
@@ -29,8 +28,6 @@
 (def ok schema/optional-key)
 
 (def UrlOrString (schema/either schema/Str URL))
-
-(def Client CloseableHttpAsyncClient)
 
 (def Headers
   {schema/Str schema/Str})
