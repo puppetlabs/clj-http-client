@@ -86,11 +86,8 @@ public class Sync {
      * @return A persistent synchronous HTTP client
      */
     public static SyncHttpClient createClient(ClientOptions clientOptions) {
-        CoercedClientOptions coercedClientOptions =
-                JavaClient.coerceClientOptions(
-                        SslUtils.configureSsl(clientOptions));
         return new PersistentSyncHttpClient(
-                JavaClient.createClient(coercedClientOptions));
+                JavaClient.createClient(clientOptions));
     }
 
     /**

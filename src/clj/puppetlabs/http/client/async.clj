@@ -4,137 +4,42 @@
 ;; In the options to any request method, an existing SSLContext object can be
 ;; supplied under :ssl-context. If this is present it will be used. If it's
 ;; not, the wrapper will attempt to use a set of PEM files stored in
-;; (:ssl-cert :ssl-key :ssl-ca-cert) to create the SSLContext. It is also
-;; still possible to use an SSLEngine directly, and if this is present under
-;; the key :sslengine it will be used before any other options are tried.
+;; (:ssl-cert :ssl-key :ssl-ca-cert) to create the SSLContext.
 ;;
 ;; See the puppetlabs.http.sync namespace for synchronous versions of all
 ;; these methods.
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
-           (org.apache.http.impl.nio.client HttpAsyncClients)
-           (org.apache.http.client.utils URIBuilder)
            (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
-           (org.apache.http.client RedirectStrategy)
-           (org.apache.http.impl.client LaxRedirectStrategy DefaultRedirectStrategy)
-           (org.apache.http.nio.conn.ssl SSLIOSessionStrategy)
-           (org.apache.http.client.config RequestConfig)
+           (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient))
-  (:require [puppetlabs.ssl-utils.core :as ssl]
-            [puppetlabs.http.client.common :as common]
+  (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Private SSL configuration functions
-
-(defn- initialize-ssl-context-from-pems
-  [req]
-  (-> req
-      (assoc :ssl-context (ssl/pems->ssl-context
-                            (:ssl-cert req)
-                            (:ssl-key req)
-                            (:ssl-ca-cert req)))
-      (dissoc :ssl-cert :ssl-key :ssl-ca-cert)))
-
-(defn- initialize-ssl-context-from-ca-pem
-  [req]
-  (-> req
-      (assoc :ssl-context (ssl/ca-cert-pem->ssl-context
-                            (:ssl-ca-cert req)))
-      (dissoc :ssl-ca-cert)))
-
-(defn- configure-ssl-from-pems
-  "Configures an SSLEngine in the request starting from a set of PEM files"
-  [req]
-  (initialize-ssl-context-from-pems req))
-
-(defn- configure-ssl-from-ca-pem
-  "Configures an SSLEngine in the request starting from a CA PEM file"
-  [req]
-  (initialize-ssl-context-from-ca-pem req))
-
-(schema/defn configure-ssl-ctxt :- (schema/either {} common/SslContextOptions)
-  "Configures a request map to have an SSLContext. It will use an existing one
-  (stored in :ssl-context) if already present, and will fall back to a set of
-  PEM files (stored in :ssl-cert, :ssl-key, and :ssl-ca-cert) if those are present.
-  If none of these are present this does not modify the request map."
-  [opts :- common/SslOptions]
-  (cond
-    (:ssl-context opts) opts
-    (every? opts [:ssl-cert :ssl-key :ssl-ca-cert]) (configure-ssl-from-pems opts)
-    (:ssl-ca-cert opts) (configure-ssl-from-ca-pem opts)
-    :else opts))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
 
-(schema/defn extract-ssl-opts :- common/SslOptions
-  [opts :- common/ClientOptions]
-  (select-keys opts [:ssl-context :ssl-ca-cert :ssl-cert :ssl-key]))
-
-(schema/defn ^:always-validate ssl-strategy :- SSLIOSessionStrategy
-  [ssl-ctxt-opts :- common/SslContextOptions
-   ssl-prot-opts :- common/SslProtocolOptions]
-  (SSLIOSessionStrategy.
-    (:ssl-context ssl-ctxt-opts)
-    (if (contains? ssl-prot-opts :ssl-protocols)
-      (into-array String (:ssl-protocols ssl-prot-opts))
-      ClientOptions/DEFAULT_SSL_PROTOCOLS)
-    (if (contains? ssl-prot-opts :cipher-suites)
-      (into-array String (:cipher-suites ssl-prot-opts)))
-    SSLIOSessionStrategy/BROWSER_COMPATIBLE_HOSTNAME_VERIFIER))
-
-(schema/defn ^:always-validate redirect-strategy :- RedirectStrategy
-  [opts :- common/ClientOptions]
-  (let [follow-redirects (:follow-redirects opts)
-        force-redirects (:force-redirects opts)]
-    (cond
-      (and (not (nil? follow-redirects)) (not follow-redirects))
-        (proxy [RedirectStrategy] []
-          (isRedirected [req resp context]
-            false)
-          (getRedirect [req resp context]
-            nil))
-        force-redirects
-          (LaxRedirectStrategy.)
-        :else
-          (DefaultRedirectStrategy.))))
-
-(schema/defn request-config :- RequestConfig
-  [connect-timeout-milliseconds :- (schema/maybe schema/Int)
-   socket-timeout-milliseconds :- (schema/maybe schema/Int)]
-  (let [request-config-builder (RequestConfig/custom)]
-    (if connect-timeout-milliseconds
-      (.setConnectTimeout request-config-builder
-                          connect-timeout-milliseconds))
-    (if socket-timeout-milliseconds
-      (.setSocketTimeout request-config-builder
-                         socket-timeout-milliseconds))
-    (.build request-config-builder)))
-
-(schema/defn ^:always-validate create-default-client :- common/Client
-  [opts :- common/ClientOptions]
-  (let [ssl-ctxt-opts   (configure-ssl-ctxt (extract-ssl-opts opts))
-        ssl-prot-opts   (select-keys opts [:ssl-protocols :cipher-suites])
-        client-builder  (HttpAsyncClients/custom)
-        connect-timeout (:connect-timeout-milliseconds opts)
-        socket-timeout  (:socket-timeout-milliseconds opts)
-        client          (do (when (:ssl-context ssl-ctxt-opts)
-                              (.setSSLStrategy client-builder
-                                               (ssl-strategy
-                                                 ssl-ctxt-opts ssl-prot-opts)))
-                            (.setRedirectStrategy client-builder
-                                                  (redirect-strategy opts))
-                            (if (or connect-timeout socket-timeout)
-                              (.setDefaultRequestConfig client-builder
-                                                        (request-config
-                                                          connect-timeout
-                                                          socket-timeout)))
-                            (.build client-builder))]
-    (.start client)
-    client))
+(schema/defn ^:always-validate create-default-client :- HttpAsyncClient
+  [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
+           follow-redirects force-redirects connect-timeout-milliseconds
+           socket-timeout-milliseconds]}:- common/ClientOptions]
+  (let [client-options (ClientOptions.)]
+    (cond-> client-options
+            (some? ssl-context) (.setSslContext ssl-context)
+            (some? ssl-cert) (.setSslCert ssl-cert)
+            (some? ssl-ca-cert) (.setSslCaCert ssl-ca-cert)
+            (some? ssl-key) (.setSslKey ssl-key)
+            (some? ssl-protocols) (.setSslProtocols (into-array String ssl-protocols))
+            (some? cipher-suites) (.setSslCipherSuites (into-array String cipher-suites))
+            (some? force-redirects) (.setForceRedirects force-redirects)
+            (some? follow-redirects) (.setFollowRedirects follow-redirects)
+            (some? connect-timeout-milliseconds)
+            (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
+            (some? socket-timeout-milliseconds)
+            (.setSocketTimeoutMilliseconds socket-timeout-milliseconds))
+    (JavaClient/createClient client-options)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Map the Ring request onto the Java API

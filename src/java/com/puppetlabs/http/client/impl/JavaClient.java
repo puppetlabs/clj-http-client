@@ -350,7 +350,8 @@ public class JavaClient {
         }
     }
 
-    public static CloseableHttpAsyncClient createClient(CoercedClientOptions coercedOptions) {
+    public static CloseableHttpAsyncClient createClient(ClientOptions clientOptions) {
+        CoercedClientOptions coercedOptions = coerceClientOptions(SslUtils.configureSsl(clientOptions));
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         if (coercedOptions.getSslContext() != null) {
             clientBuilder.setSSLStrategy(
