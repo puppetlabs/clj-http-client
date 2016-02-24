@@ -63,6 +63,7 @@ import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 
 public class JavaClient {
 
@@ -520,5 +521,27 @@ public class JavaClient {
         } else {
             return null;
         }
+    }
+
+    public static Map<String, Map<String, Object>> getClientMetricsData(MetricRegistry metricRegistry){
+        Map<String, Map<String, Object>> metricsData = new HashMap<>();
+        SortedMap<String, Timer> timers = getClientMetrics(metricRegistry);
+        if (timers != null) {
+            for (SortedMap.Entry<String, Timer> entry : timers.entrySet()) {
+                Timer timer = entry.getValue();
+                String metricId = entry.getKey();
+                Double mean = timer.getSnapshot().getMean();
+                Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
+                Long count = timer.getCount();
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("metric-id", metricId);
+                data.put("count", count);
+                data.put("mean", meanMillis);
+                data.put("aggregate", count * meanMillis);
+                metricsData.put(metricId, data);
+            }
+        }
+        return metricsData;
     }
 }

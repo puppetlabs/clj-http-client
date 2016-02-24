@@ -14,6 +14,7 @@ import com.codahale.metrics.Timer;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.SortedMap;
 
 public class PersistentSyncHttpClient implements SyncHttpClient {
@@ -33,6 +34,10 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
 
     public SortedMap<String, Timer> getClientMetrics(){
         return JavaClient.getClientMetrics(metricRegistry);
+    }
+
+    public Map<String, Map<String, Object>> getClientMetricsData(){
+        return JavaClient.getClientMetricsData(metricRegistry);
     }
 
     public Response request(RequestOptions requestOptions, HttpMethod method) {

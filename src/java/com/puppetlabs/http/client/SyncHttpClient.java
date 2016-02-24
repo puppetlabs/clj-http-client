@@ -5,6 +5,7 @@ import com.codahale.metrics.Timer;
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.SortedMap;
 /**
  * This interface represents a synchronous HTTP client with which
@@ -17,6 +18,11 @@ public interface SyncHttpClient extends Closeable {
      * @return a SortedMap of metric name to Timer instance
      */
     public SortedMap<String, Timer> getClientMetrics();
+
+    /**
+     * @return a Map of metric name to metric data
+     */
+    public Map<String, Map<String, Object>> getClientMetricsData();
 
     /**
      * Makes a configurable HTTP request

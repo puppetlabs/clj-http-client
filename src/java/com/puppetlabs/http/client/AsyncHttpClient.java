@@ -6,6 +6,7 @@ import com.puppetlabs.http.client.impl.Promise;
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.SortedMap;
 
 /**
@@ -19,6 +20,11 @@ public interface AsyncHttpClient extends Closeable{
      * @return a SortedMap of metric name to Timer instance
      */
     public SortedMap<String, Timer> getClientMetrics();
+
+    /**
+     * @return a Map of metric name to metric data
+     */
+    public Map<String, Map<String, Object>> getClientMetricsData();
 
     /**
      * Performs a GET request

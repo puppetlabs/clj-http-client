@@ -22,7 +22,8 @@
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
   (close [this])
-  (get-client-metrics [this]))
+  (get-client-metrics [this])
+  (get-client-metrics-data [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -157,3 +158,12 @@
 
 (def Metrics
   {schema/Str Timer})
+
+(def MetricData
+  {:metric-id schema/Str
+   :count schema/Int
+   :mean schema/Num
+   :aggregate schema/Num})
+
+(def MetricsData
+  {schema/Str MetricData})

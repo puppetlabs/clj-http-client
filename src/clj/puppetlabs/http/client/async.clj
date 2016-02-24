@@ -14,7 +14,8 @@
            (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate ClientMetricFilter)
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient)
-           (com.codahale.metrics Timer))
+           (com.codahale.metrics Timer)
+           (java.util.concurrent TimeUnit))
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
@@ -120,6 +121,21 @@
       (.setDecompressBody (clojure.core/get opts :decompress-body true))
       (.setHeaders (:headers opts))))
 
+(schema/defn get-mean :- schema/Num
+  [timer :- Timer]
+  (->> timer
+       .getSnapshot
+       .getMean
+       (.toMillis TimeUnit/NANOSECONDS)))
+
+(defn get-metric-data
+  [timer]
+  (let [count (.getCount timer)
+        mean (get-mean timer)
+        aggregate (* count mean)]
+    {:count count
+     :mean mean
+     :aggregate aggregate}))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -128,6 +144,14 @@
   [metric-registry :- common/OptionalMetricRegistry]
   (when metric-registry
     (into {} (.getTimers metric-registry (ClientMetricFilter.)))))
+
+(schema/defn get-client-metrics-data :- (schema/maybe common/MetricsData)
+  "Returns a map of metric-id to metric data summary."
+  [metric-registry :- common/OptionalMetricRegistry]
+  (let [timers (get-client-metrics metric-registry)]
+    (into {} (map (fn [[metric-id timer]]
+                    {metric-id (assoc (get-metric-data timer) :metric-id metric-id)})
+                  timers))))
 
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
   "Issues an async HTTP request with the specified client and returns a promise
@@ -236,4 +260,5 @@
                                           (assoc opts :method method :url url)
                                           nil client metric-registry))
        (close [_] (.close client))
-       (get-client-metrics [_] (get-client-metrics metric-registry))))))
+       (get-client-metrics [_] (get-client-metrics metric-registry))
+       (get-client-metrics-data [_] (get-client-metrics-data metric-registry))))))

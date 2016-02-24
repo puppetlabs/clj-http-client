@@ -390,59 +390,108 @@
 (deftest metrics-test-java-async
   (testing "metrics work with java async client"
      (testlogging/with-test-logging
-       (testwebserver/with-test-webserver app port
-         (let [metric-registry (MetricRegistry.)]
+       (testutils/with-app-with-config
+        app
+        [jetty9/jetty9-service test-metric-web-service]
+        {:webserver {:port 10000}}
+         (let [metric-registry (MetricRegistry.)
+               hello-request-opts (RequestOptions. "http://localhost:10000/hello")
+               short-request-opts (RequestOptions. "http://localhost:10000/short")
+               long-request-opts (RequestOptions. "http://localhost:10000/long")]
            (with-open [client (Async/createClient (ClientOptions.) metric-registry)]
-             (let [response (-> client
-                                (.get (RequestOptions.
-                                       (str "http://localhost:" port "/hello")))
-                                (.deref))]
-               (is (= 200 (.getStatus response)))
-               (is (= "Hello, World!" (slurp (.getBody response))))
+             (-> client (.get hello-request-opts) (.deref)) ; warm it up
+             (let [short-response (-> client (.get short-request-opts) (.deref))
+                   long-response (-> client (.get long-request-opts) (.deref))]
+               (-> client (.get short-request-opts) (.deref))
+               (is (= 200 (.getStatus short-response)))
+               (is (= "short" (slurp (.getBody short-response))))
+               (is (= 200 (.getStatus long-response)))
+               (is (= "long" (slurp (.getBody long-response))))
                (.timer metric-registry "fake")
                (let [client-metrics (.getClientMetrics client)
-                     all-metrics (.getMetrics metric-registry)]
+                     client-metrics-data (.getClientMetricsData client)
+                     all-metrics (.getMetrics metric-registry)
+                     short-id "puppetlabs.http-client.http://localhost:10000/short.GET"
+                     long-id "puppetlabs.http-client.http://localhost:10000/long.GET"]
                  (testing ".getClientMetrics returns only http client metrics"
-                   (is (= 2 (count all-metrics)))
-                   (is (= 1 (count client-metrics))))
-                 (testing ".getClientMetrics returns a map of metric name to timer instance"
-                   (is (= (list (str "puppetlabs.http-client.http://localhost:"
-                                     port "/hello.GET"))
-                          (keys client-metrics)))
-                   (is (instance? Timer (first (vals client-metrics))))))))
+                   (is (= 4 (count all-metrics)))
+                   (is (= 3 (count client-metrics)))
+                   (is (= 3 (count client-metrics-data))))
+                 (testing "get-client-metrics returns a map of metric name to timer instance"
+                   (is (= (set (list "puppetlabs.http-client.http://localhost:10000/hello.GET"
+                                     short-id long-id))
+                          (set (keys client-metrics))))
+                   (is (every? #(instance? Timer %) (vals client-metrics))))
+                 (testing "get-client-metrics-data returns a list of metrics data"
+                   (let [short-data (get client-metrics-data short-id)
+                         long-data (get client-metrics-data long-id)]
+                     (is (= short-id (get short-data "metric-id")))
+                     (is (= 2 (get short-data "count")))
+                     (is (<= 5 (get short-data "mean")))
+                     (is (<= 10 (get short-data "aggregate")))
+
+                     (is (= long-id (get long-data "metric-id")))
+                     (is (= 1 (get long-data "count")))
+                     (is (<= 100 (get long-data "mean")))
+                     (is (<= 100 (get long-data "aggregate")))
+
+                     (is (> (get long-data "mean") (get short-data "mean"))))))))
            (with-open [client (Async/createClient (ClientOptions.))]
              (testing ".getClientMetrics returns nil if no metrics registry passed in"
-               (let [response (-> client
-                                  (.get (RequestOptions.
-                                         (str "http://localhost:" port "/hello")))
-                                  (.deref))]
+               (let [response (-> client (.get hello-request-opts) (.deref))]
                  (is (= 200 (.getStatus response)))
                  (is (= "Hello, World!" (slurp (.getBody response))))
-                 (is (= nil (.getClientMetrics client)))))))))))
+                 (is (= nil (.getClientMetrics client)))
+                 (is (= {} (.getClientMetricsData client)))))))))))
 
 (deftest metrics-test-clojure-async
   (testing "metrics work with clojure async client"
-     (testlogging/with-test-logging
-       (testwebserver/with-test-webserver app port
-         (let [metric-registry (MetricRegistry.)]
-           (with-open [client (async/create-client {} metric-registry)]
-             (let [response (common/get client (str "http://localhost:" port "/hello"))]
-               (is (= 200 (:status @response)))
-               (is (= "Hello, World!" (slurp (:body @response))))
-               (.timer metric-registry "fake")
-               (let [client-metrics (common/get-client-metrics client)
-                     all-metrics (.getMetrics metric-registry)]
-                 (testing "get-client-metrics returns only http client metrics"
-                   (is (= 2 (count all-metrics)))
-                   (is (= 1 (count client-metrics))))
-                 (testing "get-client-metrics returns a map of metric name to timer instance"
-                   (is (= (list (str "puppetlabs.http-client.http://localhost:"
-                                     port "/hello.GET"))
-                          (keys client-metrics)))
-                   (is (instance? Timer (first (vals client-metrics))))))))
-           (with-open [client (async/create-client {})]
-             (testing "get-client-metrics returns nil if no metrics registry passed in"
-               (let [response (common/get client (str "http://localhost:" port "/hello"))]
-                 (is (= 200 (:status @response)))
-                 (is (= "Hello, World!" (slurp (:body @response))))
-                 (is (= nil (common/get-client-metrics client)))))))))))
+    (testlogging/with-test-logging
+      (testutils/with-app-with-config
+        app
+        [jetty9/jetty9-service test-metric-web-service]
+        {:webserver {:port 10000}}
+        (let [metric-registry (MetricRegistry.)]
+          (with-open [client (async/create-client {} metric-registry)]
+            @(common/get client "http://localhost:10000/hello") ; warm it up
+            (let [short-response @(common/get client "http://localhost:10000/short" {:as :text})
+                  long-response @(common/get client "http://localhost:10000/long" {:as :text})]
+              @(common/get client "http://localhost:10000/short")
+              (is (= {:status 200 :body "short"} (select-keys short-response [:status :body])))
+              (is (= {:status 200 :body "long"} (select-keys long-response [:status :body])))
+              (.timer metric-registry "fake")
+              (let [client-metrics (common/get-client-metrics client)
+                    client-metrics-data (common/get-client-metrics-data client)
+                    all-metrics (.getMetrics metric-registry)
+                    short-id "puppetlabs.http-client.http://localhost:10000/short.GET"
+                    long-id "puppetlabs.http-client.http://localhost:10000/long.GET"]
+                (testing "get-client-metrics and get-client-metrics data return only http client metrics"
+                  (is (= 4 (count all-metrics)))
+                  (is (= 3 (count client-metrics)))
+                  (is (= 3 (count client-metrics-data))))
+                (testing "get-client-metrics returns a map of metric id to timer instance"
+                  (is (= (set (list "puppetlabs.http-client.http://localhost:10000/hello.GET"
+                                    short-id long-id))
+                         (set (keys client-metrics))))
+                  (is (every? #(instance? Timer %) (vals client-metrics))))
+                (testing "get-client-metrics-data returns a map of metric id to metrics data"
+                  (let [short-data (get client-metrics-data short-id)
+                        long-data (get client-metrics-data long-id)]
+                    (is (= short-id (:metric-id short-data)))
+                    (is (= 2 (:count short-data)))
+                    (is (<= 5 (:mean short-data)))
+                    (is (<= 10 (:aggregate short-data)))
+
+                    (is (= long-id (:metric-id long-data)))
+                    (is (= 1 (:count long-data)))
+                    (is (<= 100 (:mean long-data)))
+                    (is (<= 100 (:aggregate long-data)))
+
+                    (is (> (:mean long-data) (:mean short-data))))))))
+          (with-open [client (async/create-client {})]
+            (testing "get-client-metrics returns nil if no metrics registry passed in"
+              (let [response (common/get client "http://localhost:10000/hello")]
+                (is (= 200 (:status @response)))
+                (is (= "Hello, World!" (slurp (:body @response))))
+                (is (= nil (common/get-client-metrics client)))
+                (is (= {} (common/get-client-metrics-data client)))))))))))
