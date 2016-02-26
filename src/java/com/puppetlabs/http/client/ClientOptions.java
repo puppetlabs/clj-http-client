@@ -1,5 +1,7 @@
 package com.puppetlabs.http.client;
 
+import com.codahale.metrics.MetricRegistry;
+
 import javax.net.ssl.SSLContext;
 
 /**
@@ -24,6 +26,7 @@ public class ClientOptions {
     private boolean followRedirects = true;
     private int connectTimeoutMilliseconds = -1;
     private int socketTimeoutMilliseconds = -1;
+    private MetricRegistry metricRegistry;
 
     /**
      * Constructor for the ClientOptions class. When this constructor is called,
@@ -169,6 +172,15 @@ public class ClientOptions {
     public ClientOptions setSocketTimeoutMilliseconds(
             int socketTimeoutMilliseconds) {
         this.socketTimeoutMilliseconds = socketTimeoutMilliseconds;
+        return this;
+    }
+
+    public MetricRegistry getMetricRegistry() {
+        return metricRegistry;
+    }
+
+    public ClientOptions setMetricRegistry(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
         return this;
     }
 }

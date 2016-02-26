@@ -4,7 +4,8 @@
 (ns puppetlabs.http.client.sync
   (:require [puppetlabs.http.client.async :as async]
             [schema.core :as schema]
-            [puppetlabs.http.client.common :as common])
+            [puppetlabs.http.client.common :as common]
+            [puppetlabs.http.client.metrics :as metrics])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -23,23 +24,26 @@
   (select-keys opts [:url :method :headers :body :decompress-body :as :query-params]))
 
 (defn request-with-client
-  [req client]
-  (let [{:keys [error] :as resp} @(async/request-with-client req nil client)]
-    (if error
-      (throw error)
-      resp)))
-
+  ([req client]
+   (request-with-client req client nil))
+  ([req client metric-registry]
+   (let [{:keys [error] :as resp} @(async/request-with-client
+                                    req nil client metric-registry)]
+     (if error
+       (throw error)
+       resp))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
 (defn request
   [req]
   (with-open [client (async/create-default-client (extract-client-opts req))]
-    (request-with-client (extract-request-opts req) client)))
+    (request-with-client (extract-request-opts req) client nil)))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
   [opts :- common/ClientOptions]
-  (let [client (async/create-default-client opts)]
+  (let [client (async/create-default-client opts)
+        metric-registry (:metric-registry opts)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
       (get [this url opts] (common/make-request this url :get opts))
@@ -58,8 +62,14 @@
       (patch [this url] (common/patch this url {}))
       (patch [this url opts] (common/make-request this url :patch opts))
       (make-request [this url method] (common/make-request this url method {}))
-      (make-request [_ url method opts] (request-with-client (assoc opts :method method :url url) client))
-      (close [_] (.close client)))))
+      (make-request [_ url method opts] (request-with-client
+                                         (assoc opts :method method :url url)
+                                         client metric-registry))
+      (close [_] (.close client))
+      (get-client-metrics [_] (metrics/get-client-metrics metric-registry))
+      (get-client-metrics [_ metric-filter] (metrics/get-client-metrics metric-registry metric-filter))
+      (get-client-metrics-data [_] (metrics/get-client-metrics-data metric-registry))
+      (get-client-metrics-data [_ metric-filter] (metrics/get-client-metrics-data metric-registry metric-filter)))))
 
 (defn get
   "Issue a synchronous HTTP GET request. This will raise an exception if an

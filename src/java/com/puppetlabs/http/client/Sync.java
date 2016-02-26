@@ -6,6 +6,7 @@ import com.puppetlabs.http.client.impl.PersistentSyncHttpClient;
 import com.puppetlabs.http.client.impl.CoercedClientOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.codahale.metrics.MetricRegistry;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -86,8 +87,7 @@ public class Sync {
      * @return A persistent synchronous HTTP client
      */
     public static SyncHttpClient createClient(ClientOptions clientOptions) {
-        return new PersistentSyncHttpClient(
-                JavaClient.createClient(clientOptions));
+        return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions), clientOptions.getMetricRegistry());
     }
 
     /**

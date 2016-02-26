@@ -5,6 +5,7 @@ import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.ResponseBodyType;
+import com.codahale.metrics.MetricRegistry;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Consts;
@@ -259,7 +260,10 @@ public class JavaClient {
 
     private static void executeWithConsumer(final CloseableHttpAsyncClient client,
                                             final FutureCallback<HttpResponse> futureCallback,
-                                            final HttpRequestBase request) {
+                                            final HttpRequestBase request,
+                                            final MetricRegistry metricRegistry,
+                                            final String[] metricId) {
+
         /*
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
          * then send the response body asynchronously
@@ -287,6 +291,7 @@ public class JavaClient {
                     @Override
                     public void completed(HttpResponse httpResponse) {
                         consumer.setFinalResult(null);
+
                         futureCallback.completed(httpResponse);
                     }
 
@@ -307,14 +312,18 @@ public class JavaClient {
                     }
                 };
 
-        client.execute(HttpAsyncMethods.create(request), consumer, streamingCompleteCallback);
+        TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
+                new TimedFutureCallback<>(streamingCompleteCallback,
+                        Metrics.startBytesReadTimers(metricRegistry, request, metricId));
+        client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
     public static void requestWithClient(final RequestOptions requestOptions,
                                          final HttpMethod method,
                                          final IResponseCallback callback,
                                          final CloseableHttpAsyncClient client,
-                                         final ResponseDeliveryDelegate responseDeliveryDelegate) {
+                                         final ResponseDeliveryDelegate responseDeliveryDelegate,
+                                         final MetricRegistry registry) {
 
         final CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
@@ -343,10 +352,13 @@ public class JavaClient {
             }
         };
 
+        final String[] metricId = requestOptions.getMetricId();
         if (requestOptions.getAs() == ResponseBodyType.UNBUFFERED_STREAM) {
-            executeWithConsumer(client, futureCallback, request);
+            executeWithConsumer(client, futureCallback, request, registry, metricId);
         } else {
-            client.execute(request, futureCallback);
+            TimedFutureCallback<HttpResponse> timedFutureCallback =
+                    new TimedFutureCallback<>(futureCallback, Metrics.startBytesReadTimers(registry, request, metricId));
+            client.execute(request, timedFutureCallback);
         }
     }
 

@@ -1,6 +1,7 @@
 (ns puppetlabs.http.client.common
   (:import (java.net URL)
            (javax.net.ssl SSLContext)
+           (com.codahale.metrics MetricRegistry Timer)
            (clojure.lang IBlockingDeref)
            (java.io InputStream)
            (java.nio.charset Charset))
@@ -20,7 +21,9 @@
   (options [this url] [this url opts])
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
-  (close [this]))
+  (close [this])
+  (get-client-metrics [this] [this metric-filter])
+  (get-client-metrics-data [this] [this metric-filter]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -38,8 +41,10 @@
 (def BodyType
   (schema/enum :text :stream :unbuffered-stream))
 
+(def MetricId [(schema/either schema/Str schema/Keyword)])
+
 (def RawUserRequestClientOptions
-  "The list of Request and client options passed by a user into
+  "The list of request and client options passed by a user into
   the request function. Allows the user to configure
   both a client and a request."
   {:url                   UrlOrString
@@ -49,6 +54,7 @@
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
    (ok :query-params)     {schema/Str schema/Str}
+   (ok :metric-id)        [schema/Str]
 
    (ok :ssl-context)      SSLContext
    (ok :ssl-cert)         UrlOrString
@@ -70,7 +76,8 @@
    (ok :body)             Body
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
-   (ok :query-params)     {schema/Str schema/Str}})
+   (ok :query-params)     {schema/Str schema/Str}
+   (ok :metric-id)        MetricId})
 
 (def RequestOptions
   "The options from UserRequestOptions that have to do with the
@@ -83,7 +90,8 @@
    :body                  Body
    :decompress-body       schema/Bool
    :as                    BodyType
-   (ok :query-params)     {schema/Str schema/Str}})
+   (ok :query-params)     {schema/Str schema/Str}
+   (ok :metric-id)        MetricId})
 
 (def SslContextOptions
   {:ssl-context SSLContext})
@@ -104,7 +112,8 @@
   {(ok :force-redirects)  schema/Bool
    (ok :follow-redirects) schema/Bool
    (ok :connect-timeout-milliseconds) schema/Int
-   (ok :socket-timeout-milliseconds) schema/Int})
+   (ok :socket-timeout-milliseconds) schema/Int
+   (ok :metric-registry) MetricRegistry})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after
@@ -149,3 +158,34 @@
 
 (def Response
   (schema/either NormalResponse ErrorResponse))
+
+(def HTTPMethod
+  (schema/enum :delete :get :head :option :patch :post :put :trace))
+
+(def OptionalMetricRegistry
+  (schema/maybe MetricRegistry))
+
+(def Metrics
+  {schema/Str Timer})
+
+(def MetricData
+  {:metric-name schema/Str
+   :count schema/Int
+   :mean schema/Num
+   :aggregate schema/Num})
+
+(def MetricsData
+  {schema/Str MetricData})
+
+(def MetricTypes
+  (schema/enum :bytes-read))
+
+(def MetricFilter
+  (schema/conditional
+   #(contains? % :url)
+   {:metric-type MetricTypes
+    :url schema/Str
+    (ok :method) HTTPMethod}
+   #(contains? % :metric-id)
+   {:metric-type MetricTypes
+    :metric-id MetricId}))
