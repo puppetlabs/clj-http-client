@@ -3,7 +3,8 @@
            (java.net SocketTimeoutException ConnectException)
            (java.io PipedInputStream PipedOutputStream)
            (java.util.concurrent TimeoutException)
-           (java.util UUID))
+           (java.util UUID)
+           (com.codahale.metrics MetricRegistry Timer))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -61,7 +62,7 @@
    (let [data (generate-data (* 32 1024 1024))
          opts {:as :unbuffered-stream :decompress-body decompress-body?}]
 
-     (testing " - check data can be streamed successfully success"
+     (testing " - check data can be streamed successfully"
        (let [send-more-data (promise)]
          (testwebserver/with-test-webserver-and-config
           (successful-handler data send-more-data) port {:shutdown-timeout-seconds 1}
@@ -190,9 +191,9 @@
                                    (.setSocketTimeoutMilliseconds 20000)
                                    (.setConnectTimeoutMilliseconds 100)
                                    (Async/createClient))]
-              (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                    _ (.setAs request-options ResponseBodyType/UNBUFFERED_STREAM)
-                    _ (.setDecompressBody request-options decompress-body?)
+              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                      (.setDecompressBody decompress-body?))
                     response (-> client (.get request-options) .deref)
                     status (.getStatus response)
                     body (.getBody response)]
@@ -212,9 +213,9 @@
                                    (.setSocketTimeoutMilliseconds 200)
                                    (.setConnectTimeoutMilliseconds 100)
                                    (Async/createClient))]
-              (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                    _ (.setAs request-options ResponseBodyType/UNBUFFERED_STREAM)
-                    _ (.setDecompressBody request-options decompress-body?)
+              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                      (.setDecompressBody decompress-body?))
                     response (-> client (.get request-options) .deref)
                     body (.getBody response)
                     error (.getError response)]
@@ -229,9 +230,9 @@
         (with-open [client (-> (ClientOptions.)
                                (.setConnectTimeoutMilliseconds 100)
                                (Async/createClient))]
-          (let [request-options (RequestOptions. (str "http://localhost:" 12345 "/bad"))
-                _ (.setAs request-options ResponseBodyType/UNBUFFERED_STREAM)
-                _ (.setDecompressBody request-options decompress-body?)
+          (let [request-options (doto (RequestOptions. (str "http://localhost:" 12345 "/bad"))
+                                  (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                  (.setDecompressBody decompress-body?))
                 response (-> client (.get request-options) .deref)
                 error (.getError response)]
             (is error)
@@ -250,16 +251,16 @@
   [data response-body-type decompress-body?]
   (testlogging/with-test-logging
 
-    (testing " - check data can be streamed successfully success"
+    (testing " - check data can be streamed successfully"
       (testwebserver/with-test-webserver-and-config
         (successful-handler data nil) port {:shutdown-timeout-seconds 1}
         (with-open [client (-> (ClientOptions.)
                                (.setSocketTimeoutMilliseconds 20000)
                                (.setConnectTimeoutMilliseconds 100)
                                (Async/createClient))]
-          (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                _ (.setAs request-options response-body-type)
-                _ (.setDecompressBody request-options decompress-body?)
+          (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                  (.setAs response-body-type)
+                                  (.setDecompressBody decompress-body?))
                 response (-> client (.get request-options) .deref)
                 status (.getStatus response)
                 body (.getBody response)]
@@ -278,9 +279,9 @@
                                  (.setSocketTimeoutMilliseconds 200)
                                  (.setConnectTimeoutMilliseconds 100)
                                  (Async/createClient))]
-            (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                  _ (.setAs request-options response-body-type)
-                  _ (.setDecompressBody request-options decompress-body?)
+            (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                    (.setAs response-body-type)
+                                    (.setDecompressBody decompress-body?))
                   response (-> client (.get request-options) .deref)
                   error (.getError response)]
               (is (instance? SocketTimeoutException error)))))
@@ -292,9 +293,9 @@
       (with-open [client (-> (ClientOptions.)
                              (.setConnectTimeoutMilliseconds 100)
                              (Async/createClient))]
-        (let [request-options (RequestOptions. (str "http://localhost:" 12345 "/bad"))
-              _ (.setAs request-options response-body-type)
-              _ (.setDecompressBody request-options decompress-body?)
+        (let [request-options (doto (RequestOptions. (str "http://localhost:" 12345 "/bad"))
+                                (.setAs response-body-type)
+                                (.setDecompressBody decompress-body?))
               response (-> client (.get request-options) .deref)
               error (.getError response)]
           (is error)
@@ -318,7 +319,7 @@
 
 (deftest java-existing-streaming-with-small-payload-with-decompression
   (testing "java :stream with 1K payload and decompression"
-    (java-blocking-streaming (generate-data 1024) ResponseBodyType/STREAM false)))
+    (java-blocking-streaming (generate-data 1024) ResponseBodyType/STREAM true)))
 
 (deftest java-existing-streaming-with-large-payload-without-decompression
   (testing "java :stream with 32M payload and no decompression"
@@ -327,3 +328,167 @@
 (deftest java-existing-streaming-with-large-payload-with-decompression
   (testing "java :stream with 32M payload and decompression"
     (java-blocking-streaming (generate-data (* 32 1024 1024)) ResponseBodyType/STREAM true)))
+
+(deftest java-metrics-for-unbuffered-streaming-test
+  (testlogging/with-test-logging
+   (let [data (generate-data (* 1024 1024))]
+     (testing "metrics work for a successful request"
+       (let [metric-registry (MetricRegistry.)]
+         (testwebserver/with-test-webserver-and-config
+          (successful-handler data nil) port {:shutdown-timeout-seconds 1}
+          (with-open [client (-> (ClientOptions.)
+                                 (.setSocketTimeoutMilliseconds 20000)
+                                 (.setConnectTimeoutMilliseconds 100)
+                                 (Async/createClient metric-registry))]
+            (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                    (.setAs ResponseBodyType/UNBUFFERED_STREAM))
+                  response (-> client (.get request-options) .deref)
+                  status (.getStatus response)
+                  body (.getBody response)]
+              (is (= 200 status))
+              (let [instream body
+                    buf (make-array Byte/TYPE 4)]
+                (.read instream buf)
+                (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
+                (Thread/sleep 1000) ;; check that the unbuffered_stream metric takes this into account
+                (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
+              (let [client-metrics (.getClientMetrics client)
+                    client-metrics-data (.getClientMetricsData client)
+                    metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
+                    unbuffered-stream-id (str metric-id ".unbuffered_stream")]
+                (is (= (set (list metric-id unbuffered-stream-id))
+                       (set (keys client-metrics))
+                       (set (keys client-metrics-data))))
+                (is (every? #(instance? Timer %) (vals client-metrics)))
+                (let [metric-data (get client-metrics-data metric-id)
+                      unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
+                  (is (= 1 (get metric-data "count")))
+                  (is (= metric-id (get metric-data "metric-id")))
+                  (is (<= 1 (get metric-data "mean")))
+                  (is (<= 1 (get metric-data "aggregate")))
+
+                  (is (= 1 (get unbuffered-stream-data "count")))
+                  (is (= unbuffered-stream-id (get unbuffered-stream-data "metric-id")))
+                  (is (<= 1000 (get unbuffered-stream-data "mean")))
+                  (is (<= 1000 (get unbuffered-stream-data "aggregate")))
+
+                  (is (> (get unbuffered-stream-data "mean") (get metric-data "mean"))))))))))
+     (testing "metrics work for failed request"
+       (try
+         (testwebserver/with-test-webserver-and-config
+          (blocking-handler data) port {:shutdown-timeout-seconds 1}
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client (-> (ClientOptions.)
+                                   (.setSocketTimeoutMilliseconds 200)
+                                   (.setConnectTimeoutMilliseconds 100)
+                                   (Async/createClient metric-registry))]
+              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM))
+                    response (-> client (.get request-options) .deref)
+                    error (.getError response)
+                    body (.getBody response)]
+                (is (nil? error))
+                (is (thrown? SocketTimeoutException (slurp body)))
+                (let [client-metrics (.getClientMetrics client)
+                      client-metrics-data (.getClientMetricsData client)
+                      metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
+                      unbuffered-stream-id (str metric-id ".unbuffered_stream")]
+                  (is (= (set (list metric-id unbuffered-stream-id))
+                         (set (keys client-metrics))
+                         (set (keys client-metrics-data))))
+                  (is (every? #(instance? Timer %) (vals client-metrics)))
+                  (let [metric-data (get client-metrics-data metric-id)
+                        unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
+                    (is (= 1 (get metric-data "count")))
+                    (is (= metric-id (get metric-data "metric-id")))
+                    (is (<= 1 (get metric-data "mean")))
+                    (is (<= 1 (get metric-data "aggregate")))
+
+                    (is (= 1 (get unbuffered-stream-data "count")))
+                    (is (= unbuffered-stream-id (get unbuffered-stream-data "metric-id")))
+                    (is (<= 1 (get unbuffered-stream-data "mean")))
+                    (is (<= 1 (get unbuffered-stream-data "aggregate")))
+
+                    (is (> (get unbuffered-stream-data "mean") (get metric-data "mean")))))))))
+         (catch TimeoutException e
+           ;; Expected whenever a server-side failure is generated
+           ))))))
+
+(deftest clojure-metrics-for-unbuffered-streaming-test
+  (testlogging/with-test-logging
+   (let [data (generate-data (* 1024 1024))
+         opts {:as :unbuffered-stream}]
+     (testing "metrics work for a successful request"
+       (let [metric-registry (MetricRegistry.)]
+         (testwebserver/with-test-webserver-and-config
+          (successful-handler data nil) port {:shutdown-timeout-seconds 1}
+          (with-open [client (async/create-client {:connect-timeout-milliseconds 100
+                                                   :socket-timeout-milliseconds 20000}
+                                                  metric-registry)]
+            (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
+                  {:keys [status body]} response]
+              (is (= 200 status))
+              (let [instream body
+                    buf (make-array Byte/TYPE 4)]
+                (.read instream buf)
+                (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
+                (Thread/sleep 1000) ;; check that the unbuffered_stream metric takes this into account
+                (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
+              (let [client-metrics (common/get-client-metrics client)
+                    client-metrics-data (common/get-client-metrics-data client)
+                    metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
+                    unbuffered-stream-id (str metric-id ".unbuffered_stream")]
+                (is (= (set (list metric-id unbuffered-stream-id))
+                       (set (keys client-metrics))
+                       (set (keys client-metrics-data))))
+                (is (every? #(instance? Timer %) (vals client-metrics)))
+                (let [metric-data (get client-metrics-data metric-id)
+                      unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
+                  (is (= {:count 1 :metric-id metric-id}
+                         (select-keys metric-data [:metric-id :count])))
+                  (is (<= 1 (:mean metric-data)))
+                  (is (<= 1 (:aggregate metric-data)))
+
+                  (is (= {:count 1 :metric-id unbuffered-stream-id}
+                         (select-keys unbuffered-stream-data [:metric-id :count])))
+                  (is (<= 1000 (:mean unbuffered-stream-data)))
+                  (is (<= 1000 (:aggregate unbuffered-stream-data)))
+
+                  (is (> (:mean unbuffered-stream-data) (:mean metric-data))))))))))
+     (testing "metrics work for a failed request"
+       (try
+         (testwebserver/with-test-webserver-and-config
+          (blocking-handler data) port {:shutdown-timeout-seconds 1}
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client (async/create-client {:connect-timeout-milliseconds 100
+                                                     :socket-timeout-milliseconds 200}
+                                                    metric-registry)]
+              (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
+                    {:keys [body error]} response]
+                (is (nil? error))
+                ;; Consume the body to get the exception
+                (is (thrown? SocketTimeoutException (slurp body))))
+              (let [client-metrics (common/get-client-metrics client)
+                    client-metrics-data (common/get-client-metrics-data client)
+                    metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
+                    unbuffered-stream-id (str metric-id ".unbuffered_stream")]
+                (is (= (set (list metric-id unbuffered-stream-id))
+                       (set (keys client-metrics))
+                       (set (keys client-metrics-data))))
+                (is (every? #(instance? Timer %) (vals client-metrics)))
+                (let [metric-data (get client-metrics-data metric-id)
+                      unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
+                  (is (= {:count 1 :metric-id metric-id}
+                         (select-keys metric-data [:metric-id :count])))
+                  (is (<= 1 (:mean metric-data)))
+                  (is (<= 1 (:aggregate metric-data)))
+
+                  (is (= {:count 1 :metric-id unbuffered-stream-id}
+                         (select-keys unbuffered-stream-data [:metric-id :count])))
+                  (is (<= 1 (:mean unbuffered-stream-data)))
+                  (is (<= 1 (:aggregate unbuffered-stream-data)))
+
+                  (is (> (:mean unbuffered-stream-data) (:mean metric-data))))))))
+         (catch TimeoutException e
+           ;; Expected whenever a server-side failure is generated
+           ))))))

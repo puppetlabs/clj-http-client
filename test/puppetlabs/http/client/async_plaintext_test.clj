@@ -420,7 +420,8 @@
                  (testing "get-client-metrics returns a map of metric name to timer instance"
                    (is (= (set (list "puppetlabs.http-client.http://localhost:10000/hello.GET"
                                      short-id long-id))
-                          (set (keys client-metrics))))
+                          (set (keys client-metrics))
+                          (set (keys client-metrics-data))))
                    (is (every? #(instance? Timer %) (vals client-metrics))))
                  (testing "get-client-metrics-data returns a list of metrics data"
                    (let [short-data (get client-metrics-data short-id)
@@ -455,10 +456,11 @@
           (with-open [client (async/create-client {} metric-registry)]
             @(common/get client "http://localhost:10000/hello") ; warm it up
             (let [short-response @(common/get client "http://localhost:10000/short" {:as :text})
-                  long-response @(common/get client "http://localhost:10000/long" {:as :text})]
+                  long-response @(common/get client "http://localhost:10000/long")]
               @(common/get client "http://localhost:10000/short")
               (is (= {:status 200 :body "short"} (select-keys short-response [:status :body])))
-              (is (= {:status 200 :body "long"} (select-keys long-response [:status :body])))
+              (is (= 200 (:status long-response)))
+              (is (= "long" (slurp (:body long-response))))
               (.timer metric-registry "fake")
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
@@ -472,7 +474,8 @@
                 (testing "get-client-metrics returns a map of metric id to timer instance"
                   (is (= (set (list "puppetlabs.http-client.http://localhost:10000/hello.GET"
                                     short-id long-id))
-                         (set (keys client-metrics))))
+                         (set (keys client-metrics))
+                         (set (keys client-metrics-data))))
                   (is (every? #(instance? Timer %) (vals client-metrics))))
                 (testing "get-client-metrics-data returns a map of metric id to metrics data"
                   (let [short-data (get client-metrics-data short-id)
