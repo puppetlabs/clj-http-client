@@ -263,12 +263,12 @@ public class JavaClient {
     }
 
     private static void executeWithConsumer(final CloseableHttpAsyncClient client,
-                                            final TimedFutureCallback<HttpResponse> futureCallback,
+                                            final FutureCallback<HttpResponse> futureCallback,
                                             final HttpRequestBase request,
                                             final MetricRegistry metricRegistry) {
 
-        // Create a timer to time the streaming of the payload.
-        final Timer.Context timerContext = metricRegistry == null ? null : unbufferedStreamTimer(metricRegistry, request).time();
+        final TimedFutureCallback<HttpResponse> timedFutureCallback =
+                new TimedFutureCallback<>(futureCallback, startTimer(metricRegistry, request));
 
         /*
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
@@ -278,7 +278,7 @@ public class JavaClient {
                 new StreamingAsyncResponseConsumer(new Deliverable<HttpResponse>() {
             @Override
             public void deliver(HttpResponse httpResponse) {
-                futureCallback.completed(httpResponse); // this stops the timer for the request metric
+                timedFutureCallback.completed(httpResponse); // this stops the timer for the request metric
             }
         });
 
@@ -299,7 +299,7 @@ public class JavaClient {
                         consumer.setFinalResult(null);
 
                         // this stops the timer on the metric for the streaming of the payload
-                        futureCallback.timedCompleted(httpResponse, timerContext);
+                        futureCallback.completed(httpResponse);
                     }
 
                     @Override
@@ -309,17 +309,20 @@ public class JavaClient {
                         } else {
                             consumer.setFinalResult(new IOException(e));
                         }
-                        futureCallback.timedFailed(e, timerContext);
+                        futureCallback.failed(e);
                     }
 
                     @Override
                     public void cancelled() {
                         consumer.setFinalResult(null);
-                        futureCallback.timedCancelled(timerContext);
+                        futureCallback.cancelled();
                     }
                 };
 
-        client.execute(HttpAsyncMethods.create(request), consumer, streamingCompleteCallback);
+        TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
+                new TimedFutureCallback<>(streamingCompleteCallback,
+                        startUnbufferedStreamTimer(metricRegistry, request));
+        client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
     public static void requestWithClient(final RequestOptions requestOptions,
@@ -337,54 +340,31 @@ public class JavaClient {
 
         final HttpContext httpContext = HttpClientContext.create();
 
-        final Timer.Context timerContext = registry == null ? null : timer(registry, request).time();
-
-        final TimedFutureCallback<HttpResponse> futureCallback = new TimedFutureCallback<HttpResponse>() {
-
+        final FutureCallback<HttpResponse> futureCallback = new FutureCallback<HttpResponse>() {
             @Override
-            public void timedCompleted(HttpResponse httpResponse, Timer.Context context) {
-                if (context != null) {
-                    context.stop();
-                }
+            public void completed(HttpResponse httpResponse) {
                 completeResponse(responseDeliveryDelegate, requestOptions, callback, httpResponse, httpContext);
             }
 
             @Override
-            public void completed(HttpResponse httpResponse) {
-                timedCompleted(httpResponse, timerContext);
-            }
-
-            public void timedFailed(Exception e, Timer.Context context) {
-                if (context != null) {
-                    context.stop();
-                }
+            public void failed(Exception e) {
                 responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
             }
 
             @Override
-            public void failed(Exception e) {
-                timedFailed(e, timerContext);
-            }
-
-            @Override
-            public void timedCancelled(Timer.Context context) {
-                if (context != null) {
-                    context.stop();
-                }
+            public void cancelled() {
                 responseDeliveryDelegate.deliverResponse(requestOptions,
                         new HttpClientException("Request cancelled"),
                         callback);
             }
-
-            @Override
-            public void cancelled() {
-                timedCancelled(timerContext);
-            }
         };
+
         if (requestOptions.getAs() == ResponseBodyType.UNBUFFERED_STREAM) {
             executeWithConsumer(client, futureCallback, request, registry);
         } else {
-            client.execute(request, futureCallback);
+            TimedFutureCallback<HttpResponse> timedFutureCallback =
+                    new TimedFutureCallback<>(futureCallback, startTimer(registry, request));
+            client.execute(request, timedFutureCallback);
         }
     }
 
@@ -532,14 +512,26 @@ public class JavaClient {
         return response;
     }
 
-    private static Timer timer(MetricRegistry registry, HttpRequest request) {
-        final RequestLine requestLine = request.getRequestLine();
-        return registry.timer(MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(), requestLine.getMethod()));
+    private static Timer.Context startTimer(MetricRegistry registry, HttpRequest request) {
+        if (registry != null) {
+            final RequestLine requestLine = request.getRequestLine();
+            final String name = MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(),
+                    requestLine.getMethod());
+            return registry.timer(name).time();
+        } else {
+            return null;
+        }
     }
 
-    private static Timer unbufferedStreamTimer(MetricRegistry registry, HttpRequest request) {
-        final RequestLine requestLine = request.getRequestLine();
-        return registry.timer(MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(), requestLine.getMethod(), "unbuffered_stream"));
+    private static Timer.Context startUnbufferedStreamTimer(MetricRegistry registry, HttpRequest request) {
+        if (registry != null) {
+            final RequestLine requestLine = request.getRequestLine();
+            final String name = MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(),
+                    requestLine.getMethod(), "unbuffered_stream");
+            return registry.timer(name).time();
+        } else {
+            return null;
+        }
     }
 
     public static SortedMap<String, Timer> getClientMetrics(MetricRegistry metricRegistry){
