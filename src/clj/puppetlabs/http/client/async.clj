@@ -176,22 +176,26 @@
        are `:text` and `:stream`, which will return a `String` or an
        `InputStream`, respectively.  Defaults to `:stream`.
    * :query-params - used to set the query parameters of an http request"
-  [opts :- common/RawUserRequestOptions
-   callback :- common/ResponseCallbackFn
-   client :- HttpAsyncClient
-   metric-registry :- common/OptionalMetricRegistry]
-  (let [result (promise)
-        defaults {:headers         {}
-                  :body            nil
-                  :decompress-body true
-                  :as              :stream}
-        opts (merge defaults opts)
-        java-request-options (clojure-options->java opts)
-        java-method (clojure-method->java opts)
-        response-delivery-delegate (get-response-delivery-delegate opts result)]
-    (JavaClient/requestWithClient java-request-options java-method callback
-                                  client response-delivery-delegate metric-registry)
-    result))
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn
+    client :- HttpAsyncClient]
+    (request-with-client opts callback client nil))
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn
+    client :- HttpAsyncClient
+    metric-registry :- common/OptionalMetricRegistry]
+   (let [result (promise)
+         defaults {:headers {}
+                   :body nil
+                   :decompress-body true
+                   :as :stream}
+         opts (merge defaults opts)
+         java-request-options (clojure-options->java opts)
+         java-method (clojure-method->java opts)
+         response-delivery-delegate (get-response-delivery-delegate opts result)]
+     (JavaClient/requestWithClient java-request-options java-method callback
+                                   client response-delivery-delegate metric-registry)
+     result)))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
   "Creates a client to be used for making one or more HTTP requests.

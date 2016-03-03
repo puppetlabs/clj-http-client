@@ -136,11 +136,11 @@
             opts   {:method :get :url "http://localhost:10000/hello/"}]
         (.start client)
         (testing "GET request works with request-with-client"
-          (let [response (async/request-with-client opts nil client nil)]
+          (let [response (async/request-with-client opts nil client)]
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
         (testing "Client persists when passed to request-with-client"
-          (let [response (async/request-with-client opts nil client nil)]
+          (let [response (async/request-with-client opts nil client)]
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))))
         (.close client)))))
