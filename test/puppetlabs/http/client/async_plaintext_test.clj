@@ -2,7 +2,8 @@
   (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (java.net URI SocketTimeoutException ServerSocket)
-           (com.codahale.metrics MetricRegistry Timer))
+           (com.codahale.metrics MetricRegistry Timer)
+           (com.puppetlabs.http.client.impl ClientMetricData))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -423,20 +424,21 @@
                           (set (keys client-metrics))
                           (set (keys client-metrics-data))))
                    (is (every? #(instance? Timer %) (vals client-metrics))))
-                 (testing "get-client-metrics-data returns a list of metrics data"
+                 (testing "get-client-metrics-data returns a map of metric id to metric data"
                    (let [short-data (get client-metrics-data short-id)
                          long-data (get client-metrics-data long-id)]
-                     (is (= short-id (get short-data "metric-id")))
-                     (is (= 2 (get short-data "count")))
-                     (is (<= 5 (get short-data "mean")))
-                     (is (<= 10 (get short-data "aggregate")))
+                     (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
+                     (is (= short-id (.getMetricId short-data)))
+                     (is (= 2 (.getCount short-data)))
+                     (is (<= 5 (.getMean short-data)))
+                     (is (<= 10 (.getAggregate short-data)))
 
-                     (is (= long-id (get long-data "metric-id")))
-                     (is (= 1 (get long-data "count")))
-                     (is (<= 100 (get long-data "mean")))
-                     (is (<= 100 (get long-data "aggregate")))
+                     (is (= long-id (.getMetricId long-data)))
+                     (is (= 1 (.getCount long-data)))
+                     (is (<= 100 (.getMean long-data)))
+                     (is (<= 100 (.getAggregate long-data)))
 
-                     (is (> (get long-data "mean") (get short-data "mean"))))))))
+                     (is (> (.getAggregate long-data) (.getAggregate short-data))))))))
            (with-open [client (Async/createClient (ClientOptions.))]
              (testing ".getClientMetrics returns nil if no metrics registry passed in"
                (let [response (-> client (.get hello-request-opts) (.deref))]

@@ -4,7 +4,8 @@
            (java.io PipedInputStream PipedOutputStream)
            (java.util.concurrent TimeoutException)
            (java.util UUID)
-           (com.codahale.metrics MetricRegistry Timer))
+           (com.codahale.metrics MetricRegistry Timer)
+           (com.puppetlabs.http.client.impl ClientMetricData))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -362,17 +363,18 @@
                 (is (every? #(instance? Timer %) (vals client-metrics)))
                 (let [metric-data (get client-metrics-data metric-id)
                       unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
-                  (is (= 1 (get metric-data "count")))
-                  (is (= metric-id (get metric-data "metric-id")))
-                  (is (<= 1 (get metric-data "mean")))
-                  (is (<= 1 (get metric-data "aggregate")))
+                  (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
+                  (is (= 1 (.getCount metric-data)))
+                  (is (= metric-id (.getMetricId metric-data)))
+                  (is (<= 1 (.getMean metric-data)))
+                  (is (<= 1 (.getAggregate metric-data)))
 
-                  (is (= 1 (get unbuffered-stream-data "count")))
-                  (is (= unbuffered-stream-id (get unbuffered-stream-data "metric-id")))
-                  (is (<= 1000 (get unbuffered-stream-data "mean")))
-                  (is (<= 1000 (get unbuffered-stream-data "aggregate")))
+                  (is (= 1 (.getCount unbuffered-stream-data)))
+                  (is (= unbuffered-stream-id (.getMetricId unbuffered-stream-data)))
+                  (is (<= 1000 (.getMean unbuffered-stream-data)))
+                  (is (<= 1000 (.getAggregate unbuffered-stream-data)))
 
-                  (is (> (get unbuffered-stream-data "mean") (get metric-data "mean"))))))))))
+                  (is (> (.getMean unbuffered-stream-data) (.getMean metric-data))))))))))
      (testing "metrics work for failed request"
        (try
          (testwebserver/with-test-webserver-and-config
@@ -399,17 +401,18 @@
                   (is (every? #(instance? Timer %) (vals client-metrics)))
                   (let [metric-data (get client-metrics-data metric-id)
                         unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
-                    (is (= 1 (get metric-data "count")))
-                    (is (= metric-id (get metric-data "metric-id")))
-                    (is (<= 1 (get metric-data "mean")))
-                    (is (<= 1 (get metric-data "aggregate")))
+                    (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
+                    (is (= 1 (.getCount metric-data)))
+                    (is (= metric-id (.getMetricId metric-data)))
+                    (is (<= 1 (.getMean metric-data)))
+                    (is (<= 1 (.getAggregate metric-data)))
 
-                    (is (= 1 (get unbuffered-stream-data "count")))
-                    (is (= unbuffered-stream-id (get unbuffered-stream-data "metric-id")))
-                    (is (<= 1 (get unbuffered-stream-data "mean")))
-                    (is (<= 1 (get unbuffered-stream-data "aggregate")))
+                    (is (= 1 (.getCount unbuffered-stream-data)))
+                    (is (= unbuffered-stream-id (.getMetricId unbuffered-stream-data)))
+                    (is (<= 1 (.getMean unbuffered-stream-data)))
+                    (is (<= 1 (.getAggregate unbuffered-stream-data)))
 
-                    (is (> (get unbuffered-stream-data "mean") (get metric-data "mean")))))))))
+                    (is (> (.getMean unbuffered-stream-data) (.getMean metric-data)))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))

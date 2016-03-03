@@ -36,7 +36,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return JavaClient.getClientMetrics(metricRegistry);
     }
 
-    public Map<String, Map<String, Object>> getClientMetricsData(){
+    public Map<String, ClientMetricData> getClientMetricsData(){
         return JavaClient.getClientMetricsData(metricRegistry);
     }
 

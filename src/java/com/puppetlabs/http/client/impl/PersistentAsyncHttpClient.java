@@ -31,7 +31,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return JavaClient.getClientMetrics(metricRegistry);
     }
 
-    public Map<String, Map<String, Object>> getClientMetricsData(){
+    public Map<String, ClientMetricData> getClientMetricsData(){
         return JavaClient.getClientMetricsData(metricRegistry);
     }
 

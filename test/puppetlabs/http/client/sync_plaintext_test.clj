@@ -5,7 +5,8 @@
            (com.codahale.metrics MetricRegistry Timer)
            (java.io ByteArrayInputStream InputStream)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net ConnectException ServerSocket SocketTimeoutException URI))
+           (java.net ConnectException ServerSocket SocketTimeoutException URI)
+           (com.puppetlabs.http.client.impl ClientMetricData))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -760,20 +761,22 @@
                                   short-id long-id))
                        (set (keys client-metrics))))
                 (is (every? #(instance? Timer %) (vals client-metrics))))
-              (testing ".getClientMetricsData returns a list of metrics data"
+              (testing ".getClientMetricsData returns a map of metric id to metric data"
                 (let [short-data (get client-metrics-data short-id)
                       long-data (get client-metrics-data long-id)]
-                  (is (= short-id (get short-data "metric-id")))
-                  (is (= 2 (get short-data "count")))
-                  (is (<= 5 (get short-data "mean")))
-                  (is (<= 10 (get short-data "aggregate")))
+                  (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
 
-                  (is (= long-id (get long-data "metric-id")))
-                  (is (= 1 (get long-data "count")))
-                  (is (<= 100 (get long-data "mean")))
-                  (is (<= 100 (get long-data "aggregate")))
+                  (is (= short-id (.getMetricId short-data)))
+                  (is (= 2 (.getCount short-data)))
+                  (is (<= 5 (.getMean short-data)))
+                  (is (<= 10 (.getAggregate short-data)))
 
-                  (is (> (get long-data "mean") (get short-data "mean"))))))))
+                  (is (= long-id (.getMetricId long-data)))
+                  (is (= 1 (.getCount long-data)))
+                  (is (<= 100 (.getMean long-data)))
+                  (is (<= 100 (.getAggregate long-data)))
+
+                  (is (> (.getMean long-data) (.getMean short-data))))))))
         (with-open [client (Sync/createClient (ClientOptions.))]
           (testing ".getClientMetrics returns nil if no metrics registry passed in"
             (let [response (.get client hello-request-opts)]

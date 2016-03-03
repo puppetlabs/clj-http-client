@@ -1,6 +1,7 @@
 package com.puppetlabs.http.client;
 
 import com.codahale.metrics.Timer;
+import com.puppetlabs.http.client.impl.ClientMetricData;
 
 import java.io.Closeable;
 import java.net.URI;
@@ -22,7 +23,7 @@ public interface SyncHttpClient extends Closeable {
     /**
      * @return a Map of metric name to metric data
      */
-    public Map<String, Map<String, Object>> getClientMetricsData();
+    public Map<String, ClientMetricData> getClientMetricsData();
 
     /**
      * Makes a configurable HTTP request

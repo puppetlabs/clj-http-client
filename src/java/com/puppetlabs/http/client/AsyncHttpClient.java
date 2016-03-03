@@ -1,6 +1,7 @@
 package com.puppetlabs.http.client;
 
 import com.codahale.metrics.Timer;
+import com.puppetlabs.http.client.impl.ClientMetricData;
 import com.puppetlabs.http.client.impl.Promise;
 
 import java.io.Closeable;
@@ -24,7 +25,7 @@ public interface AsyncHttpClient extends Closeable{
     /**
      * @return a Map of metric name to metric data
      */
-    public Map<String, Map<String, Object>> getClientMetricsData();
+    public Map<String, ClientMetricData> getClientMetricsData();
 
     /**
      * Performs a GET request

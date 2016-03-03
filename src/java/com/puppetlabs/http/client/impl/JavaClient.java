@@ -542,8 +542,8 @@ public class JavaClient {
         }
     }
 
-    public static Map<String, Map<String, Object>> getClientMetricsData(MetricRegistry metricRegistry){
-        Map<String, Map<String, Object>> metricsData = new HashMap<>();
+    public static Map<String, ClientMetricData> getClientMetricsData(MetricRegistry metricRegistry){
+        Map<String, ClientMetricData> metricsData = new HashMap<>();
         SortedMap<String, Timer> timers = getClientMetrics(metricRegistry);
         if (timers != null) {
             for (SortedMap.Entry<String, Timer> entry : timers.entrySet()) {
@@ -552,12 +552,9 @@ public class JavaClient {
                 Double mean = timer.getSnapshot().getMean();
                 Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
                 Long count = timer.getCount();
+                Long aggregate = count * meanMillis;
 
-                Map<String, Object> data = new HashMap<>();
-                data.put("metric-id", metricId);
-                data.put("count", count);
-                data.put("mean", meanMillis);
-                data.put("aggregate", count * meanMillis);
+                ClientMetricData data = new ClientMetricData(metricId, count, meanMillis, aggregate);
                 metricsData.put(metricId, data);
             }
         }
