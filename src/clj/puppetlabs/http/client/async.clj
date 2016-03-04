@@ -129,13 +129,14 @@
        (.toMillis TimeUnit/NANOSECONDS)))
 
 (defn get-metric-data
-  [timer]
+  [timer metric-id]
   (let [count (.getCount timer)
         mean (get-mean timer)
         aggregate (* count mean)]
     {:count count
      :mean mean
-     :aggregate aggregate}))
+     :aggregate aggregate
+     :metric-id metric-id}))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -149,9 +150,9 @@
   "Returns a map of metric-id to metric data summary."
   [metric-registry :- common/OptionalMetricRegistry]
   (let [timers (get-client-metrics metric-registry)]
-    (into {} (map (fn [[metric-id timer]]
-                    {metric-id (assoc (get-metric-data timer) :metric-id metric-id)})
-                  timers))))
+    (reduce (fn [acc [metric-id timer]]
+              (assoc acc metric-id (get-metric-data timer metric-id)))
+            {} timers)))
 
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
   "Issues an async HTTP request with the specified client and returns a promise

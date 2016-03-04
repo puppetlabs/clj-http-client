@@ -18,7 +18,7 @@ public interface SyncHttpClient extends Closeable {
     /**
      * @return a SortedMap of metric name to Timer instance
      */
-    public SortedMap<String, Timer> getClientMetrics();
+    public Map<String, Timer> getClientMetrics();
 
     /**
      * @return a Map of metric name to metric data

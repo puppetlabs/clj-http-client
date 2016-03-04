@@ -68,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 public class JavaClient {
 
     private static final String PROTOCOL = "TLS";
+    public static final String METRIC_NAMESPACE = "puppetlabs.http-client";
 
     private static Header[] prepareHeaders(RequestOptions options,
                                            ContentType contentType) {
@@ -515,7 +516,7 @@ public class JavaClient {
     private static Timer.Context startTimer(MetricRegistry registry, HttpRequest request) {
         if (registry != null) {
             final RequestLine requestLine = request.getRequestLine();
-            final String name = MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(),
+            final String name = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
                     requestLine.getMethod());
             return registry.timer(name).time();
         } else {
@@ -526,7 +527,7 @@ public class JavaClient {
     private static Timer.Context startUnbufferedStreamTimer(MetricRegistry registry, HttpRequest request) {
         if (registry != null) {
             final RequestLine requestLine = request.getRequestLine();
-            final String name = MetricRegistry.name("puppetlabs.http-client", requestLine.getUri(),
+            final String name = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
                     requestLine.getMethod(), "unbuffered_stream");
             return registry.timer(name).time();
         } else {
@@ -534,7 +535,7 @@ public class JavaClient {
         }
     }
 
-    public static SortedMap<String, Timer> getClientMetrics(MetricRegistry metricRegistry){
+    public static Map<String, Timer> getClientMetrics(MetricRegistry metricRegistry){
         if (metricRegistry != null) {
             return metricRegistry.getTimers(new ClientMetricFilter());
         } else {
@@ -544,7 +545,7 @@ public class JavaClient {
 
     public static Map<String, ClientMetricData> getClientMetricsData(MetricRegistry metricRegistry){
         Map<String, ClientMetricData> metricsData = new HashMap<>();
-        SortedMap<String, Timer> timers = getClientMetrics(metricRegistry);
+        Map<String, Timer> timers = getClientMetrics(metricRegistry);
         if (timers != null) {
             for (SortedMap.Entry<String, Timer> entry : timers.entrySet()) {
                 Timer timer = entry.getValue();

@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.SortedMap;
 
 public class PersistentAsyncHttpClient implements AsyncHttpClient {
     private CloseableHttpAsyncClient client;
@@ -27,7 +26,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         client.close();
     }
 
-    public SortedMap<String, Timer> getClientMetrics(){
+    public Map<String, Timer> getClientMetrics(){
         return JavaClient.getClientMetrics(metricRegistry);
     }
 
