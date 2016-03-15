@@ -68,7 +68,7 @@ import java.util.concurrent.TimeUnit;
 public class JavaClient {
 
     private static final String PROTOCOL = "TLS";
-    public static final String METRIC_NAMESPACE = "puppetlabs.http-client";
+    public static final String METRIC_NAMESPACE = "puppetlabs.http-client.experimental";
 
     private static Header[] prepareHeaders(RequestOptions options,
                                            ContentType contentType) {
@@ -268,9 +268,6 @@ public class JavaClient {
                                             final HttpRequestBase request,
                                             final MetricRegistry metricRegistry) {
 
-        final TimedFutureCallback<HttpResponse> timedFutureCallback =
-                new TimedFutureCallback<>(futureCallback, startTimer(metricRegistry, request));
-
         /*
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
          * then send the response body asynchronously
@@ -279,7 +276,7 @@ public class JavaClient {
                 new StreamingAsyncResponseConsumer(new Deliverable<HttpResponse>() {
             @Override
             public void deliver(HttpResponse httpResponse) {
-                timedFutureCallback.completed(httpResponse); // this stops the timer for the request metric
+                futureCallback.completed(httpResponse);
             }
         });
 
@@ -299,7 +296,6 @@ public class JavaClient {
                     public void completed(HttpResponse httpResponse) {
                         consumer.setFinalResult(null);
 
-                        // this stops the timer on the metric for the streaming of the payload
                         futureCallback.completed(httpResponse);
                     }
 
@@ -322,7 +318,7 @@ public class JavaClient {
 
         TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
                 new TimedFutureCallback<>(streamingCompleteCallback,
-                        startUnbufferedStreamTimer(metricRegistry, request));
+                        startBytesReadTimer(metricRegistry, request));
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
@@ -364,7 +360,7 @@ public class JavaClient {
             executeWithConsumer(client, futureCallback, request, registry);
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
-                    new TimedFutureCallback<>(futureCallback, startTimer(registry, request));
+                    new TimedFutureCallback<>(futureCallback, startBytesReadTimer(registry, request));
             client.execute(request, timedFutureCallback);
         }
     }
@@ -513,22 +509,11 @@ public class JavaClient {
         return response;
     }
 
-    private static Timer.Context startTimer(MetricRegistry registry, HttpRequest request) {
+    private static Timer.Context startBytesReadTimer(MetricRegistry registry, HttpRequest request) {
         if (registry != null) {
             final RequestLine requestLine = request.getRequestLine();
             final String name = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
-                    requestLine.getMethod());
-            return registry.timer(name).time();
-        } else {
-            return null;
-        }
-    }
-
-    private static Timer.Context startUnbufferedStreamTimer(MetricRegistry registry, HttpRequest request) {
-        if (registry != null) {
-            final RequestLine requestLine = request.getRequestLine();
-            final String name = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
-                    requestLine.getMethod(), "unbuffered_stream");
+                    requestLine.getMethod(), "bytes-read");
             return registry.timer(name).time();
         } else {
             return null;

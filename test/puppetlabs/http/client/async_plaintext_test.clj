@@ -412,14 +412,14 @@
                (let [client-metrics (.getClientMetrics client)
                      client-metrics-data (.getClientMetricsData client)
                      all-metrics (.getMetrics metric-registry)
-                     short-id "puppetlabs.http-client.http://localhost:10000/short.GET"
-                     long-id "puppetlabs.http-client.http://localhost:10000/long.GET"]
+                     short-id "puppetlabs.http-client.experimental.http://localhost:10000/short.GET.bytes-read"
+                     long-id "puppetlabs.http-client.experimental.http://localhost:10000/long.GET.bytes-read"]
                  (testing ".getClientMetrics returns only http client metrics"
                    (is (= 4 (count all-metrics)))
                    (is (= 3 (count client-metrics)))
                    (is (= 3 (count client-metrics-data))))
                  (testing "get-client-metrics returns a map of metric name to timer instance"
-                   (is (= (set (list "puppetlabs.http-client.http://localhost:10000/hello.GET"
+                   (is (= (set (list "puppetlabs.http-client.experimental.http://localhost:10000/hello.GET.bytes-read"
                                      short-id long-id))
                           (set (keys client-metrics))
                           (set (keys client-metrics-data))))
@@ -467,14 +467,14 @@
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
                     all-metrics (.getMetrics metric-registry)
-                    short-id "puppetlabs.http-client.http://localhost:10000/short.GET"
-                    long-id "puppetlabs.http-client.http://localhost:10000/long.GET"]
+                    short-id "puppetlabs.http-client.experimental.http://localhost:10000/short.GET.bytes-read"
+                    long-id "puppetlabs.http-client.experimental.http://localhost:10000/long.GET.bytes-read"]
                 (testing "get-client-metrics and get-client-metrics data return only http client metrics"
                   (is (= 4 (count all-metrics)))
                   (is (= 3 (count client-metrics)))
                   (is (= 3 (count client-metrics-data))))
                 (testing "get-client-metrics returns a map of metric id to timer instance"
-                  (is (= (set (list "puppetlabs.http-client.http://localhost:10000/hello.GET"
+                  (is (= (set (list "puppetlabs.http-client.experimental.http://localhost:10000/hello.GET.bytes-read"
                                     short-id long-id))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))

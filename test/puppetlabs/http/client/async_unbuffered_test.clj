@@ -351,30 +351,23 @@
                     buf (make-array Byte/TYPE 4)]
                 (.read instream buf)
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
-                (Thread/sleep 1000) ;; check that the unbuffered_stream metric takes this into account
+                (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metrics (.getClientMetrics client)
                     client-metrics-data (.getClientMetricsData client)
-                    metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
-                    unbuffered-stream-id (str metric-id ".unbuffered_stream")]
-                (is (= (set (list metric-id unbuffered-stream-id))
+                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
+                    bytes-read-id (str base-metric-id ".bytes-read")]
+                (is (= (set (list bytes-read-id))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [metric-data (get client-metrics-data metric-id)
-                      unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
+                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
                   (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
-                  (is (= 1 (.getCount metric-data)))
-                  (is (= metric-id (.getMetricId metric-data)))
-                  (is (<= 1 (.getMean metric-data)))
-                  (is (<= 1 (.getAggregate metric-data)))
 
-                  (is (= 1 (.getCount unbuffered-stream-data)))
-                  (is (= unbuffered-stream-id (.getMetricId unbuffered-stream-data)))
-                  (is (<= 1000 (.getMean unbuffered-stream-data)))
-                  (is (<= 1000 (.getAggregate unbuffered-stream-data)))
-
-                  (is (> (.getMean unbuffered-stream-data) (.getMean metric-data))))))))))
+                  (is (= 1 (.getCount bytes-read-data)))
+                  (is (= bytes-read-id (.getMetricId bytes-read-data)))
+                  (is (<= 1000 (.getMean bytes-read-data)))
+                  (is (<= 1000 (.getAggregate bytes-read-data))))))))))
      (testing "metrics work for failed request"
        (try
          (testwebserver/with-test-webserver-and-config
@@ -393,26 +386,19 @@
                 (is (thrown? SocketTimeoutException (slurp body)))
                 (let [client-metrics (.getClientMetrics client)
                       client-metrics-data (.getClientMetricsData client)
-                      metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
-                      unbuffered-stream-id (str metric-id ".unbuffered_stream")]
-                  (is (= (set (list metric-id unbuffered-stream-id))
+                      base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
+                      bytes-read-id (str base-metric-id ".bytes-read")]
+                  (is (= (set (list bytes-read-id))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))
                   (is (every? #(instance? Timer %) (vals client-metrics)))
-                  (let [metric-data (get client-metrics-data metric-id)
-                        unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
+                  (let [bytes-read-data (get client-metrics-data bytes-read-id)]
                     (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
-                    (is (= 1 (.getCount metric-data)))
-                    (is (= metric-id (.getMetricId metric-data)))
-                    (is (<= 1 (.getMean metric-data)))
-                    (is (<= 1 (.getAggregate metric-data)))
 
-                    (is (= 1 (.getCount unbuffered-stream-data)))
-                    (is (= unbuffered-stream-id (.getMetricId unbuffered-stream-data)))
-                    (is (<= 1 (.getMean unbuffered-stream-data)))
-                    (is (<= 1 (.getAggregate unbuffered-stream-data)))
-
-                    (is (> (.getMean unbuffered-stream-data) (.getMean metric-data)))))))))
+                    (is (= 1 (.getCount bytes-read-data)))
+                    (is (= bytes-read-id (.getMetricId bytes-read-data)))
+                    (is (<= 1 (.getMean bytes-read-data)))
+                    (is (<= 1 (.getAggregate bytes-read-data)))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))
@@ -435,29 +421,21 @@
                     buf (make-array Byte/TYPE 4)]
                 (.read instream buf)
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
-                (Thread/sleep 1000) ;; check that the unbuffered_stream metric takes this into account
+                (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
-                    metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
-                    unbuffered-stream-id (str metric-id ".unbuffered_stream")]
-                (is (= (set (list metric-id unbuffered-stream-id))
+                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
+                    bytes-read-id (str base-metric-id ".bytes-read")]
+                (is (= (set (list bytes-read-id))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [metric-data (get client-metrics-data metric-id)
-                      unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
-                  (is (= {:count 1 :metric-id metric-id}
-                         (select-keys metric-data [:metric-id :count])))
-                  (is (<= 1 (:mean metric-data)))
-                  (is (<= 1 (:aggregate metric-data)))
-
-                  (is (= {:count 1 :metric-id unbuffered-stream-id}
-                         (select-keys unbuffered-stream-data [:metric-id :count])))
-                  (is (<= 1000 (:mean unbuffered-stream-data)))
-                  (is (<= 1000 (:aggregate unbuffered-stream-data)))
-
-                  (is (> (:mean unbuffered-stream-data) (:mean metric-data))))))))))
+                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
+                  (is (= {:count 1 :metric-id bytes-read-id}
+                         (select-keys bytes-read-data [:metric-id :count])))
+                  (is (<= 1000 (:mean bytes-read-data)))
+                  (is (<= 1000 (:aggregate bytes-read-data))))))))))
      (testing "metrics work for a failed request"
        (try
          (testwebserver/with-test-webserver-and-config
@@ -473,25 +451,17 @@
                 (is (thrown? SocketTimeoutException (slurp body))))
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
-                    metric-id (str "puppetlabs.http-client.http://localhost:" port "/hello.GET")
-                    unbuffered-stream-id (str metric-id ".unbuffered_stream")]
-                (is (= (set (list metric-id unbuffered-stream-id))
+                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
+                    bytes-read-id (str base-metric-id ".bytes-read")]
+                (is (= (set (list bytes-read-id))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [metric-data (get client-metrics-data metric-id)
-                      unbuffered-stream-data (get client-metrics-data unbuffered-stream-id)]
-                  (is (= {:count 1 :metric-id metric-id}
-                         (select-keys metric-data [:metric-id :count])))
-                  (is (<= 1 (:mean metric-data)))
-                  (is (<= 1 (:aggregate metric-data)))
-
-                  (is (= {:count 1 :metric-id unbuffered-stream-id}
-                         (select-keys unbuffered-stream-data [:metric-id :count])))
-                  (is (<= 1 (:mean unbuffered-stream-data)))
-                  (is (<= 1 (:aggregate unbuffered-stream-data)))
-
-                  (is (> (:mean unbuffered-stream-data) (:mean metric-data))))))))
+                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
+                  (is (= {:count 1 :metric-id bytes-read-id}
+                         (select-keys bytes-read-data [:metric-id :count])))
+                  (is (<= 1 (:mean bytes-read-data)))
+                  (is (<= 1 (:aggregate bytes-read-data))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))
