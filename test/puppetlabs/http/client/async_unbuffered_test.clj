@@ -355,9 +355,10 @@
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metrics (.getClientMetrics client)
                     client-metrics-data (.getClientMetricsData client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
-                    bytes-read-id (str base-metric-id ".bytes-read")]
-                (is (= (set (list bytes-read-id))
+                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello")
+                    bytes-read-id (str base-metric-id ".bytes-read")
+                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
@@ -386,9 +387,10 @@
                 (is (thrown? SocketTimeoutException (slurp body)))
                 (let [client-metrics (.getClientMetrics client)
                       client-metrics-data (.getClientMetricsData client)
-                      base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
-                      bytes-read-id (str base-metric-id ".bytes-read")]
-                  (is (= (set (list bytes-read-id))
+                      base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello")
+                      bytes-read-id (str base-metric-id ".bytes-read")
+                      bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
+                  (is (= (set (list bytes-read-id bytes-read-id-with-verb))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))
                   (is (every? #(instance? Timer %) (vals client-metrics)))
@@ -425,9 +427,10 @@
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
-                    bytes-read-id (str base-metric-id ".bytes-read")]
-                (is (= (set (list bytes-read-id))
+                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello")
+                    bytes-read-id (str base-metric-id ".bytes-read")
+                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
@@ -451,9 +454,10 @@
                 (is (thrown? SocketTimeoutException (slurp body))))
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello.GET")
-                    bytes-read-id (str base-metric-id ".bytes-read")]
-                (is (= (set (list bytes-read-id))
+                    base-metric-id (str "puppetlabs.http-client.experimental.http://localhost:" port "/hello")
+                    bytes-read-id (str base-metric-id ".bytes-read")
+                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))

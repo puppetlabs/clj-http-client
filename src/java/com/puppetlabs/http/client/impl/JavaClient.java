@@ -60,9 +60,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class JavaClient {
@@ -318,7 +316,7 @@ public class JavaClient {
 
         TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
                 new TimedFutureCallback<>(streamingCompleteCallback,
-                        startBytesReadTimer(metricRegistry, request));
+                        startBytesReadTimers(metricRegistry, request));
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
@@ -360,7 +358,7 @@ public class JavaClient {
             executeWithConsumer(client, futureCallback, request, registry);
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
-                    new TimedFutureCallback<>(futureCallback, startBytesReadTimer(registry, request));
+                    new TimedFutureCallback<>(futureCallback, startBytesReadTimers(registry, request));
             client.execute(request, timedFutureCallback);
         }
     }
@@ -509,12 +507,17 @@ public class JavaClient {
         return response;
     }
 
-    private static Timer.Context startBytesReadTimer(MetricRegistry registry, HttpRequest request) {
+    private static ArrayList<Timer.Context> startBytesReadTimers(MetricRegistry registry,
+                                                                 HttpRequest request) {
         if (registry != null) {
             final RequestLine requestLine = request.getRequestLine();
-            final String name = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
+            final String urlName = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(), "bytes-read");
+            final String urlAndVerbName = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
                     requestLine.getMethod(), "bytes-read");
-            return registry.timer(name).time();
+            ArrayList<Timer.Context> timers = new ArrayList<>();
+            timers.add(registry.timer(urlName).time());
+            timers.add(registry.timer(urlAndVerbName).time());
+            return timers;
         } else {
             return null;
         }
