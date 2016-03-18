@@ -42,7 +42,7 @@
   (schema/enum :text :stream :unbuffered-stream))
 
 (def RawUserRequestClientOptions
-  "The list of Request and client options passed by a user into
+  "The list of request and client options passed by a user into
   the request function. Allows the user to configure
   both a client and a request."
   {:url                   UrlOrString
@@ -52,6 +52,7 @@
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
    (ok :query-params)     {schema/Str schema/Str}
+   (ok :metric-id)        [schema/Str]
 
    (ok :ssl-context)      SSLContext
    (ok :ssl-cert)         UrlOrString
@@ -73,7 +74,8 @@
    (ok :body)             Body
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
-   (ok :query-params)     {schema/Str schema/Str}})
+   (ok :query-params)     {schema/Str schema/Str}
+   (ok :metric-id)        [schema/Str]})
 
 (def RequestOptions
   "The options from UserRequestOptions that have to do with the
@@ -86,7 +88,8 @@
    :body                  Body
    :decompress-body       schema/Bool
    :as                    BodyType
-   (ok :query-params)     {schema/Str schema/Str}})
+   (ok :query-params)     {schema/Str schema/Str}
+   (ok :metric-id)        [schema/Str]})
 
 (def SslContextOptions
   {:ssl-context SSLContext})

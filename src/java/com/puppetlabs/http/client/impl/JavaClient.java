@@ -264,7 +264,8 @@ public class JavaClient {
     private static void executeWithConsumer(final CloseableHttpAsyncClient client,
                                             final FutureCallback<HttpResponse> futureCallback,
                                             final HttpRequestBase request,
-                                            final MetricRegistry metricRegistry) {
+                                            final MetricRegistry metricRegistry,
+                                            final String[] metricId) {
 
         /*
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
@@ -316,7 +317,7 @@ public class JavaClient {
 
         TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
                 new TimedFutureCallback<>(streamingCompleteCallback,
-                        startBytesReadTimers(metricRegistry, request));
+                        startBytesReadTimers(metricRegistry, request, metricId));
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
@@ -354,11 +355,12 @@ public class JavaClient {
             }
         };
 
+        final String[] metricId = requestOptions.getMetricId();
         if (requestOptions.getAs() == ResponseBodyType.UNBUFFERED_STREAM) {
-            executeWithConsumer(client, futureCallback, request, registry);
+            executeWithConsumer(client, futureCallback, request, registry, metricId);
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
-                    new TimedFutureCallback<>(futureCallback, startBytesReadTimers(registry, request));
+                    new TimedFutureCallback<>(futureCallback, startBytesReadTimers(registry, request, metricId));
             client.execute(request, timedFutureCallback);
         }
     }
@@ -507,18 +509,45 @@ public class JavaClient {
         return response;
     }
 
-    private static ArrayList<Timer.Context> startBytesReadTimers(MetricRegistry registry,
-                                                                 HttpRequest request) {
+    private static ArrayList<Timer.Context> startBytesReadMetricIdTimers(MetricRegistry registry,
+                                                                         String[] metricId) {
+        ArrayList<Timer.Context> timers = new ArrayList<>();
+        for (int i = 0; i < metricId.length; i++) {
+            ArrayList<String> currentId = new ArrayList<>();
+            for (int j = 0; j <= i; j++) {
+                currentId.add(metricId[j]);
+            }
+            currentId.add(0, "with-metric-id");
+            currentId.add(currentId.size(), "bytes-read");
+            String metric_name = MetricRegistry.name(METRIC_NAMESPACE, currentId.toArray(new String[currentId.size()]));
+            timers.add(registry.timer(metric_name).time());
+        }
+        return timers;
+    }
+
+    private static ArrayList<Timer.Context> startBytesReadUrlTimers(MetricRegistry registry,
+                                                                    HttpRequest request) {
+        final RequestLine requestLine = request.getRequestLine();
+        final String urlName = MetricRegistry.name(METRIC_NAMESPACE, "with-url", requestLine.getUri(), "bytes-read");
+        final String urlAndVerbName = MetricRegistry.name(METRIC_NAMESPACE, "with-url", requestLine.getUri(),
+                requestLine.getMethod(), "bytes-read");
+        ArrayList<Timer.Context> timers = new ArrayList<>();
+        timers.add(registry.timer(urlName).time());
+        timers.add(registry.timer(urlAndVerbName).time());
+        return timers;
+    }
+
+    private static ArrayList<Timer.Context> startBytesReadTimers (MetricRegistry registry, HttpRequest request, String[] metricId) {
         if (registry != null) {
-            final RequestLine requestLine = request.getRequestLine();
-            final String urlName = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(), "bytes-read");
-            final String urlAndVerbName = MetricRegistry.name(METRIC_NAMESPACE, requestLine.getUri(),
-                    requestLine.getMethod(), "bytes-read");
-            ArrayList<Timer.Context> timers = new ArrayList<>();
-            timers.add(registry.timer(urlName).time());
-            timers.add(registry.timer(urlAndVerbName).time());
-            return timers;
-        } else {
+            ArrayList<Timer.Context> urlTimers = startBytesReadUrlTimers(registry, request);
+            ArrayList<Timer.Context> allTimers = new ArrayList<>(urlTimers);
+            if (metricId != null) {
+                ArrayList<Timer.Context> metricIdTimers = startBytesReadMetricIdTimers(registry, metricId);
+                allTimers.addAll(metricIdTimers);
+            }
+            return allTimers;
+        }
+        else {
             return null;
         }
     }

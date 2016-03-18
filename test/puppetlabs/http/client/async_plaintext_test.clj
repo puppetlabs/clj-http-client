@@ -398,7 +398,8 @@
          (let [metric-registry (MetricRegistry.)
                hello-request-opts (RequestOptions. "http://localhost:10000/hello")
                short-request-opts (RequestOptions. "http://localhost:10000/short")
-               long-request-opts (RequestOptions. "http://localhost:10000/long")]
+               long-request-opts (doto (RequestOptions. "http://localhost:10000/long")
+                                   (.setMetricId (into-array ["foo" "bar" "baz"])))]
            (with-open [client (Async/createClient (ClientOptions.) metric-registry)]
              (-> client (.get hello-request-opts) (.deref)) ; warm it up
              (let [short-response (-> client (.get short-request-opts) (.deref))
@@ -412,21 +413,25 @@
                (let [client-metrics (.getClientMetrics client)
                      client-metrics-data (.getClientMetricsData client)
                      all-metrics (.getMetrics metric-registry)
-                     short-id-base "puppetlabs.http-client.experimental.http://localhost:10000/short"
+                     short-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short"
                      short-id (str short-id-base ".bytes-read")
                      short-id-with-get (str short-id-base ".GET" ".bytes-read")
                      short-id-with-post (str short-id-base ".POST" ".bytes-read")
-                     long-id-base "puppetlabs.http-client.experimental.http://localhost:10000/long"
+                     long-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long"
                      long-id (str long-id-base ".bytes-read")
-                     long-id-with-verb (str long-id-base ".GET" ".bytes-read")]
+                     long-id-with-verb (str long-id-base ".GET" ".bytes-read")
+                     long-foo-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
+                     long-foo-bar-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
+                     long-foo-bar-baz-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")]
                  (testing ".getClientMetrics returns only http client metrics"
-                   (is (= 8 (count all-metrics)))
-                   (is (= 7 (count client-metrics)))
-                   (is (= 7 (count client-metrics-data))))
+                   (is (= 11 (count all-metrics)))
+                   (is (= 10 (count client-metrics)))
+                   (is (= 10 (count client-metrics-data))))
                  (testing "get-client-metrics returns a map of metric name to timer instance"
-                   (is (= (set (list "puppetlabs.http-client.experimental.http://localhost:10000/hello.bytes-read"
-                                     "puppetlabs.http-client.experimental.http://localhost:10000/hello.GET.bytes-read"
-                                     short-id short-id-with-get short-id-with-post long-id long-id-with-verb))
+                   (is (= (set (list "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.bytes-read"
+                                     "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.GET.bytes-read"
+                                     short-id short-id-with-get short-id-with-post long-id long-id-with-verb
+                                     long-foo-id long-foo-bar-id long-foo-bar-baz-id))
                           (set (keys client-metrics))
                           (set (keys client-metrics-data))))
                    (is (every? #(instance? Timer %) (vals client-metrics))))
@@ -480,7 +485,7 @@
         (let [metric-registry (MetricRegistry.)]
           (with-open [client (async/create-client {} metric-registry)]
             @(common/get client "http://localhost:10000/hello") ; warm it up
-            (let [short-response @(common/get client "http://localhost:10000/short" {:as :text})
+            (let [short-response @(common/get client "http://localhost:10000/short" {:as :text :metric-id ["foo" "bar" "baz"]})
                   long-response @(common/get client "http://localhost:10000/long")]
               @(common/post client "http://localhost:10000/short")
               (is (= {:status 200 :body "short"} (select-keys short-response [:status :body])))
@@ -490,21 +495,25 @@
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
                     all-metrics (.getMetrics metric-registry)
-                    short-id-base "puppetlabs.http-client.experimental.http://localhost:10000/short"
+                    short-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short"
                     short-id (str short-id-base ".bytes-read")
                     short-id-with-get (str short-id-base ".GET" ".bytes-read")
                     short-id-with-post (str short-id-base ".POST" ".bytes-read")
-                    long-id-base "puppetlabs.http-client.experimental.http://localhost:10000/long"
+                    long-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long"
                     long-id (str long-id-base ".bytes-read")
-                    long-id-with-verb (str long-id-base ".GET" ".bytes-read")]
+                    long-id-with-verb (str long-id-base ".GET" ".bytes-read")
+                    long-foo-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
+                    long-foo-bar-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
+                    long-foo-bar-baz-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")]
                 (testing "get-client-metrics and get-client-metrics data return only http client metrics"
-                  (is (= 8 (count all-metrics)))
-                  (is (= 7 (count client-metrics)))
-                  (is (= 7 (count client-metrics-data))))
+                  (is (= 11 (count all-metrics)))
+                  (is (= 10 (count client-metrics)))
+                  (is (= 10 (count client-metrics-data))))
                 (testing "get-client-metrics returns a map of metric id to timer instance"
-                  (is (= (set (list "puppetlabs.http-client.experimental.http://localhost:10000/hello.bytes-read"
-                                    "puppetlabs.http-client.experimental.http://localhost:10000/hello.GET.bytes-read"
-                                    short-id short-id-with-get short-id-with-post long-id long-id-with-verb))
+                  (is (= (set (list "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.bytes-read"
+                                    "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.GET.bytes-read"
+                                    short-id short-id-with-get short-id-with-post long-id long-id-with-verb
+                                    long-foo-id long-foo-bar-id long-foo-bar-baz-id))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))
                   (is (every? #(instance? Timer %) (vals client-metrics))))

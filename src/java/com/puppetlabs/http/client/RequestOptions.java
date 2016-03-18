@@ -2,6 +2,7 @@ package com.puppetlabs.http.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -14,6 +15,7 @@ public class RequestOptions {
     private Object body;
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
+    private String[] metricId;
 
     /**
      * Constructor for the RequestOptions class. When this constructor is called,
@@ -88,6 +90,15 @@ public class RequestOptions {
     }
     public RequestOptions setAs(ResponseBodyType as) {
         this.as = as;
+        return this;
+    }
+
+    public String[] getMetricId() {
+        return metricId;
+    }
+
+    public RequestOptions setMetricId(String[] metricId) {
+        this.metricId = metricId;
         return this;
     }
 }

@@ -112,6 +112,11 @@
     :text ResponseBodyType/TEXT
     ResponseBodyType/STREAM))
 
+(defn parse-metric-id
+  [opts]
+  (when-let [metric-id (:metric-id opts)]
+    (into-array metric-id)))
+
 (schema/defn clojure-options->java :- RequestOptions
   [opts :- common/RequestOptions]
   (-> (parse-url opts)
@@ -119,7 +124,8 @@
       (.setAs (clojure-response-body-type->java opts))
       (.setBody (:body opts))
       (.setDecompressBody (clojure.core/get opts :decompress-body true))
-      (.setHeaders (:headers opts))))
+      (.setHeaders (:headers opts))
+      (.setMetricId (parse-metric-id opts))))
 
 (schema/defn get-mean :- schema/Num
   [timer :- Timer]
