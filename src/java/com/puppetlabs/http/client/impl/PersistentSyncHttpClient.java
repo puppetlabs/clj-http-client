@@ -35,8 +35,32 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return JavaClient.getClientMetrics(metricRegistry);
     }
 
+    public Map<String, Timer> getClientMetrics(String url, JavaClient.MetricType metricType) {
+        return JavaClient.getClientMetricsWithUrl(metricRegistry, url, metricType);
+    }
+
+    public Map<String, Timer> getClientMetrics(String url, String verb, JavaClient.MetricType metricType) {
+        return JavaClient.getClientMetricsWithUrlAndVerb(metricRegistry, url, verb, metricType);
+    }
+
+    public Map<String, Timer> getClientMetrics(String[] metricId, JavaClient.MetricType metricType) {
+        return JavaClient.getClientMetricsWithMetricId(metricRegistry, metricId, metricType);
+    }
+
     public Map<String, ClientMetricData> getClientMetricsData(){
         return JavaClient.getClientMetricsData(metricRegistry);
+    }
+
+    public Map<String, ClientMetricData> getClientMetricsData(String url, JavaClient.MetricType metricType) {
+        return JavaClient.getClientMetricsDataWithUrl(metricRegistry, url, metricType);
+    }
+
+    public Map<String, ClientMetricData> getClientMetricsData(String url, String verb, JavaClient.MetricType metricType) {
+        return JavaClient.getClientMetricsDataWithUrlAndVerb(metricRegistry, url, verb, metricType);
+    }
+
+    public Map<String, ClientMetricData> getClientMetricsData(String[] metricId, JavaClient.MetricType metricType) {
+        return JavaClient.getClientMetricsDataWithMetricId(metricRegistry, metricId, metricType);
     }
 
     public Response request(RequestOptions requestOptions, HttpMethod method) {

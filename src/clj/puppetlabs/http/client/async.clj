@@ -11,7 +11,7 @@
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
-           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate ClientMetricFilter)
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate ClientMetricFilter JavaClient$MetricType)
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient)
            (com.codahale.metrics Timer)
@@ -143,22 +143,39 @@
      :mean mean
      :aggregate aggregate
      :metric-id metric-id}))
+
+(defn get-metrics-data
+  [timers]
+  (reduce (fn [acc [metric-id timer]]
+            (assoc acc metric-id (get-metric-data timer metric-id)))
+          {} timers))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn get-client-metrics :- (schema/maybe common/Metrics)
+(schema/defn ^:always-validate get-client-metrics :- (schema/maybe common/Metrics)
   "Returns the http client-specific metrics from the metric registry."
-  [metric-registry :- common/OptionalMetricRegistry]
-  (when metric-registry
-    (into {} (.getTimers metric-registry (ClientMetricFilter.)))))
+  ([metric-registry :- common/OptionalMetricRegistry]
+   (when metric-registry
+     (into {} (JavaClient/getClientMetrics metric-registry))))
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-filter :- common/MetricFilter]
+   (when metric-registry
+     (cond
+       (:verb metric-filter) (into {} (JavaClient/getClientMetricsWithUrlAndVerb metric-registry (:url metric-filter) (:verb metric-filter) JavaClient$MetricType/BYTES_READ))
+       (:url metric-filter) (into {} (JavaClient/getClientMetricsWithUrl metric-registry (:url metric-filter) JavaClient$MetricType/BYTES_READ))
+       (:metric-id metric-filter) (into {} (JavaClient/getClientMetricsWithMetricId metric-registry (into-array (:metric-id metric-filter)) JavaClient$MetricType/BYTES_READ))
+       :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
 
-(schema/defn get-client-metrics-data :- (schema/maybe common/MetricsData)
+(schema/defn ^:always-validate get-client-metrics-data :- (schema/maybe common/MetricsData)
   "Returns a map of metric-id to metric data summary."
-  [metric-registry :- common/OptionalMetricRegistry]
-  (let [timers (get-client-metrics metric-registry)]
-    (reduce (fn [acc [metric-id timer]]
-              (assoc acc metric-id (get-metric-data timer metric-id)))
-            {} timers)))
+  ([metric-registry :- common/OptionalMetricRegistry]
+   (let [timers (get-client-metrics metric-registry)]
+     (get-metrics-data timers)))
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-filter :- common/MetricFilter]
+   (let [timers (get-client-metrics metric-registry metric-filter)]
+     (get-metrics-data timers))))
 
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
   "Issues an async HTTP request with the specified client and returns a promise
@@ -272,4 +289,6 @@
                                           nil client metric-registry))
        (close [_] (.close client))
        (get-client-metrics [_] (get-client-metrics metric-registry))
-       (get-client-metrics-data [_] (get-client-metrics-data metric-registry))))))
+       (get-client-metrics [_ metric-filter] (get-client-metrics metric-registry metric-filter))
+       (get-client-metrics-data [_] (get-client-metrics-data metric-registry))
+       (get-client-metrics-data [_ metric-filter] (get-client-metrics-data metric-registry metric-filter))))))

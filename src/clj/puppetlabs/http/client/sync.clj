@@ -30,12 +30,16 @@
       resp)))
 
 (defn get-client-metrics
-  [metric-registry]
-  (async/get-client-metrics metric-registry))
+  ([metric-registry]
+   (async/get-client-metrics metric-registry))
+  ([metric-registry metric-filter]
+   (async/get-client-metrics metric-registry metric-filter)))
 
 (defn get-client-metrics-data
-  [metric-registry]
-  (async/get-client-metrics-data metric-registry))
+  ([metric-registry]
+   (async/get-client-metrics-data metric-registry))
+  ([metric-registry metric-filter]
+   (async/get-client-metrics-data metric-registry metric-filter)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -73,7 +77,9 @@
                                           client metric-registry))
        (close [_] (.close client))
        (get-client-metrics [_] (get-client-metrics metric-registry))
-       (get-client-metrics-data [_] (get-client-metrics-data metric-registry))))))
+       (get-client-metrics [_ metric-filter] (get-client-metrics metric-registry metric-filter))
+       (get-client-metrics-data [_] (get-client-metrics-data metric-registry))
+       (get-client-metrics-data [_ metric-filter] (get-client-metrics-data metric-registry metric-filter))))))
 
 (defn get
   "Issue a synchronous HTTP GET request. This will raise an exception if an

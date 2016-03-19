@@ -2,6 +2,7 @@ package com.puppetlabs.http.client;
 
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.impl.ClientMetricData;
+import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.Promise;
 
 import java.io.Closeable;
@@ -18,14 +19,58 @@ import java.util.SortedMap;
 public interface AsyncHttpClient extends Closeable{
 
     /**
-     * @return a SortedMap of metric name to Timer instance
+     * @return a Map of metric name to Timer instance
      */
     public Map<String, Timer> getClientMetrics();
+
+    /**
+     * @param url a url to filter on
+     * @param metricType the type of metric to return timers for
+     * @return a Map of metric name to Timer instance
+     */
+    public Map<String, Timer> getClientMetrics(String url, JavaClient.MetricType metricType);
+
+    /**
+     * @param url a url to filter on
+     * @param verb an HTTP method to filter on
+     * @param metricType the type of metric to return data for
+     * @return a Map of metric name to Timer instance
+     */
+    public Map<String, Timer> getClientMetrics(String url, String verb, JavaClient.MetricType metricType);
+
+    /**
+     * @param metricId a metric id to filter on
+     * @param metricType the type of metric to return data for
+     * @return a Map of metric name to Timer instance
+     */
+    public Map<String, Timer> getClientMetrics(String[] metricId, JavaClient.MetricType metricType);
 
     /**
      * @return a Map of metric name to metric data
      */
     public Map<String, ClientMetricData> getClientMetricsData();
+
+    /**
+     * @param url a url to filter on
+     * @param metricType the type of metric to return data for
+     * @return a Map of metric name to metric data
+     */
+    public Map<String, ClientMetricData> getClientMetricsData(String url, JavaClient.MetricType metricType);
+
+    /**
+     * @param url a url to filter on
+     * @param verb an HTTP method to filter on
+     * @param metricType the type of metric to return data for
+     * @return a Map of metric name to metric data
+     */
+    public Map<String, ClientMetricData> getClientMetricsData(String url, String verb, JavaClient.MetricType metricType);
+
+    /**
+     * @param metricId a metric id to filter on
+     * @param metricType the type of metric to return data for
+     * @return a Map of metric name to metric data
+     */
+    public Map<String, ClientMetricData> getClientMetricsData(String[] metricId, JavaClient.MetricType metricType);
 
     /**
      * Performs a GET request

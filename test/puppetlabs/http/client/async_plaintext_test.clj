@@ -3,7 +3,7 @@
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (java.net URI SocketTimeoutException ServerSocket)
            (com.codahale.metrics MetricRegistry Timer)
-           (com.puppetlabs.http.client.impl ClientMetricData))
+           (com.puppetlabs.http.client.impl ClientMetricData JavaClient JavaClient$MetricType))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -466,7 +466,18 @@
                      (is (<= 100 (.getMean long-data)))
                      (is (<= 100 (.getAggregate long-data)))
 
-                     (is (> (.getAggregate long-data) (.getAggregate short-data))))))))
+                     (is (> (.getAggregate long-data) (.getAggregate short-data)))))
+                 (testing "get-client-metrics with filter"
+                   (is (= (list short-id) (keys (.getClientMetrics client "http://localhost:10000/short" JavaClient$MetricType/BYTES_READ))
+                          (keys (.getClientMetricsData client "http://localhost:10000/short" JavaClient$MetricType/BYTES_READ))))
+                   (is (= (list short-id-with-get) (keys (.getClientMetrics client "http://localhost:10000/short" "GET" JavaClient$MetricType/BYTES_READ))
+                          (keys (.getClientMetricsData client "http://localhost:10000/short" "GET" JavaClient$MetricType/BYTES_READ))))
+                   (is (= (list long-foo-bar-id) (keys (.getClientMetrics client (into-array ["foo" "bar"]) JavaClient$MetricType/BYTES_READ))
+                          (keys (.getClientMetricsData client (into-array ["foo" "bar"]) JavaClient$MetricType/BYTES_READ))))
+                   (is (= {} (.getClientMetrics client (into-array ["foo" "abc"]) JavaClient$MetricType/BYTES_READ)
+                          (.getClientMetricsData client (into-array ["foo" "abc"]) JavaClient$MetricType/BYTES_READ)))
+                   (is (thrown? IllegalArgumentException (JavaClient/getClientMetricsWithUrl metric-registry "http://localhost:10000/short" "bytes-read")
+                                (JavaClient/getClientMetricsDataWithUrl metric-registry "http://localhost:10000/short" "bytes-read")))))))
            (with-open [client (Async/createClient (ClientOptions.))]
              (testing ".getClientMetrics returns nil if no metrics registry passed in"
                (let [response (-> client (.get hello-request-opts) (.deref))]
@@ -546,11 +557,23 @@
                     (is (<= 100 (:mean long-data)))
                     (is (<= 100 (:aggregate long-data)))
 
-                    (is (> (:mean long-data) (:mean short-data))))))))
+                    (is (> (:mean long-data) (:mean short-data)))))
+                (testing "get-client-metrics with filter"
+                  (is (= (list short-id)
+                         (keys (common/get-client-metrics client {:url "http://localhost:10000/short" :metric-type "bytes-read"}))
+                         (keys (common/get-client-metrics-data client {:url "http://localhost:10000/short" :metric-type "bytes-read"}))))
+                  (is (= (list short-id-with-get)
+                         (keys (common/get-client-metrics client {:url "http://localhost:10000/short" :verb "GET" :metric-type "bytes-read"}))
+                         (keys (common/get-client-metrics-data client {:url "http://localhost:10000/short" :verb "GET" :metric-type "bytes-read"}))))
+                  (is (= (list long-foo-bar-id)
+                         (keys (common/get-client-metrics client {:metric-id ["foo" "bar"] :metric-type "bytes-read"}))
+                         (keys (common/get-client-metrics-data client {:metric-id ["foo" "bar"] :metric-type "bytes-read"}))))
+                  (is (= {} (common/get-client-metrics client {:metric-id ["foo" "abc"] :metric-type "bytes-read"})
+                         (common/get-client-metrics-data client {:metric-id ["foo" "abc"] :metric-type "bytes-read"}))))))))
           (with-open [client (async/create-client {})]
             (testing "get-client-metrics returns nil if no metrics registry passed in"
               (let [response (common/get client "http://localhost:10000/hello")]
                 (is (= 200 (:status @response)))
                 (is (= "Hello, World!" (slurp (:body @response))))
                 (is (= nil (common/get-client-metrics client)))
-                (is (= {} (common/get-client-metrics-data client)))))))))))
+                (is (= {} (common/get-client-metrics-data client))))))))))

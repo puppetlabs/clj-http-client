@@ -22,8 +22,8 @@
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
   (close [this])
-  (get-client-metrics [this])
-  (get-client-metrics-data [this]))
+  (get-client-metrics [this] [this metric-filter])
+  (get-client-metrics-data [this] [this metric-filter]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -170,3 +170,13 @@
 
 (def MetricsData
   {schema/Str MetricData})
+
+(def MetricFilter
+  (schema/conditional
+   #(contains? % :url)
+   {:metric-type (schema/enum "bytes-read")
+    :url schema/Str
+    (ok :verb) schema/Str}
+   #(contains? % :metric-id)
+   {:metric-type (schema/enum "bytes-read")
+    :metric-id [schema/Str]}))
