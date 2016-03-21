@@ -27,35 +27,35 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
     }
 
     public Map<String, Timer> getClientMetrics(){
-        return JavaClient.getClientMetrics(metricRegistry);
+        return Metrics.getClientMetrics(metricRegistry);
     }
 
-    public Map<String, Timer> getClientMetrics(String url, JavaClient.MetricType metricType) {
-        return JavaClient.getClientMetricsWithUrl(metricRegistry, url, metricType);
+    public Map<String, Timer> getClientMetrics(String url, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsWithUrl(metricRegistry, url, metricType);
     }
 
-    public Map<String, Timer> getClientMetrics(String url, String verb, JavaClient.MetricType metricType) {
-        return JavaClient.getClientMetricsWithUrlAndVerb(metricRegistry, url, verb, metricType);
+    public Map<String, Timer> getClientMetrics(String url, String verb, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsWithUrlAndVerb(metricRegistry, url, verb, metricType);
     }
 
-    public Map<String, Timer> getClientMetrics(String[] metricId, JavaClient.MetricType metricType) {
-        return JavaClient.getClientMetricsWithMetricId(metricRegistry, metricId, metricType);
+    public Map<String, Timer> getClientMetrics(String[] metricId, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsWithMetricId(metricRegistry, metricId, metricType);
     }
 
     public Map<String, ClientMetricData> getClientMetricsData(){
-        return JavaClient.getClientMetricsData(metricRegistry);
+        return Metrics.getClientMetricsData(metricRegistry);
     }
 
-    public Map<String, ClientMetricData> getClientMetricsData(String url, JavaClient.MetricType metricType) {
-        return JavaClient.getClientMetricsDataWithUrl(metricRegistry, url, metricType);
+    public Map<String, ClientMetricData> getClientMetricsData(String url, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsDataWithUrl(metricRegistry, url, metricType);
     }
 
-    public Map<String, ClientMetricData> getClientMetricsData(String url, String verb, JavaClient.MetricType metricType) {
-        return JavaClient.getClientMetricsDataWithUrlAndVerb(metricRegistry, url, verb, metricType);
+    public Map<String, ClientMetricData> getClientMetricsData(String url, String verb, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsDataWithUrlAndVerb(metricRegistry, url, verb, metricType);
     }
 
-    public Map<String, ClientMetricData> getClientMetricsData(String[] metricId, JavaClient.MetricType metricType) {
-        return JavaClient.getClientMetricsDataWithMetricId(metricRegistry, metricId, metricType);
+    public Map<String, ClientMetricData> getClientMetricsData(String[] metricId, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsDataWithMetricId(metricRegistry, metricId, metricType);
     }
 
     private Promise<Response> request(RequestOptions requestOptions, HttpMethod method) {

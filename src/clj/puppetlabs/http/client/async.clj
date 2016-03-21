@@ -11,7 +11,7 @@
 
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
-           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate ClientMetricFilter JavaClient$MetricType)
+           (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate Metrics Metrics$MetricType)
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient)
            (com.codahale.metrics Timer)
@@ -157,14 +157,23 @@
   "Returns the http client-specific metrics from the metric registry."
   ([metric-registry :- common/OptionalMetricRegistry]
    (when metric-registry
-     (into {} (JavaClient/getClientMetrics metric-registry))))
+     (into {} (Metrics/getClientMetrics metric-registry))))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-filter :- common/MetricFilter]
    (when metric-registry
      (cond
-       (:verb metric-filter) (into {} (JavaClient/getClientMetricsWithUrlAndVerb metric-registry (:url metric-filter) (:verb metric-filter) JavaClient$MetricType/BYTES_READ))
-       (:url metric-filter) (into {} (JavaClient/getClientMetricsWithUrl metric-registry (:url metric-filter) JavaClient$MetricType/BYTES_READ))
-       (:metric-id metric-filter) (into {} (JavaClient/getClientMetricsWithMetricId metric-registry (into-array (:metric-id metric-filter)) JavaClient$MetricType/BYTES_READ))
+       (:verb metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndVerb
+                                       metric-registry
+                                       (:url metric-filter)
+                                       (:verb metric-filter)
+                                       Metrics$MetricType/BYTES_READ))
+       (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
+                                      metric-registry
+                                      (:url metric-filter)
+                                      Metrics$MetricType/BYTES_READ))
+       (:metric-id metric-filter) (into {} (Metrics/getClientMetricsWithMetricId
+                                            metric-registry
+                                            (into-array (:metric-id metric-filter)) Metrics$MetricType/BYTES_READ))
        :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
 
 (schema/defn ^:always-validate get-client-metrics-data :- (schema/maybe common/MetricsData)

@@ -3,7 +3,7 @@
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (java.net URI SocketTimeoutException ServerSocket)
            (com.codahale.metrics MetricRegistry Timer)
-           (com.puppetlabs.http.client.impl ClientMetricData JavaClient JavaClient$MetricType))
+           (com.puppetlabs.http.client.impl ClientMetricData Metrics$MetricType))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -391,100 +391,98 @@
 (deftest metrics-test-java-async
   (testing "metrics work with java async client"
      (testlogging/with-test-logging
-       (testutils/with-app-with-config
-        app
-        [jetty9/jetty9-service test-metric-web-service]
-        {:webserver {:port 10000}}
-         (let [metric-registry (MetricRegistry.)
-               hello-request-opts (RequestOptions. "http://localhost:10000/hello")
-               short-request-opts (RequestOptions. "http://localhost:10000/short")
-               long-request-opts (doto (RequestOptions. "http://localhost:10000/long")
-                                   (.setMetricId (into-array ["foo" "bar" "baz"])))]
-           (with-open [client (Async/createClient (ClientOptions.) metric-registry)]
-             (-> client (.get hello-request-opts) (.deref)) ; warm it up
-             (let [short-response (-> client (.get short-request-opts) (.deref))
-                   long-response (-> client (.get long-request-opts) (.deref))]
-               (-> client (.post short-request-opts) (.deref))
-               (is (= 200 (.getStatus short-response)))
-               (is (= "short" (slurp (.getBody short-response))))
-               (is (= 200 (.getStatus long-response)))
-               (is (= "long" (slurp (.getBody long-response))))
-               (.timer metric-registry "fake")
-               (let [client-metrics (.getClientMetrics client)
-                     client-metrics-data (.getClientMetricsData client)
-                     all-metrics (.getMetrics metric-registry)
-                     short-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short"
-                     short-id (str short-id-base ".bytes-read")
-                     short-id-with-get (str short-id-base ".GET" ".bytes-read")
-                     short-id-with-post (str short-id-base ".POST" ".bytes-read")
-                     long-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long"
-                     long-id (str long-id-base ".bytes-read")
-                     long-id-with-verb (str long-id-base ".GET" ".bytes-read")
-                     long-foo-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
-                     long-foo-bar-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
-                     long-foo-bar-baz-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")]
-                 (testing ".getClientMetrics returns only http client metrics"
-                   (is (= 11 (count all-metrics)))
-                   (is (= 10 (count client-metrics)))
-                   (is (= 10 (count client-metrics-data))))
-                 (testing "get-client-metrics returns a map of metric name to timer instance"
-                   (is (= (set (list "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.bytes-read"
-                                     "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.GET.bytes-read"
-                                     short-id short-id-with-get short-id-with-post long-id long-id-with-verb
-                                     long-foo-id long-foo-bar-id long-foo-bar-baz-id))
-                          (set (keys client-metrics))
-                          (set (keys client-metrics-data))))
-                   (is (every? #(instance? Timer %) (vals client-metrics))))
-                 (testing "get-client-metrics-data returns a map of metric id to metric data"
-                   (let [short-data (get client-metrics-data short-id)
-                         short-data-get (get client-metrics-data short-id-with-get)
-                         short-data-post (get client-metrics-data short-id-with-post)
-                         long-data (get client-metrics-data long-id)]
-                     (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
+      (testutils/with-app-with-config
+       app
+       [jetty9/jetty9-service test-metric-web-service]
+       {:webserver {:port 10000}}
+       (let [metric-registry (MetricRegistry.)
+             hello-request-opts (RequestOptions. "http://localhost:10000/hello")
+             short-request-opts (RequestOptions. "http://localhost:10000/short")
+             long-request-opts (doto (RequestOptions. "http://localhost:10000/long")
+                                 (.setMetricId (into-array ["foo" "bar" "baz"])))]
+         (with-open [client (Async/createClient (ClientOptions.) metric-registry)]
+           (-> client (.get hello-request-opts) (.deref)) ; warm it up
+           (let [short-response (-> client (.get short-request-opts) (.deref))
+                 long-response (-> client (.get long-request-opts) (.deref))]
+             (-> client (.post short-request-opts) (.deref))
+             (is (= 200 (.getStatus short-response)))
+             (is (= "short" (slurp (.getBody short-response))))
+             (is (= 200 (.getStatus long-response)))
+             (is (= "long" (slurp (.getBody long-response))))
+             (.timer metric-registry "fake")
+             (let [client-metrics (.getClientMetrics client)
+                   client-metrics-data (.getClientMetricsData client)
+                   all-metrics (.getMetrics metric-registry)
+                   short-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short"
+                   short-id (str short-id-base ".bytes-read")
+                   short-id-with-get (str short-id-base ".GET" ".bytes-read")
+                   short-id-with-post (str short-id-base ".POST" ".bytes-read")
+                   long-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long"
+                   long-id (str long-id-base ".bytes-read")
+                   long-id-with-verb (str long-id-base ".GET" ".bytes-read")
+                   long-foo-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
+                   long-foo-bar-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
+                   long-foo-bar-baz-id (str "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")]
+               (testing ".getClientMetrics returns only http client metrics"
+                 (is (= 11 (count all-metrics)))
+                 (is (= 10 (count client-metrics)))
+                 (is (= 10 (count client-metrics-data))))
+               (testing "get-client-metrics returns a map of metric name to timer instance"
+                 (is (= (set (list "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.bytes-read"
+                                   "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello.GET.bytes-read"
+                                   short-id short-id-with-get short-id-with-post long-id long-id-with-verb
+                                   long-foo-id long-foo-bar-id long-foo-bar-baz-id))
+                        (set (keys client-metrics))
+                        (set (keys client-metrics-data))))
+                 (is (every? #(instance? Timer %) (vals client-metrics))))
+               (testing "get-client-metrics-data returns a map of metric id to metric data"
+                 (let [short-data (get client-metrics-data short-id)
+                       short-data-get (get client-metrics-data short-id-with-get)
+                       short-data-post (get client-metrics-data short-id-with-post)
+                       long-data (get client-metrics-data long-id)]
+                   (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
 
-                     (is (= short-id (.getMetricId short-data)))
-                     (is (= 2 (.getCount short-data)))
-                     (is (<= 5 (.getMean short-data)))
-                     (is (<= 10 (.getAggregate short-data)))
+                   (is (= short-id (.getMetricId short-data)))
+                   (is (= 2 (.getCount short-data)))
+                   (is (<= 5 (.getMean short-data)))
+                   (is (<= 10 (.getAggregate short-data)))
 
-                     (is (= short-id-with-get (.getMetricId short-data-get)))
-                     (is (= 1 (.getCount short-data-get)))
-                     (is (<= 5 (.getMean short-data-get)))
-                     (is (<= 5 (.getAggregate short-data-get)))
+                   (is (= short-id-with-get (.getMetricId short-data-get)))
+                   (is (= 1 (.getCount short-data-get)))
+                   (is (<= 5 (.getMean short-data-get)))
+                   (is (<= 5 (.getAggregate short-data-get)))
 
-                     (is (= short-id-with-post (.getMetricId short-data-post)))
-                     (is (= 1 (.getCount short-data-post)))
-                     (is (<= 5 (.getMean short-data-post)))
-                     (is (<= 5 (.getAggregate short-data-post)))
+                   (is (= short-id-with-post (.getMetricId short-data-post)))
+                   (is (= 1 (.getCount short-data-post)))
+                   (is (<= 5 (.getMean short-data-post)))
+                   (is (<= 5 (.getAggregate short-data-post)))
 
-                     (is (>= 1 (Math/abs (- (.getAggregate short-data)
-                                            (+ (.getAggregate short-data-get)
-                                               (.getAggregate short-data-post))))))
+                   (is (>= 1 (Math/abs (- (.getAggregate short-data)
+                                          (+ (.getAggregate short-data-get)
+                                             (.getAggregate short-data-post))))))
 
-                     (is (= long-id (.getMetricId long-data)))
-                     (is (= 1 (.getCount long-data)))
-                     (is (<= 100 (.getMean long-data)))
-                     (is (<= 100 (.getAggregate long-data)))
+                   (is (= long-id (.getMetricId long-data)))
+                   (is (= 1 (.getCount long-data)))
+                   (is (<= 100 (.getMean long-data)))
+                   (is (<= 100 (.getAggregate long-data)))
 
-                     (is (> (.getAggregate long-data) (.getAggregate short-data)))))
-                 (testing "get-client-metrics with filter"
-                   (is (= (list short-id) (keys (.getClientMetrics client "http://localhost:10000/short" JavaClient$MetricType/BYTES_READ))
-                          (keys (.getClientMetricsData client "http://localhost:10000/short" JavaClient$MetricType/BYTES_READ))))
-                   (is (= (list short-id-with-get) (keys (.getClientMetrics client "http://localhost:10000/short" "GET" JavaClient$MetricType/BYTES_READ))
-                          (keys (.getClientMetricsData client "http://localhost:10000/short" "GET" JavaClient$MetricType/BYTES_READ))))
-                   (is (= (list long-foo-bar-id) (keys (.getClientMetrics client (into-array ["foo" "bar"]) JavaClient$MetricType/BYTES_READ))
-                          (keys (.getClientMetricsData client (into-array ["foo" "bar"]) JavaClient$MetricType/BYTES_READ))))
-                   (is (= {} (.getClientMetrics client (into-array ["foo" "abc"]) JavaClient$MetricType/BYTES_READ)
-                          (.getClientMetricsData client (into-array ["foo" "abc"]) JavaClient$MetricType/BYTES_READ)))
-                   (is (thrown? IllegalArgumentException (JavaClient/getClientMetricsWithUrl metric-registry "http://localhost:10000/short" "bytes-read")
-                                (JavaClient/getClientMetricsDataWithUrl metric-registry "http://localhost:10000/short" "bytes-read")))))))
-           (with-open [client (Async/createClient (ClientOptions.))]
-             (testing ".getClientMetrics returns nil if no metrics registry passed in"
-               (let [response (-> client (.get hello-request-opts) (.deref))]
-                 (is (= 200 (.getStatus response)))
-                 (is (= "Hello, World!" (slurp (.getBody response))))
-                 (is (= nil (.getClientMetrics client)))
-                 (is (= {} (.getClientMetricsData client)))))))))))
+                   (is (> (.getAggregate long-data) (.getAggregate short-data)))))
+               (testing "get-client-metrics with filter"
+                 (is (= (list short-id) (keys (.getClientMetrics client "http://localhost:10000/short" Metrics$MetricType/BYTES_READ))
+                        (keys (.getClientMetricsData client "http://localhost:10000/short" Metrics$MetricType/BYTES_READ))))
+                 (is (= (list short-id-with-get) (keys (.getClientMetrics client "http://localhost:10000/short" "GET" Metrics$MetricType/BYTES_READ))
+                        (keys (.getClientMetricsData client "http://localhost:10000/short" "GET" Metrics$MetricType/BYTES_READ))))
+                 (is (= (list long-foo-bar-id) (keys (.getClientMetrics client (into-array ["foo" "bar"]) Metrics$MetricType/BYTES_READ))
+                        (keys (.getClientMetricsData client (into-array ["foo" "bar"]) Metrics$MetricType/BYTES_READ))))
+                 (is (= {} (.getClientMetrics client (into-array ["foo" "abc"]) Metrics$MetricType/BYTES_READ)
+                        (.getClientMetricsData client (into-array ["foo" "abc"]) Metrics$MetricType/BYTES_READ)))))))
+         (with-open [client (Async/createClient (ClientOptions.))]
+           (testing ".getClientMetrics returns nil if no metrics registry passed in"
+             (let [response (-> client (.get hello-request-opts) (.deref))]
+               (is (= 200 (.getStatus response)))
+               (is (= "Hello, World!" (slurp (.getBody response))))
+               (is (= nil (.getClientMetrics client)))
+               (is (= {} (.getClientMetricsData client)))))))))))
 
 (deftest metrics-test-clojure-async
   (testing "metrics work with clojure async client"
