@@ -52,19 +52,3 @@
   [start-time-milliseconds duration-milliseconds]
   (<= (System/currentTimeMillis) (+ start-time-milliseconds
                                     duration-milliseconds)))
-
-(tk/defservice test-metric-web-service
-               [[:WebserverService add-ring-handler]]
-  (init [this context]
-        (add-ring-handler (fn [_] {:status 200 :body "Hello, World!"}) "/hello")
-        (add-ring-handler (fn [_]
-                            (do
-                              (Thread/sleep 5)
-                              {:status 200 :body "short"}))
-                          "/short")
-        (add-ring-handler (fn [_]
-                            (do
-                              (Thread/sleep 100)
-                              {:status 200 :body "long"}))
-                          "/long")
-        context))

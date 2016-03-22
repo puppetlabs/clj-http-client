@@ -3,9 +3,7 @@
            (java.net SocketTimeoutException ConnectException)
            (java.io PipedInputStream PipedOutputStream)
            (java.util.concurrent TimeoutException)
-           (java.util UUID)
-           (com.codahale.metrics MetricRegistry Timer)
-           (com.puppetlabs.http.client.impl ClientMetricData))
+           (java.util UUID))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -16,12 +14,12 @@
 
 (use-fixtures :once schema-test/validate-schemas)
 
-(defn- generate-data
+(defn generate-data
   "Generate data of approximately the requested size, which is moderately compressible"
   [data-size]
   (apply str "xxxx" (repeatedly (/ data-size 35) #(UUID/randomUUID))))
 
-(defn- successful-handler
+(defn successful-handler
   "A Ring handler that asynchronously sends some data, waits for confirmation the data has been received then sends
   some more data"
   [data send-more-data]
@@ -41,7 +39,7 @@
       {:status 200
        :body instream})))
 
-(defn- blocking-handler
+(defn blocking-handler
   "A Ring handler that sends some data but then never closes the socket"
   [data]
   (fn [_]
@@ -329,143 +327,3 @@
 (deftest java-existing-streaming-with-large-payload-with-decompression
   (testing "java :stream with 32M payload and decompression"
     (java-blocking-streaming (generate-data (* 32 1024 1024)) ResponseBodyType/STREAM true)))
-
-(deftest java-metrics-for-unbuffered-streaming-test
-  (testlogging/with-test-logging
-   (let [data (generate-data (* 1024 1024))]
-     (testing "metrics work for a successful request"
-       (let [metric-registry (MetricRegistry.)]
-         (testwebserver/with-test-webserver-and-config
-          (successful-handler data nil) port {:shutdown-timeout-seconds 1}
-          (with-open [client (-> (ClientOptions.)
-                                 (.setSocketTimeoutMilliseconds 20000)
-                                 (.setConnectTimeoutMilliseconds 100)
-                                 (Async/createClient metric-registry))]
-            (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
-                                    (.setAs ResponseBodyType/UNBUFFERED_STREAM))
-                  response (-> client (.get request-options) .deref)
-                  status (.getStatus response)
-                  body (.getBody response)]
-              (is (= 200 status))
-              (let [instream body
-                    buf (make-array Byte/TYPE 4)]
-                (.read instream buf)
-                (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
-                (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
-                (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
-              (let [client-metrics (.getClientMetrics client)
-                    client-metrics-data (.getClientMetricsData client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
-                       (set (keys client-metrics))
-                       (set (keys client-metrics-data))))
-                (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
-                  (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
-
-                  (is (= 1 (.getCount bytes-read-data)))
-                  (is (= bytes-read-id (.getMetricId bytes-read-data)))
-                  (is (<= 1000 (.getMean bytes-read-data)))
-                  (is (<= 1000 (.getAggregate bytes-read-data))))))))))
-     (testing "metrics work for failed request"
-       (try
-         (testwebserver/with-test-webserver-and-config
-          (blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (MetricRegistry.)]
-            (with-open [client (-> (ClientOptions.)
-                                   (.setSocketTimeoutMilliseconds 200)
-                                   (.setConnectTimeoutMilliseconds 100)
-                                   (Async/createClient metric-registry))]
-              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
-                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM))
-                    response (-> client (.get request-options) .deref)
-                    error (.getError response)
-                    body (.getBody response)]
-                (is (nil? error))
-                (is (thrown? SocketTimeoutException (slurp body)))
-                (let [client-metrics (.getClientMetrics client)
-                      client-metrics-data (.getClientMetricsData client)
-                      base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                      bytes-read-id (str base-metric-id ".bytes-read")
-                      bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                  (is (= (set (list bytes-read-id bytes-read-id-with-verb))
-                         (set (keys client-metrics))
-                         (set (keys client-metrics-data))))
-                  (is (every? #(instance? Timer %) (vals client-metrics)))
-                  (let [bytes-read-data (get client-metrics-data bytes-read-id)]
-                    (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
-
-                    (is (= 1 (.getCount bytes-read-data)))
-                    (is (= bytes-read-id (.getMetricId bytes-read-data)))
-                    (is (<= 1 (.getMean bytes-read-data)))
-                    (is (<= 1 (.getAggregate bytes-read-data)))))))))
-         (catch TimeoutException e
-           ;; Expected whenever a server-side failure is generated
-           ))))))
-
-(deftest clojure-metrics-for-unbuffered-streaming-test
-  (testlogging/with-test-logging
-   (let [data (generate-data (* 1024 1024))
-         opts {:as :unbuffered-stream}]
-     (testing "metrics work for a successful request"
-       (let [metric-registry (MetricRegistry.)]
-         (testwebserver/with-test-webserver-and-config
-          (successful-handler data nil) port {:shutdown-timeout-seconds 1}
-          (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                   :socket-timeout-milliseconds 20000}
-                                                  metric-registry)]
-            (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
-                  {:keys [status body]} response]
-              (is (= 200 status))
-              (let [instream body
-                    buf (make-array Byte/TYPE 4)]
-                (.read instream buf)
-                (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
-                (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
-                (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
-              (let [client-metrics (common/get-client-metrics client)
-                    client-metrics-data (common/get-client-metrics-data client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
-                       (set (keys client-metrics))
-                       (set (keys client-metrics-data))))
-                (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
-                  (is (= {:count 1 :metric-id bytes-read-id}
-                         (select-keys bytes-read-data [:metric-id :count])))
-                  (is (<= 1000 (:mean bytes-read-data)))
-                  (is (<= 1000 (:aggregate bytes-read-data))))))))))
-     (testing "metrics work for a failed request"
-       (try
-         (testwebserver/with-test-webserver-and-config
-          (blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (MetricRegistry.)]
-            (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                     :socket-timeout-milliseconds 200}
-                                                    metric-registry)]
-              (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
-                    {:keys [body error]} response]
-                (is (nil? error))
-                ;; Consume the body to get the exception
-                (is (thrown? SocketTimeoutException (slurp body))))
-              (let [client-metrics (common/get-client-metrics client)
-                    client-metrics-data (common/get-client-metrics-data client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
-                       (set (keys client-metrics))
-                       (set (keys client-metrics-data))))
-                (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
-                  (is (= {:count 1 :metric-id bytes-read-id}
-                         (select-keys bytes-read-data [:metric-id :count])))
-                  (is (<= 1 (:mean bytes-read-data)))
-                  (is (<= 1 (:aggregate bytes-read-data))))))))
-         (catch TimeoutException e
-           ;; Expected whenever a server-side failure is generated
-           ))))))
