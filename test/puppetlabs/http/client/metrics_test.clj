@@ -31,8 +31,6 @@
                                        "/long")
                      context))
 
-(def bytes-read Metrics$MetricType/BYTES_READ)
-
 (def hello-url "http://localhost:10000/hello")
 (def short-url "http://localhost:10000/short")
 (def long-url "http://localhost:10000/long")
@@ -120,16 +118,7 @@
                    (is (<= 100 (.getMean long-data)))
                    (is (<= 100 (.getAggregate long-data)))
 
-                   (is (> (.getAggregate long-data) (.getAggregate short-data)))))
-               (testing "get-client-metrics with filter"
-                 (is (= (list short-id) (keys (.getClientMetrics client short-url bytes-read))
-                        (keys (.getClientMetricsData client short-url bytes-read))))
-                 (is (= (list short-id-with-get) (keys (.getClientMetrics client short-url "GET" bytes-read))
-                        (keys (.getClientMetricsData client short-url "GET" bytes-read))))
-                 (is (= (list long-foo-bar-id) (keys (.getClientMetrics client (into-array ["foo" "bar"]) bytes-read))
-                        (keys (.getClientMetricsData client (into-array ["foo" "bar"]) bytes-read))))
-                 (is (= {} (.getClientMetrics client (into-array ["foo" "abc"]) bytes-read)
-                        (.getClientMetricsData client (into-array ["foo" "abc"]) bytes-read)))))))
+                   (is (> (.getAggregate long-data) (.getAggregate short-data))))))))
          (with-open [client (Async/createClient (ClientOptions.))]
            (testing ".getClientMetrics returns nil if no metrics registry passed in"
              (let [response (-> client (.get hello-request-opts) (.deref))]
@@ -198,19 +187,7 @@
                   (is (<= 100 (:mean long-data)))
                   (is (<= 100 (:aggregate long-data)))
 
-                  (is (> (:mean long-data) (:mean short-data)))))
-              (testing "get-client-metrics with filter"
-                (is (= (list short-id)
-                       (keys (common/get-client-metrics client {:url short-url :metric-type "bytes-read"}))
-                       (keys (common/get-client-metrics-data client {:url short-url :metric-type "bytes-read"}))))
-                (is (= (list short-id-with-get)
-                       (keys (common/get-client-metrics client {:url short-url :verb "GET" :metric-type "bytes-read"}))
-                       (keys (common/get-client-metrics-data client {:url short-url :verb "GET" :metric-type "bytes-read"}))))
-                (is (= (list long-foo-bar-id)
-                       (keys (common/get-client-metrics client {:metric-id ["foo" "bar"] :metric-type "bytes-read"}))
-                       (keys (common/get-client-metrics-data client {:metric-id ["foo" "bar"] :metric-type "bytes-read"}))))
-                (is (= {} (common/get-client-metrics client {:metric-id ["foo" "abc"] :metric-type "bytes-read"})
-                       (common/get-client-metrics-data client {:metric-id ["foo" "abc"] :metric-type "bytes-read"}))))))))
+                  (is (> (:mean long-data) (:mean short-data)))))))))
       (with-open [client (async/create-client {})]
         (testing "get-client-metrics returns nil if no metrics registry passed in"
           (let [response (common/get client hello-url)]
