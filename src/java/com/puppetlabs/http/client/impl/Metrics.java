@@ -8,7 +8,6 @@ import org.apache.http.RequestLine;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
 public class Metrics {
@@ -29,11 +28,11 @@ public class Metrics {
         ArrayList<Timer.Context> timers = new ArrayList<>();
         for (int i = 0; i < metricId.length; i++) {
             ArrayList<String> currentId = new ArrayList<>();
+            currentId.add(ID_NAMESPACE);
             for (int j = 0; j <= i; j++) {
                 currentId.add(metricId[j]);
             }
-            currentId.add(0, ID_NAMESPACE);
-            currentId.add(currentId.size(), BYTES_READ_STRING);
+            currentId.add(BYTES_READ_STRING);
             String metric_name = MetricRegistry.name(METRIC_NAMESPACE,
                 currentId.toArray(new String[currentId.size()]));
             timers.add(registry.timer(metric_name).time());
@@ -114,7 +113,7 @@ public class Metrics {
     public static Map<String, ClientMetricData> computeClientMetricsData(Map<String, Timer> timers){
         Map<String, ClientMetricData> metricsData = new HashMap<>();
         if (timers != null) {
-            for (SortedMap.Entry<String, Timer> entry : timers.entrySet()) {
+            for (Map.Entry<String, Timer> entry : timers.entrySet()) {
                 Timer timer = entry.getValue();
                 String metricId = entry.getKey();
                 Double mean = timer.getSnapshot().getMean();

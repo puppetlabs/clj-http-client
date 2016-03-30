@@ -17,30 +17,26 @@ public final class TimedFutureCallback<T> implements FutureCallback<T> {
     }
 
     public void completed(T result) {
-        if (timerContexts != null) {
-            for (Timer.Context timerContext : timerContexts) {
-                timerContext.stop();
-            }
-        }
+        stopTimerContexts();
         delegate.completed(result);
     }
 
     public void failed(Exception ex) {
-        if (timerContexts != null) {
-            for (Timer.Context timerContext : timerContexts) {
-                timerContext.stop();
-            }
-        }
+        stopTimerContexts();
         delegate.failed(ex);
     }
 
     public void cancelled() {
+        stopTimerContexts();
+        delegate.cancelled();
+    }
+
+    private void stopTimerContexts() {
         if (timerContexts != null) {
             for (Timer.Context timerContext : timerContexts) {
                 timerContext.stop();
             }
         }
-        delegate.cancelled();
     }
 
 }
