@@ -9,7 +9,7 @@
             [puppetlabs.http.client.sync :as sync]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.trapperkeeper.core :as tk])
-  (:import (com.puppetlabs.http.client.impl Metrics$MetricType ClientMetricData)
+  (:import (com.puppetlabs.http.client.impl ClientMetricData)
            (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType Sync)
            (com.codahale.metrics Timer MetricRegistry)
            (java.net SocketTimeoutException)
@@ -409,8 +409,8 @@
 
                     (is (= 1 (.getCount bytes-read-data)))
                     (is (= bytes-read-id (.getMetricId bytes-read-data)))
-                    (is (<= 1 (.getMean bytes-read-data)))
-                    (is (<= 1 (.getAggregate bytes-read-data)))))))))
+                    (is (<= 200 (.getMean bytes-read-data)))
+                    (is (<= 200 (.getAggregate bytes-read-data)))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))
@@ -474,8 +474,8 @@
                 (let [bytes-read-data (get client-metrics-data bytes-read-id)]
                   (is (= {:count 1 :metric-id bytes-read-id}
                          (select-keys bytes-read-data [:metric-id :count])))
-                  (is (<= 1 (:mean bytes-read-data)))
-                  (is (<= 1 (:aggregate bytes-read-data))))))))
+                  (is (<= 200 (:mean bytes-read-data)))
+                  (is (<= 200 (:aggregate bytes-read-data))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))

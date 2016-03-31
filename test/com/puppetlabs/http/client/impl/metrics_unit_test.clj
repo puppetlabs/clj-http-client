@@ -19,23 +19,23 @@
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://localhost/foo")
                                         nil)
-          (= (set (list url-id url-verb-id (set (keys (.getTimers metric-registry))))))))
+          (is (= (set (list url-id url-verb-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are not created for a request with an empty metric id"
         (let [metric-registry (MetricRegistry.)]
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://localhost/foo")
                                         (into-array String []))
-          (= (set (list url-id url-verb-id (set (keys (.getTimers metric-registry))))))))
+          (is (= (set (list url-id url-verb-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are created correctly for a request with a metric id"
         (let [metric-registry (MetricRegistry.)]
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://localhost/foo")
                                         (into-array ["foo" "bar" "baz"]))
-          (= (set (list url-id url-verb-id
-                        "puppetlabs.http-client.experimental.with-metric-id.foo"
-                        "puppetlabs.http-client.experimental.with-metric-id.foo.bar"
-                        "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz"))
-             (set (keys (.getTimers metric-registry)))))))))
+          (is (= (set (list url-id url-verb-id
+                            (add-metric-ns "with-metric-id.foo.bytes-read")
+                            (add-metric-ns "with-metric-id.foo.bar.bytes-read")
+                            (add-metric-ns "with-metric-id.foo.bar.baz.bytes-read")))
+                 (set (keys (.getTimers metric-registry))))))))))
 
 (defn start-and-stop-timers! [registry req id]
   (doseq [timer (Metrics/startBytesReadTimers
@@ -117,7 +117,7 @@
                 registry {:url "http://test.com" :verb "PUT" :metric-type "bytes-read"})))))
     (testing "getClientMetricsData with metric id returns the right thing"
       (let [java-data (Metrics/getClientMetricsDataWithMetricId
-                  registry (into-array ["foo"]) bytes-read)
+                       registry (into-array ["foo"]) bytes-read)
             clj-data (async/get-client-metrics-data
                       registry {:metric-id ["foo"] :metric-type "bytes-read"})]
         (is (= (add-metric-ns "with-metric-id.foo.bytes-read")
@@ -126,7 +126,7 @@
         (is (= 2 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
       (let [java-data (Metrics/getClientMetricsDataWithMetricId
-                  registry (into-array ["foo" "bar"]) bytes-read)
+                       registry (into-array ["foo" "bar"]) bytes-read)
             clj-data (async/get-client-metrics-data
                       registry {:metric-id ["foo" "bar"] :metric-type "bytes-read"})]
         (is (= (add-metric-ns "with-metric-id.foo.bar.bytes-read")
@@ -135,7 +135,7 @@
         (is (= 1 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
       (let [java-data (Metrics/getClientMetricsDataWithMetricId
-                  registry (into-array ["foo" "abc"]) bytes-read)
+                       registry (into-array ["foo" "abc"]) bytes-read)
             clj-data (async/get-client-metrics-data
                       registry {:metric-id ["foo" "abc"] :metric-type "bytes-read"})]
         (is (= (add-metric-ns "with-metric-id.foo.abc.bytes-read")
