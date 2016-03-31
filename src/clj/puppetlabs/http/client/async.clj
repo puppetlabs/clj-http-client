@@ -150,6 +150,11 @@
             (assoc acc metric-id (get-metric-data timer metric-id)))
           {} timers))
 
+(defn get-java-metric-type
+  [metric-type]
+  (case metric-type
+    :bytes-read Metrics$MetricType/BYTES_READ))
+
 (schema/defn ^:always-validate get-client-metrics :- (schema/maybe common/Metrics)
   "Returns the http client-specific metrics from the metric registry."
   ([metric-registry :- common/OptionalMetricRegistry]
@@ -163,14 +168,15 @@
                                          metric-registry
                                          (:url metric-filter)
                                          (:method metric-filter)
-                                         Metrics$MetricType/BYTES_READ))
+                                         (get-java-metric-type (:metric-type metric-filter))))
        (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
                                       metric-registry
                                       (:url metric-filter)
-                                      Metrics$MetricType/BYTES_READ))
+                                      (get-java-metric-type (:metric-type metric-filter))))
        (:metric-id metric-filter) (into {} (Metrics/getClientMetricsWithMetricId
                                             metric-registry
-                                            (into-array (:metric-id metric-filter)) Metrics$MetricType/BYTES_READ))
+                                            (into-array (:metric-id metric-filter))
+                                            (get-java-metric-type (:metric-type metric-filter))))
        :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
 
 (schema/defn ^:always-validate get-client-metrics-data :- (schema/maybe common/MetricsData)

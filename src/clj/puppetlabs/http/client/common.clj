@@ -171,12 +171,15 @@
 (def MetricsData
   {schema/Str MetricData})
 
+(def MetricTypes
+  (schema/enum :bytes-read))
+
 (def MetricFilter
   (schema/conditional
    #(contains? % :url)
-   {:metric-type (schema/enum "bytes-read")
+   {:metric-type MetricTypes
     :url schema/Str
     (ok :method) schema/Str}
    #(contains? % :metric-id)
-   {:metric-type (schema/enum "bytes-read")
+   {:metric-type MetricTypes
     :metric-id [schema/Str]}))
