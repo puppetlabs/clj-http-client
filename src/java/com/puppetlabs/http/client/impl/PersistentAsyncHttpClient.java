@@ -34,8 +34,8 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return Metrics.getClientMetricsWithUrl(metricRegistry, url, metricType);
     }
 
-    public Map<String, Timer> getClientMetrics(String url, String verb, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsWithUrlAndVerb(metricRegistry, url, verb, metricType);
+    public Map<String, Timer> getClientMetrics(String url, String method, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsWithUrlAndMethod(metricRegistry, url, method, metricType);
     }
 
     public Map<String, Timer> getClientMetrics(String[] metricId, Metrics.MetricType metricType) {
@@ -50,8 +50,8 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return Metrics.getClientMetricsDataWithUrl(metricRegistry, url, metricType);
     }
 
-    public Map<String, ClientMetricData> getClientMetricsData(String url, String verb, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsDataWithUrlAndVerb(metricRegistry, url, verb, metricType);
+    public Map<String, ClientMetricData> getClientMetricsData(String url, String method, Metrics.MetricType metricType) {
+        return Metrics.getClientMetricsDataWithUrlAndMethod(metricRegistry, url, method, metricType);
     }
 
     public Map<String, ClientMetricData> getClientMetricsData(String[] metricId, Metrics.MetricType metricType) {

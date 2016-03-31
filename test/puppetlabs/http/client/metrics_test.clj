@@ -42,14 +42,14 @@
 
 (def long-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long")
 (def long-id (str long-id-base ".bytes-read"))
-(def long-id-with-verb (str long-id-base ".GET" ".bytes-read"))
+(def long-id-with-method (str long-id-base ".GET" ".bytes-read"))
 (def long-foo-id "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
 (def long-foo-bar-id "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
 (def long-foo-bar-baz-id "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")
 
 (def hello-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello")
 (def hello-id (str hello-id-base ".bytes-read"))
-(def hello-id-with-verb (str hello-id-base ".GET" ".bytes-read"))
+(def hello-id-with-method (str hello-id-base ".GET" ".bytes-read"))
 
 (deftest metrics-test-java-async
   (testing "metrics work with java async client"
@@ -81,8 +81,8 @@
                  (is (= 10 (count client-metrics)))
                  (is (= 10 (count client-metrics-data))))
                (testing "get-client-metrics returns a map of metric name to timer instance"
-                        (is (= (set (list hello-id hello-id-with-verb short-id short-id-with-get
-                                          short-id-with-post long-id long-id-with-verb
+                        (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
+                                          short-id-with-post long-id long-id-with-method
                                           long-foo-id long-foo-bar-id long-foo-bar-baz-id))
                                (set (keys client-metrics))
                                (set (keys client-metrics-data))))
@@ -152,8 +152,8 @@
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
               (testing "get-client-metrics returns a map of metric id to timer instance"
-                (is (= (set (list hello-id hello-id-with-verb short-id short-id-with-get
-                                  short-id-with-post long-id long-id-with-verb
+                (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
+                                  short-id-with-post long-id long-id-with-method
                                   long-foo-id long-foo-bar-id long-foo-bar-baz-id))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
@@ -226,8 +226,8 @@
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
               (testing ".getClientMetrics returns a map of metric name to timer instance"
-                (is (= (set (list hello-id hello-id-with-verb short-id short-id-with-get
-                                  short-id-with-post long-id long-id-with-verb
+                (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
+                                  short-id-with-post long-id long-id-with-method
                                   long-foo-id long-foo-bar-id long-foo-bar-baz-id))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
@@ -296,8 +296,8 @@
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
               (testing "get-client-metrics returns a map of metric id to timer instance"
-                (is (= (set (list hello-id hello-id-with-verb short-id short-id-with-get
-                                  short-id-with-post long-id long-id-with-verb
+                (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
+                                  short-id-with-post long-id long-id-with-method
                                   long-foo-id long-foo-bar-id long-foo-bar-baz-id))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
@@ -367,8 +367,8 @@
                     client-metrics-data (.getClientMetricsData client)
                     base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                     bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
+                    bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-id bytes-read-id-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
@@ -399,8 +399,8 @@
                       client-metrics-data (.getClientMetricsData client)
                       base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                       bytes-read-id (str base-metric-id ".bytes-read")
-                      bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                  (is (= (set (list bytes-read-id bytes-read-id-with-verb))
+                      bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
+                  (is (= (set (list bytes-read-id bytes-read-id-with-method))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))
                   (is (every? #(instance? Timer %) (vals client-metrics)))
@@ -439,8 +439,8 @@
                     client-metrics-data (common/get-client-metrics-data client)
                     base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                     bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
+                    bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-id bytes-read-id-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
@@ -466,8 +466,8 @@
                     client-metrics-data (common/get-client-metrics-data client)
                     base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                     bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-verb (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-verb))
+                    bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-id bytes-read-id-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))

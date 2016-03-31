@@ -46,11 +46,11 @@ public class Metrics {
         final RequestLine requestLine = request.getRequestLine();
         final String urlName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
                 requestLine.getUri(), BYTES_READ_STRING);
-        final String urlAndVerbName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
+        final String urlAndMethodName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
                 requestLine.getUri(), requestLine.getMethod(), BYTES_READ_STRING);
         ArrayList<Timer.Context> timers = new ArrayList<>();
         timers.add(registry.timer(urlName).time());
-        timers.add(registry.timer(urlAndVerbName).time());
+        timers.add(registry.timer(urlAndMethodName).time());
         return timers;
     }
 
@@ -92,13 +92,13 @@ public class Metrics {
         }
     }
 
-    public static Map<String, Timer> getClientMetricsWithUrlAndVerb(MetricRegistry metricRegistry,
+    public static Map<String, Timer> getClientMetricsWithUrlAndMethod(MetricRegistry metricRegistry,
                                                                     final String url,
-                                                                    final String verb,
+                                                                    final String method,
                                                                     final MetricType metricType){
         if (metricRegistry != null) {
             String metricName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
-                    url, verb, metricTypeString(metricType));
+                    url, method, metricTypeString(metricType));
             return metricRegistry.getTimers(new ClientMetricFilter(metricName));
         } else {
             return null;
@@ -147,11 +147,11 @@ public class Metrics {
         return computeClientMetricsData(timers);
     }
 
-    public static Map<String, ClientMetricData> getClientMetricsDataWithUrlAndVerb(MetricRegistry metricRegistry,
+    public static Map<String, ClientMetricData> getClientMetricsDataWithUrlAndMethod(MetricRegistry metricRegistry,
                                                                                    String url,
-                                                                                   String verb,
+                                                                                   String method,
                                                                                    MetricType metricType){
-        Map<String, Timer> timers = getClientMetricsWithUrlAndVerb(metricRegistry, url, verb, metricType);
+        Map<String, Timer> timers = getClientMetricsWithUrlAndMethod(metricRegistry, url, method, metricType);
         return computeClientMetricsData(timers);
     }
 

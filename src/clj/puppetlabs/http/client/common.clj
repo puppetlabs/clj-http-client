@@ -176,7 +176,7 @@
    #(contains? % :url)
    {:metric-type (schema/enum "bytes-read")
     :url schema/Str
-    (ok :verb) schema/Str}
+    (ok :method) schema/Str}
    #(contains? % :metric-id)
    {:metric-type (schema/enum "bytes-read")
     :metric-id [schema/Str]}))

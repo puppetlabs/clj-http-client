@@ -31,11 +31,11 @@ public interface AsyncHttpClient extends Closeable{
 
     /**
      * @param url a url to filter on
-     * @param verb an HTTP method to filter on
+     * @param method an HTTP method to filter on
      * @param metricType the type of metric to return data for
      * @return a Map of metric name to Timer instance
      */
-    public Map<String, Timer> getClientMetrics(String url, String verb, Metrics.MetricType metricType);
+    public Map<String, Timer> getClientMetrics(String url, String method, Metrics.MetricType metricType);
 
     /**
      * @param metricId a metric id to filter on
@@ -58,11 +58,11 @@ public interface AsyncHttpClient extends Closeable{
 
     /**
      * @param url a url to filter on
-     * @param verb an HTTP method to filter on
+     * @param method an HTTP method to filter on
      * @param metricType the type of metric to return data for
      * @return a Map of metric name to metric data
      */
-    public Map<String, ClientMetricData> getClientMetricsData(String url, String verb, Metrics.MetricType metricType);
+    public Map<String, ClientMetricData> getClientMetricsData(String url, String method, Metrics.MetricType metricType);
 
     /**
      * @param metricId a metric id to filter on

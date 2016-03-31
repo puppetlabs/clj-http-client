@@ -162,10 +162,10 @@
     metric-filter :- common/MetricFilter]
    (when metric-registry
      (cond
-       (:verb metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndVerb
+       (:method metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndMethod
                                        metric-registry
                                        (:url metric-filter)
-                                       (:verb metric-filter)
+                                       (:method metric-filter)
                                        Metrics$MetricType/BYTES_READ))
        (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
                                       metric-registry
