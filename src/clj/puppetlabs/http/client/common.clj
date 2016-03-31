@@ -41,6 +41,8 @@
 (def BodyType
   (schema/enum :text :stream :unbuffered-stream))
 
+(def MetricId [(schema/either schema/Str schema/Keyword)])
+
 (def RawUserRequestClientOptions
   "The list of request and client options passed by a user into
   the request function. Allows the user to configure
@@ -75,7 +77,7 @@
    (ok :decompress-body)  schema/Bool
    (ok :as)               BodyType
    (ok :query-params)     {schema/Str schema/Str}
-   (ok :metric-id)        [schema/Str]})
+   (ok :metric-id)        MetricId})
 
 (def RequestOptions
   "The options from UserRequestOptions that have to do with the
@@ -89,7 +91,7 @@
    :decompress-body       schema/Bool
    :as                    BodyType
    (ok :query-params)     {schema/Str schema/Str}
-   (ok :metric-id)        [schema/Str]})
+   (ok :metric-id)        MetricId})
 
 (def SslContextOptions
   {:ssl-context SSLContext})
@@ -182,4 +184,4 @@
     (ok :method) schema/Str}
    #(contains? % :metric-id)
    {:metric-type MetricTypes
-    :metric-id [schema/Str]}))
+    :metric-id MetricId}))

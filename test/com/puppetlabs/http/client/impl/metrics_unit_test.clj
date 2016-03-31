@@ -142,7 +142,11 @@
                (first (keys java-data))
                (first (keys clj-data))))
         (is (= 1 (.getCount (first (vals java-data)))
-               (:count (first (vals clj-data))))))
+               (:count (first (vals clj-data)))))
+        (testing "metric id can be specified as keyword or string"
+          (is (= clj-data
+                 (async/get-client-metrics-data
+                  registry {:metric-id ["foo" :abc] :metric-type :bytes-read})))))
       (testing "getClientMetricsData with metric id returns nothing if id is not a match"
         (is (= {} (Metrics/getClientMetricsDataWithMetricId
                    registry (into-array ["foo" "cat"]) bytes-read)

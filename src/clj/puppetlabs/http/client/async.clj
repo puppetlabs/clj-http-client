@@ -115,7 +115,7 @@
 (defn parse-metric-id
   [opts]
   (when-let [metric-id (:metric-id opts)]
-    (into-array metric-id)))
+    (into-array (map name metric-id))))
 
 (schema/defn clojure-options->java :- RequestOptions
   [opts :- common/RequestOptions]
@@ -175,7 +175,7 @@
                                       (get-java-metric-type (:metric-type metric-filter))))
        (:metric-id metric-filter) (into {} (Metrics/getClientMetricsWithMetricId
                                             metric-registry
-                                            (into-array (:metric-id metric-filter))
+                                            (into-array (map name (:metric-id metric-filter)))
                                             (get-java-metric-type (:metric-type metric-filter))))
        :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
 
@@ -216,7 +216,10 @@
    * :as - used to control the data type of the response body.  Supported values
        are `:text` and `:stream`, which will return a `String` or an
        `InputStream`, respectively.  Defaults to `:stream`.
-   * :query-params - used to set the query parameters of an http request"
+   * :query-params - used to set the query parameters of an http request
+   * :metric-id - array of strings or keywords, used to set the metrics to be
+       timed for the request."
+
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient]
