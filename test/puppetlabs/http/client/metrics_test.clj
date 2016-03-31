@@ -125,7 +125,7 @@
                (is (= 200 (.getStatus response)))
                (is (= "Hello, World!" (slurp (.getBody response))))
                (is (= nil (.getClientMetrics client)))
-               (is (= {} (.getClientMetricsData client)))))))))))
+               (is (= nil (.getClientMetricsData client)))))))))))
 
 (deftest metrics-test-clojure-async
   (testing "metrics work with clojure async client"
@@ -194,7 +194,7 @@
             (is (= 200 (:status @response)))
             (is (= "Hello, World!" (slurp (:body @response))))
             (is (= nil (common/get-client-metrics client)))
-            (is (= {} (common/get-client-metrics-data client))))))))))
+            (is (= nil (common/get-client-metrics-data client))))))))))
 
 (deftest metrics-test-java-sync
   (testing "metrics work with java sync client"
@@ -270,7 +270,7 @@
               (is (= 200 (.getStatus response)))
               (is (= "Hello, World!" (slurp (.getBody response))))
               (is (= nil (.getClientMetrics client)))
-              (is (= {} (.getClientMetricsData client)))))))))))
+              (is (= nil (.getClientMetricsData client)))))))))))
 
 (deftest metrics-test-clojure-sync
   (testing "metrics work with clojure sync client"
@@ -338,7 +338,7 @@
               (is (= 200 (:status response)))
               (is (= "Hello, World!" (slurp (:body response))))
               (is (= nil (common/get-client-metrics client)))
-              (is (= {} (common/get-client-metrics-data client)))))))))))
+              (is (= nil (common/get-client-metrics-data client)))))))))))
 
 (deftest java-metrics-for-unbuffered-streaming-test
   (testlogging/with-test-logging

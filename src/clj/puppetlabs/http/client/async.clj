@@ -150,9 +150,6 @@
             (assoc acc metric-id (get-metric-data timer metric-id)))
           {} timers))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Public
-
 (schema/defn ^:always-validate get-client-metrics :- (schema/maybe common/Metrics)
   "Returns the http client-specific metrics from the metric registry."
   ([metric-registry :- common/OptionalMetricRegistry]
@@ -163,10 +160,10 @@
    (when metric-registry
      (cond
        (:method metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndMethod
-                                       metric-registry
-                                       (:url metric-filter)
-                                       (:method metric-filter)
-                                       Metrics$MetricType/BYTES_READ))
+                                         metric-registry
+                                         (:url metric-filter)
+                                         (:method metric-filter)
+                                         Metrics$MetricType/BYTES_READ))
        (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
                                       metric-registry
                                       (:url metric-filter)
@@ -179,12 +176,17 @@
 (schema/defn ^:always-validate get-client-metrics-data :- (schema/maybe common/MetricsData)
   "Returns a map of metric-id to metric data summary."
   ([metric-registry :- common/OptionalMetricRegistry]
-   (let [timers (get-client-metrics metric-registry)]
-     (get-metrics-data timers)))
+   (when metric-registry
+     (let [timers (get-client-metrics metric-registry)]
+       (get-metrics-data timers))))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-filter :- common/MetricFilter]
-   (let [timers (get-client-metrics metric-registry metric-filter)]
-     (get-metrics-data timers))))
+   (when metric-registry
+     (let [timers (get-client-metrics metric-registry metric-filter)]
+       (get-metrics-data timers)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
 
 (schema/defn ^:always-validate request-with-client :- common/ResponsePromise
   "Issues an async HTTP request with the specified client and returns a promise

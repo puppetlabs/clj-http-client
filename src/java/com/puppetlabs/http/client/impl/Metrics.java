@@ -118,8 +118,8 @@ public class Metrics {
     }
 
     public static Map<String, ClientMetricData> computeClientMetricsData(Map<String, Timer> timers){
-        Map<String, ClientMetricData> metricsData = new HashMap<>();
         if (timers != null) {
+            Map<String, ClientMetricData> metricsData = new HashMap<>();
             for (Map.Entry<String, Timer> entry : timers.entrySet()) {
                 Timer timer = entry.getValue();
                 String metricId = entry.getKey();
@@ -131,8 +131,10 @@ public class Metrics {
                 ClientMetricData data = new ClientMetricData(metricId, count, meanMillis, aggregate);
                 metricsData.put(metricId, data);
             }
+            return metricsData;
+        } else {
+            return null;
         }
-        return metricsData;
     }
 
     public static Map<String, ClientMetricData> getClientMetricsData(MetricRegistry metricRegistry){
