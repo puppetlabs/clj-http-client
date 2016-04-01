@@ -35,6 +35,23 @@
                             (add-metric-ns "with-metric-id.foo.bytes-read")
                             (add-metric-ns "with-metric-id.foo.bar.bytes-read")
                             (add-metric-ns "with-metric-id.foo.bar.baz.bytes-read")))
+                 (set (keys (.getTimers metric-registry)))))))
+      (testing "url timers should strip off username, password, query string, and fragment"
+        (let [metric-registry (MetricRegistry.)]
+          (Metrics/startBytesReadTimers metric-registry
+                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one")
+                                        nil)
+          (Metrics/startBytesReadTimers metric-registry
+                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz#x%2cyz")
+                                        nil)
+          (Metrics/startBytesReadTimers metric-registry
+                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one#x%2cyz")
+                                        nil)
+          (Metrics/startBytesReadTimers metric-registry
+                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?#x%2cyz")
+                                        nil)
+          (is (= (set (list (add-metric-ns "with-url.http://localhost:1234/foo%2cbar/baz.bytes-read")
+                            (add-metric-ns "with-url.http://localhost:1234/foo%2cbar/baz.GET.bytes-read")))
                  (set (keys (.getTimers metric-registry))))))))))
 
 (defn start-and-stop-timers! [registry req id]

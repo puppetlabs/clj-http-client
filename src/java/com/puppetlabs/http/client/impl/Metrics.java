@@ -5,7 +5,11 @@ import com.codahale.metrics.Timer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpRequest;
 import org.apache.http.RequestLine;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +27,8 @@ public class Metrics {
         // there are multiple types this will do something more useful
         return BYTES_READ_STRING;
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
 
     private static ArrayList<Timer.Context> startBytesReadMetricIdTimers(MetricRegistry registry,
                                                                          String[] metricId) {
@@ -43,14 +49,29 @@ public class Metrics {
 
     private static ArrayList<Timer.Context> startBytesReadUrlTimers(MetricRegistry registry,
                                                                     HttpRequest request) {
-        final RequestLine requestLine = request.getRequestLine();
-        final String urlName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
-                requestLine.getUri(), BYTES_READ_STRING);
-        final String urlAndMethodName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
-                requestLine.getUri(), requestLine.getMethod(), BYTES_READ_STRING);
         ArrayList<Timer.Context> timers = new ArrayList<>();
-        timers.add(registry.timer(urlName).time());
-        timers.add(registry.timer(urlAndMethodName).time());
+        try {
+            final RequestLine requestLine = request.getRequestLine();
+            final URI uri = new URI(requestLine.getUri());
+
+             // if the port is not specified, `getPort()` returns -1
+            final String port = uri.getPort() == -1 ? "" : ":" + uri.getPort();
+            final String strippedUrl = uri.getScheme() + "://" + uri.getHost()
+                    + port + uri.getRawPath();
+
+            final String urlName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
+                    strippedUrl, BYTES_READ_STRING);
+            final String urlAndMethodName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
+                    strippedUrl, requestLine.getMethod(), BYTES_READ_STRING);
+
+            timers.add(registry.timer(urlName).time());
+            timers.add(registry.timer(urlAndMethodName).time());
+        } catch (URISyntaxException e) {
+            // this shouldn't be possible
+            LOGGER.warn("Could not build URI out of the request URI. Will not create URI timers. " +
+                    "We recommend you read http://www.stilldrinking.com/programming-sucks. " +
+                    "'now all your snowflakes are urine and you can't even find the cat.'");
+        }
         return timers;
     }
 
