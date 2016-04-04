@@ -63,7 +63,8 @@
              short-request-opts (RequestOptions. short-url)
              long-request-opts (doto (RequestOptions. long-url)
                                  (.setMetricId (into-array ["foo" "bar" "baz"])))]
-         (with-open [client (Async/createClient (ClientOptions.) metric-registry)]
+         (with-open [client (Async/createClient (doto (ClientOptions.)
+                                                  (.setMetricRegistry metric-registry)))]
            (-> client (.get hello-request-opts) (.deref)) ; warm it up
            (let [short-response (-> client (.get short-request-opts) (.deref))
                  long-response (-> client (.get long-request-opts) (.deref))]
@@ -135,7 +136,7 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (let [metric-registry (MetricRegistry.)]
-        (with-open [client (async/create-client {} metric-registry)]
+        (with-open [client (async/create-client {:metric-registry metric-registry})]
           @(common/get client hello-url) ; warm it up
           (let [short-response @(common/get client short-url {:as :text :metric-id ["foo" "bar" "baz"]})
                 long-response @(common/get client long-url)]
@@ -208,7 +209,8 @@
             short-request-opts (RequestOptions. short-url)
             long-request-opts (doto (RequestOptions. long-url)
                                 (.setMetricId (into-array ["foo" "bar" "baz"])))]
-        (with-open [client (Sync/createClient (ClientOptions.) metric-registry)]
+        (with-open [client (Sync/createClient (doto (ClientOptions.)
+                                                (.setMetricRegistry metric-registry)))]
           (.get client hello-request-opts) ; warm it up
           (let [short-response (.get client short-request-opts)
                 long-response (.get client long-request-opts)]
@@ -280,7 +282,7 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (let [metric-registry (MetricRegistry.)]
-        (with-open [client (sync/create-client {} metric-registry)]
+        (with-open [client (sync/create-client {:metric-registry metric-registry})]
           (common/get client hello-url) ; warm it up
           (let [short-response (common/get client short-url {:as :text})
                 long-response (common/get client long-url {:as :text :metric-id ["foo" "bar" "baz"]})]
@@ -350,7 +352,8 @@
           (with-open [client (-> (ClientOptions.)
                                  (.setSocketTimeoutMilliseconds 20000)
                                  (.setConnectTimeoutMilliseconds 100)
-                                 (Async/createClient metric-registry))]
+                                 (.setMetricRegistry metric-registry)
+                                 (Async/createClient))]
             (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
                                     (.setAs ResponseBodyType/UNBUFFERED_STREAM))
                   response (-> client (.get request-options) .deref)
@@ -387,7 +390,8 @@
             (with-open [client (-> (ClientOptions.)
                                    (.setSocketTimeoutMilliseconds 200)
                                    (.setConnectTimeoutMilliseconds 100)
-                                   (Async/createClient metric-registry))]
+                                   (.setMetricRegistry metric-registry)
+                                   (Async/createClient))]
               (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
                                       (.setAs ResponseBodyType/UNBUFFERED_STREAM))
                     response (-> client (.get request-options) .deref)
@@ -424,8 +428,8 @@
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                   :socket-timeout-milliseconds 20000}
-                                                  metric-registry)]
+                                                   :socket-timeout-milliseconds 20000
+                                                   :metric-registry metric-registry})]
             (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
                   {:keys [status body]} response]
               (is (= 200 status))
@@ -455,8 +459,8 @@
           (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
           (let [metric-registry (MetricRegistry.)]
             (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                     :socket-timeout-milliseconds 200}
-                                                    metric-registry)]
+                                                     :socket-timeout-milliseconds 200
+                                                     :metric-registry metric-registry})]
               (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
                     {:keys [body error]} response]
                 (is (nil? error))

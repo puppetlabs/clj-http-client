@@ -26,7 +26,7 @@
 (schema/defn ^:always-validate create-default-client :- HttpAsyncClient
   [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
            follow-redirects force-redirects connect-timeout-milliseconds
-           socket-timeout-milliseconds]}:- common/ClientOptions]
+           socket-timeout-milliseconds metric-registry]}:- common/ClientOptions]
   (let [client-options (ClientOptions.)]
     (cond-> client-options
             (some? ssl-context) (.setSslContext ssl-context)
@@ -40,7 +40,8 @@
             (some? connect-timeout-milliseconds)
             (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
             (some? socket-timeout-milliseconds)
-            (.setSocketTimeoutMilliseconds socket-timeout-milliseconds))
+            (.setSocketTimeoutMilliseconds socket-timeout-milliseconds)
+            (some? metric-registry) (.setMetricRegistry metric-registry))
     (JavaClient/createClient client-options)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -219,7 +220,6 @@
    * :query-params - used to set the query parameters of an http request
    * :metric-id - array of strings or keywords, used to set the metrics to be
        timed for the request."
-
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient]
@@ -267,6 +267,8 @@
    * :cipher-suites - used to set the cipher suites that the client could
        select from when talking to the server. Defaults to the complete
        set of suites supported by the underlying language runtime.
+   * :metric-registry - a MetricRegistry instance used to collect metrics
+       on client requests.
 
    opts (ssl-specific where only one of the following combinations permitted):
 
@@ -281,34 +283,32 @@
    OR
 
    * :ssl-ca-cert - path to a PEM file containing the CA cert"
-  ([opts :- common/ClientOptions]
-   (create-client opts nil))
-  ([opts :- common/ClientOptions
-    metric-registry :- common/OptionalMetricRegistry]
-   (let [client (create-default-client opts)]
-     (reify common/HTTPClient
-       (get [this url] (common/get this url {}))
-       (get [this url opts] (common/make-request this url :get opts))
-       (head [this url] (common/head this url {}))
-       (head [this url opts] (common/make-request this url :head opts))
-       (post [this url] (common/post this url {}))
-       (post [this url opts] (common/make-request this url :post opts))
-       (put [this url] (common/put this url {}))
-       (put [this url opts] (common/make-request this url :put opts))
-       (delete [this url] (common/delete this url {}))
-       (delete [this url opts] (common/make-request this url :delete opts))
-       (trace [this url] (common/trace this url {}))
-       (trace [this url opts] (common/make-request this url :trace opts))
-       (options [this url] (common/options this url {}))
-       (options [this url opts] (common/make-request this url :options opts))
-       (patch [this url] (common/patch this url {}))
-       (patch [this url opts] (common/make-request this url :patch opts))
-       (make-request [this url method] (common/make-request this url method {}))
-       (make-request [_ url method opts] (request-with-client
-                                          (assoc opts :method method :url url)
-                                          nil client metric-registry))
-       (close [_] (.close client))
-       (get-client-metrics [_] (get-client-metrics metric-registry))
-       (get-client-metrics [_ metric-filter] (get-client-metrics metric-registry metric-filter))
-       (get-client-metrics-data [_] (get-client-metrics-data metric-registry))
-       (get-client-metrics-data [_ metric-filter] (get-client-metrics-data metric-registry metric-filter))))))
+  [opts :- common/ClientOptions]
+  (let [client (create-default-client opts)
+        metric-registry (:metric-registry opts)]
+    (reify common/HTTPClient
+      (get [this url] (common/get this url {}))
+      (get [this url opts] (common/make-request this url :get opts))
+      (head [this url] (common/head this url {}))
+      (head [this url opts] (common/make-request this url :head opts))
+      (post [this url] (common/post this url {}))
+      (post [this url opts] (common/make-request this url :post opts))
+      (put [this url] (common/put this url {}))
+      (put [this url opts] (common/make-request this url :put opts))
+      (delete [this url] (common/delete this url {}))
+      (delete [this url opts] (common/make-request this url :delete opts))
+      (trace [this url] (common/trace this url {}))
+      (trace [this url opts] (common/make-request this url :trace opts))
+      (options [this url] (common/options this url {}))
+      (options [this url opts] (common/make-request this url :options opts))
+      (patch [this url] (common/patch this url {}))
+      (patch [this url opts] (common/make-request this url :patch opts))
+      (make-request [this url method] (common/make-request this url method {}))
+      (make-request [_ url method opts] (request-with-client
+                                         (assoc opts :method method :url url)
+                                         nil client metric-registry))
+      (close [_] (.close client))
+      (get-client-metrics [_] (get-client-metrics metric-registry))
+      (get-client-metrics [_ metric-filter] (get-client-metrics metric-registry metric-filter))
+      (get-client-metrics-data [_] (get-client-metrics-data metric-registry))
+      (get-client-metrics-data [_ metric-filter] (get-client-metrics-data metric-registry metric-filter)))))

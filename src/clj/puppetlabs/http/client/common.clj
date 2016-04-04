@@ -112,7 +112,8 @@
   {(ok :force-redirects)  schema/Bool
    (ok :follow-redirects) schema/Bool
    (ok :connect-timeout-milliseconds) schema/Int
-   (ok :socket-timeout-milliseconds) schema/Int})
+   (ok :socket-timeout-milliseconds) schema/Int
+   (ok :metric-registry) MetricRegistry})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after

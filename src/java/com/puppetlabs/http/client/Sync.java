@@ -87,17 +87,7 @@ public class Sync {
      * @return A persistent synchronous HTTP client
      */
     public static SyncHttpClient createClient(ClientOptions clientOptions) {
-        return createClient(clientOptions, null);
-    }
-
-    /**
-     * Creates a synchronous persistent HTTP client
-     * @param clientOptions the list of options with which to configure the client
-     * @param metricRegistry a metric registry to track metrics on client requests
-     * @return A persistent synchronous HTTP client
-     */
-    public static SyncHttpClient createClient(ClientOptions clientOptions, MetricRegistry metricRegistry) {
-        return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions), metricRegistry);
+        return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions), clientOptions.getMetricRegistry());
     }
 
     /**
