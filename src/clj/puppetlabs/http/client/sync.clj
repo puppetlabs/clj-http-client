@@ -4,7 +4,8 @@
 (ns puppetlabs.http.client.sync
   (:require [puppetlabs.http.client.async :as async]
             [schema.core :as schema]
-            [puppetlabs.http.client.common :as common])
+            [puppetlabs.http.client.common :as common]
+            [puppetlabs.http.client.metrics :as metrics])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,18 +29,6 @@
     (if error
       (throw error)
       resp)))
-
-(defn get-client-metrics
-  ([metric-registry]
-   (async/get-client-metrics metric-registry))
-  ([metric-registry metric-filter]
-   (async/get-client-metrics metric-registry metric-filter)))
-
-(defn get-client-metrics-data
-  ([metric-registry]
-   (async/get-client-metrics-data metric-registry))
-  ([metric-registry metric-filter]
-   (async/get-client-metrics-data metric-registry metric-filter)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -74,10 +63,10 @@
                                          (assoc opts :method method :url url)
                                          client metric-registry))
       (close [_] (.close client))
-      (get-client-metrics [_] (get-client-metrics metric-registry))
-      (get-client-metrics [_ metric-filter] (get-client-metrics metric-registry metric-filter))
-      (get-client-metrics-data [_] (get-client-metrics-data metric-registry))
-      (get-client-metrics-data [_ metric-filter] (get-client-metrics-data metric-registry metric-filter)))))
+      (get-client-metrics [_] (metrics/get-client-metrics metric-registry))
+      (get-client-metrics [_ metric-filter] (metrics/get-client-metrics metric-registry metric-filter))
+      (get-client-metrics-data [_] (metrics/get-client-metrics-data metric-registry))
+      (get-client-metrics-data [_ metric-filter] (metrics/get-client-metrics-data metric-registry metric-filter)))))
 
 (defn get
   "Issue a synchronous HTTP GET request. This will raise an exception if an
