@@ -33,6 +33,10 @@
   (case metric-type
     :bytes-read Metrics$MetricType/BYTES_READ))
 
+(defn uppercase-method
+  [method]
+  (clojure.string/upper-case (name method)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -48,7 +52,7 @@
 
 (schema/defn ^:always-validate url-method-filter :- common/MetricFilter
   [url :- schema/Str
-   method :- schema/Str]
+   method :- common/HTTPMethod]
   {:url url
    :method method
    :metric-type :bytes-read})
@@ -65,7 +69,7 @@
        (:method metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndMethod
                                          metric-registry
                                          (:url metric-filter)
-                                         (:method metric-filter)
+                                         (uppercase-method (:method metric-filter))
                                          (get-java-metric-type (:metric-type metric-filter))))
        (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
                                       metric-registry

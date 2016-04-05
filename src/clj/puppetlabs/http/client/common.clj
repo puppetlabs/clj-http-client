@@ -159,6 +159,9 @@
 (def Response
   (schema/either NormalResponse ErrorResponse))
 
+(def HTTPMethod
+  (schema/enum :delete :get :head :option :patch :post :put :trace))
+
 (def OptionalMetricRegistry
   (schema/maybe MetricRegistry))
 
@@ -182,7 +185,7 @@
    #(contains? % :url)
    {:metric-type MetricTypes
     :url schema/Str
-    (ok :method) schema/Str}
+    (ok :method) HTTPMethod}
    #(contains? % :metric-id)
    {:metric-type MetricTypes
     :metric-id MetricId}))
