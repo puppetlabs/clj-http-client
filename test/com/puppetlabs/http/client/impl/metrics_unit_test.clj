@@ -169,3 +169,17 @@
                    registry (into-array ["foo" "cat"]) bytes-read)
                (metrics/get-client-metrics-data
                 registry {:metric-id ["foo" "cat"] :metric-type :bytes-read})))))))
+
+(deftest metrics-filter-builder-test
+  (let [metric-registry (MetricRegistry.)
+        url "http://test.com/foo/bar"]
+   (start-and-stop-timers! metric-registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar"]))
+   (testing "url-filter works"
+     (is (= (metrics/get-client-metrics-data metric-registry {:url url :metric-type :bytes-read})
+            (metrics/get-client-metrics-data metric-registry (metrics/url-filter url)))))
+   (testing "url-method-filter works"
+     (is (= (metrics/get-client-metrics-data metric-registry {:url url :method "GET" :metric-type :bytes-read})
+            (metrics/get-client-metrics-data metric-registry (metrics/url-method-filter url "GET")))))
+   (testing "metric-id-filter works"
+     (is (= (metrics/get-client-metrics-data metric-registry {:metric-id [:foo :bar] :metric-type :bytes-read})
+            (metrics/get-client-metrics-data metric-registry (metrics/metric-id-filter [:foo :bar])))))))

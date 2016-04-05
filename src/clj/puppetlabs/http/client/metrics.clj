@@ -33,6 +33,26 @@
   (case metric-type
     :bytes-read Metrics$MetricType/BYTES_READ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public
+
+(schema/defn ^:always-validate metric-id-filter :- common/MetricFilter
+  [metric-id :- common/MetricId]
+  {:metric-id metric-id
+   :metric-type :bytes-read})
+
+(schema/defn ^:always-validate url-filter :- common/MetricFilter
+  [url :- schema/Str]
+  {:url url
+   :metric-type :bytes-read})
+
+(schema/defn ^:always-validate url-method-filter :- common/MetricFilter
+  [url :- schema/Str
+   method :- schema/Str]
+  {:url url
+   :method method
+   :metric-type :bytes-read})
+
 (schema/defn ^:always-validate get-client-metrics :- (schema/maybe common/Metrics)
   "Returns the http client-specific metrics from the metric registry."
   ([metric-registry :- common/OptionalMetricRegistry]
