@@ -73,7 +73,7 @@
                                       (get-java-metric-type (:metric-type metric-filter))))
        (:metric-id metric-filter) (into {} (Metrics/getClientMetricsWithMetricId
                                             metric-registry
-                                            (into-array (map name (:metric-id metric-filter)))
+                                            (into-array String (map name (:metric-id metric-filter)))
                                             (get-java-metric-type (:metric-type metric-filter))))
        :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
 

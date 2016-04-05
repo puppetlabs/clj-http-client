@@ -170,6 +170,19 @@
                (metrics/get-client-metrics-data
                 registry {:metric-id ["foo" "cat"] :metric-type :bytes-read})))))))
 
+(deftest empty-metric-id-filter-test
+  (testing "a metric id filter with an empty array returns all metric id timers"
+    (let [registry (MetricRegistry.)
+          url "http://test.com/foo/bar"
+          foo-id (add-metric-ns "with-metric-id.foo.bytes-read")
+          foo-bar-id (add-metric-ns "with-metric-id.foo.bar.bytes-read")
+          foo-bar-baz-id (add-metric-ns "with-metric-id.foo.bar.baz.bytes-read")]
+      (start-and-stop-timers! registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar" "baz"]))
+      (testing "empty metric filter returns all metric id timers"
+        (is (= (set (list foo-id foo-bar-id foo-bar-baz-id))
+               (set (keys (Metrics/getClientMetricsDataWithMetricId registry (into-array String []) bytes-read)))
+               (set (keys (metrics/get-client-metrics-data registry (metrics/metric-id-filter []))))))))))
+
 (deftest metrics-filter-builder-test
   (let [metric-registry (MetricRegistry.)
         url "http://test.com/foo/bar"]

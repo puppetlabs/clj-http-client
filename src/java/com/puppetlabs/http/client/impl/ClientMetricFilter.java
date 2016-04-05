@@ -5,6 +5,7 @@ import com.codahale.metrics.Metric;
 
 public class ClientMetricFilter implements MetricFilter{
     private String name;
+    private String nameEnd;
 
     public ClientMetricFilter() {
         this.name = null;
@@ -14,11 +15,18 @@ public class ClientMetricFilter implements MetricFilter{
         this.name = name;
     }
 
+    public ClientMetricFilter(String name, String nameEnd) {
+        this.name = name;
+        this.nameEnd = nameEnd;
+    }
+
     public boolean matches(String s, Metric metric) {
         if ( name == null ) {
             return s.startsWith(Metrics.METRIC_NAMESPACE);
-        } else {
+        } else if ( nameEnd == null ){
             return s.equals(name);
+        } else {
+            return s.startsWith(name) && s.endsWith(nameEnd);
         }
     }
 }

@@ -130,9 +130,15 @@ public class Metrics {
                                                                   final String[] metricId,
                                                                   final MetricType metricType){
         if (metricRegistry != null) {
-            String metricName = MetricRegistry.name(METRIC_NAMESPACE, ID_NAMESPACE,
-                    StringUtils.join(metricId, "."), metricTypeString(metricType));
-            return metricRegistry.getTimers(new ClientMetricFilter(metricName));
+            if (metricId.length == 0) {
+                String metricNameStart = MetricRegistry.name(METRIC_NAMESPACE, ID_NAMESPACE);
+                String metricNameEnd = metricTypeString(metricType);
+                return metricRegistry.getTimers(new ClientMetricFilter(metricNameStart, metricNameEnd));
+            } else {
+                String metricName = MetricRegistry.name(METRIC_NAMESPACE, ID_NAMESPACE,
+                        StringUtils.join(metricId, "."), metricTypeString(metricType));
+                return metricRegistry.getTimers(new ClientMetricFilter(metricName));
+            }
         } else {
             return null;
         }
@@ -171,9 +177,9 @@ public class Metrics {
     }
 
     public static Map<String, ClientMetricData> getClientMetricsDataWithUrlAndMethod(MetricRegistry metricRegistry,
-                                                                                   String url,
-                                                                                   String method,
-                                                                                   MetricType metricType){
+                                                                                     String url,
+                                                                                     String method,
+                                                                                     MetricType metricType){
         Map<String, Timer> timers = getClientMetricsWithUrlAndMethod(metricRegistry, url, method, metricType);
         return computeClientMetricsData(timers);
     }
