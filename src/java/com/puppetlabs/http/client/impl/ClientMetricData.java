@@ -1,20 +1,20 @@
 package com.puppetlabs.http.client.impl;
 
 public class ClientMetricData {
-    private String metricId;
+    private String metricName;
     private Long count;
     private Long mean;
     private Long aggregate;
 
-    ClientMetricData(String metricId, Long count, Long mean, Long aggregate) {
-        this.metricId = metricId;
+    ClientMetricData(String metricName, Long count, Long mean, Long aggregate) {
+        this.metricName = metricName;
         this.count = count;
         this.mean = mean;
         this.aggregate = aggregate;
     }
 
-    public String getMetricId() {
-        return metricId;
+    public String getMetricName() {
+        return metricName;
     }
 
     public Long getCount() {

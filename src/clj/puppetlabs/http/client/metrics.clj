@@ -13,19 +13,19 @@
        (.toMillis TimeUnit/NANOSECONDS)))
 
 (defn get-metric-data
-  [timer metric-id]
+  [timer metric-name]
   (let [count (.getCount timer)
         mean (get-mean timer)
         aggregate (* count mean)]
     {:count count
      :mean mean
      :aggregate aggregate
-     :metric-id metric-id}))
+     :metric-name metric-name}))
 
 (defn get-metrics-data
   [timers]
-  (reduce (fn [acc [metric-id timer]]
-            (assoc acc metric-id (get-metric-data timer metric-id)))
+  (reduce (fn [acc [metric-name timer]]
+            (assoc acc metric-name (get-metric-data timer metric-name)))
           {} timers))
 
 (defn get-java-metric-type

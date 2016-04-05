@@ -35,21 +35,21 @@
 (def short-url "http://localhost:10000/short")
 (def long-url "http://localhost:10000/long")
 
-(def short-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short")
-(def short-id (str short-id-base ".bytes-read"))
-(def short-id-with-get (str short-id-base ".GET" ".bytes-read"))
-(def short-id-with-post (str short-id-base ".POST" ".bytes-read"))
+(def short-name-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short")
+(def short-name (str short-name-base ".bytes-read"))
+(def short-name-with-get (str short-name-base ".GET" ".bytes-read"))
+(def short-name-with-post (str short-name-base ".POST" ".bytes-read"))
 
-(def long-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long")
-(def long-id (str long-id-base ".bytes-read"))
-(def long-id-with-method (str long-id-base ".GET" ".bytes-read"))
-(def long-foo-id "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
-(def long-foo-bar-id "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
-(def long-foo-bar-baz-id "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")
+(def long-name-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long")
+(def long-name (str long-name-base ".bytes-read"))
+(def long-name-with-method (str long-name-base ".GET" ".bytes-read"))
+(def long-foo-name "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
+(def long-foo-bar-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
+(def long-foo-bar-baz-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")
 
-(def hello-id-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello")
-(def hello-id (str hello-id-base ".bytes-read"))
-(def hello-id-with-method (str hello-id-base ".GET" ".bytes-read"))
+(def hello-name-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello")
+(def hello-name (str hello-name-base ".bytes-read"))
+(def hello-name-with-method (str hello-name-base ".GET" ".bytes-read"))
 
 (deftest metrics-test-java-async
   (testing "metrics work with java async client"
@@ -82,30 +82,30 @@
                  (is (= 10 (count client-metrics)))
                  (is (= 10 (count client-metrics-data))))
                (testing "get-client-metrics returns a map of metric name to timer instance"
-                        (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
-                                          short-id-with-post long-id long-id-with-method
-                                          long-foo-id long-foo-bar-id long-foo-bar-baz-id))
+                        (is (= (set (list hello-name hello-name-with-method short-name short-name-with-get
+                                          short-name-with-post long-name long-name-with-method
+                                          long-foo-name long-foo-bar-name long-foo-bar-baz-name))
                                (set (keys client-metrics))
                                (set (keys client-metrics-data))))
                         (is (every? #(instance? Timer %) (vals client-metrics))))
-               (testing "get-client-metrics-data returns a map of metric id to metric data"
-                 (let [short-data (get client-metrics-data short-id)
-                       short-data-get (get client-metrics-data short-id-with-get)
-                       short-data-post (get client-metrics-data short-id-with-post)
-                       long-data (get client-metrics-data long-id)]
+               (testing "get-client-metrics-data returns a map of metric name to metric data"
+                 (let [short-data (get client-metrics-data short-name)
+                       short-data-get (get client-metrics-data short-name-with-get)
+                       short-data-post (get client-metrics-data short-name-with-post)
+                       long-data (get client-metrics-data long-name)]
                    (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
 
-                   (is (= short-id (.getMetricId short-data)))
+                   (is (= short-name (.getMetricName short-data)))
                    (is (= 2 (.getCount short-data)))
                    (is (<= 5 (.getMean short-data)))
                    (is (<= 10 (.getAggregate short-data)))
 
-                   (is (= short-id-with-get (.getMetricId short-data-get)))
+                   (is (= short-name-with-get (.getMetricName short-data-get)))
                    (is (= 1 (.getCount short-data-get)))
                    (is (<= 5 (.getMean short-data-get)))
                    (is (<= 5 (.getAggregate short-data-get)))
 
-                   (is (= short-id-with-post (.getMetricId short-data-post)))
+                   (is (= short-name-with-post (.getMetricName short-data-post)))
                    (is (= 1 (.getCount short-data-post)))
                    (is (<= 5 (.getMean short-data-post)))
                    (is (<= 5 (.getAggregate short-data-post)))
@@ -114,7 +114,7 @@
                                           (+ (.getAggregate short-data-get)
                                              (.getAggregate short-data-post))))))
 
-                   (is (= long-id (.getMetricId long-data)))
+                   (is (= long-name (.getMetricName long-data)))
                    (is (= 1 (.getCount long-data)))
                    (is (<= 100 (.getMean long-data)))
                    (is (<= 100 (.getAggregate long-data)))
@@ -152,29 +152,29 @@
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
-              (testing "get-client-metrics returns a map of metric id to timer instance"
-                (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
-                                  short-id-with-post long-id long-id-with-method
-                                  long-foo-id long-foo-bar-id long-foo-bar-baz-id))
+              (testing "get-client-metrics returns a map of metric name to timer instance"
+                (is (= (set (list hello-name hello-name-with-method short-name short-name-with-get
+                                  short-name-with-post long-name long-name-with-method
+                                  long-foo-name long-foo-bar-name long-foo-bar-baz-name))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics))))
-              (testing "get-client-metrics-data returns a map of metric id to metrics data"
-                (let [short-data (get client-metrics-data short-id)
-                      short-data-get (get client-metrics-data short-id-with-get)
-                      short-data-post (get client-metrics-data short-id-with-post)
-                      long-data (get client-metrics-data long-id)]
-                  (is (= short-id (:metric-id short-data)))
+              (testing "get-client-metrics-data returns a map of metric name to metrics data"
+                (let [short-data (get client-metrics-data short-name)
+                      short-data-get (get client-metrics-data short-name-with-get)
+                      short-data-post (get client-metrics-data short-name-with-post)
+                      long-data (get client-metrics-data long-name)]
+                  (is (= short-name (:metric-name short-data)))
                   (is (= 2 (:count short-data)))
                   (is (<= 5 (:mean short-data)))
                   (is (<= 10 (:aggregate short-data)))
 
-                  (is (= short-id-with-get (:metric-id short-data-get)))
+                  (is (= short-name-with-get (:metric-name short-data-get)))
                   (is (= 1 (:count short-data-get)))
                   (is (<= 5 (:mean short-data-get)))
                   (is (<= 5 (:aggregate short-data-get)))
 
-                  (is (= short-id-with-post (:metric-id short-data-post)))
+                  (is (= short-name-with-post (:metric-name short-data-post)))
                   (is (= 1 (:count short-data-post)))
                   (is (<= 5 (:mean short-data-post)))
                   (is (<= 5 (:aggregate short-data-post)))
@@ -183,7 +183,7 @@
                                          (+ (:aggregate short-data-get)
                                             (:aggregate short-data-post))))))
 
-                  (is (= long-id (:metric-id long-data)))
+                  (is (= long-name (:metric-name long-data)))
                   (is (= 1 (:count long-data)))
                   (is (<= 100 (:mean long-data)))
                   (is (<= 100 (:aggregate long-data)))
@@ -228,30 +228,30 @@
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
               (testing ".getClientMetrics returns a map of metric name to timer instance"
-                (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
-                                  short-id-with-post long-id long-id-with-method
-                                  long-foo-id long-foo-bar-id long-foo-bar-baz-id))
+                (is (= (set (list hello-name hello-name-with-method short-name short-name-with-get
+                                  short-name-with-post long-name long-name-with-method
+                                  long-foo-name long-foo-bar-name long-foo-bar-baz-name))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics))))
-              (testing ".getClientMetricsData returns a map of metric id to metric data"
-                (let [short-data (get client-metrics-data short-id)
-                      short-data-get (get client-metrics-data short-id-with-get)
-                      short-data-post (get client-metrics-data short-id-with-post)
-                      long-data (get client-metrics-data long-id)]
+              (testing ".getClientMetricsData returns a map of metric name to metric data"
+                (let [short-data (get client-metrics-data short-name)
+                      short-data-get (get client-metrics-data short-name-with-get)
+                      short-data-post (get client-metrics-data short-name-with-post)
+                      long-data (get client-metrics-data long-name)]
                   (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
 
-                  (is (= short-id (.getMetricId short-data)))
+                  (is (= short-name (.getMetricName short-data)))
                   (is (= 2 (.getCount short-data)))
                   (is (<= 5 (.getMean short-data)))
                   (is (<= 10 (.getAggregate short-data)))
 
-                  (is (= short-id-with-get (.getMetricId short-data-get)))
+                  (is (= short-name-with-get (.getMetricName short-data-get)))
                   (is (= 1 (.getCount short-data-get)))
                   (is (<= 5 (.getMean short-data-get)))
                   (is (<= 5 (.getAggregate short-data-get)))
 
-                  (is (= short-id-with-post (.getMetricId short-data-post)))
+                  (is (= short-name-with-post (.getMetricName short-data-post)))
                   (is (= 1 (.getCount short-data-post)))
                   (is (<= 5 (.getMean short-data-post)))
                   (is (<= 5 (.getAggregate short-data-post)))
@@ -260,7 +260,7 @@
                                          (+ (.getAggregate short-data-get)
                                             (.getAggregate short-data-post))))))
 
-                  (is (= long-id (.getMetricId long-data)))
+                  (is (= long-name (.getMetricName long-data)))
                   (is (= 1 (.getCount long-data)))
                   (is (<= 100 (.getMean long-data)))
                   (is (<= 100 (.getAggregate long-data)))
@@ -297,29 +297,29 @@
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
-              (testing "get-client-metrics returns a map of metric id to timer instance"
-                (is (= (set (list hello-id hello-id-with-method short-id short-id-with-get
-                                  short-id-with-post long-id long-id-with-method
-                                  long-foo-id long-foo-bar-id long-foo-bar-baz-id))
+              (testing "get-client-metrics returns a map of metric name to timer instance"
+                (is (= (set (list hello-name hello-name-with-method short-name short-name-with-get
+                                  short-name-with-post long-name long-name-with-method
+                                  long-foo-name long-foo-bar-name long-foo-bar-baz-name))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics))))
-              (testing "get-client-metrics-data returns a map of metric id to metrics data"
-                (let [short-data (get client-metrics-data short-id)
-                      short-data-get (get client-metrics-data short-id-with-get)
-                      short-data-post (get client-metrics-data short-id-with-post)
-                      long-data (get client-metrics-data long-id)]
-                  (is (= short-id (:metric-id short-data)))
+              (testing "get-client-metrics-data returns a map of metric name to metrics data"
+                (let [short-data (get client-metrics-data short-name)
+                      short-data-get (get client-metrics-data short-name-with-get)
+                      short-data-post (get client-metrics-data short-name-with-post)
+                      long-data (get client-metrics-data long-name)]
+                  (is (= short-name (:metric-name short-data)))
                   (is (= 2 (:count short-data)))
                   (is (<= 5 (:mean short-data)))
                   (is (<= 10 (:aggregate short-data)))
 
-                  (is (= short-id-with-get (:metric-id short-data-get)))
+                  (is (= short-name-with-get (:metric-name short-data-get)))
                   (is (= 1 (:count short-data-get)))
                   (is (<= 5 (:mean short-data-get)))
                   (is (<= 5 (:aggregate short-data-get)))
 
-                  (is (= short-id-with-post (:metric-id short-data-post)))
+                  (is (= short-name-with-post (:metric-name short-data-post)))
                   (is (= 1 (:count short-data-post)))
                   (is (<= 5 (:mean short-data-post)))
                   (is (<= 5 (:aggregate short-data-post)))
@@ -328,7 +328,7 @@
                                          (+ (:aggregate short-data-get)
                                             (:aggregate short-data-post))))))
 
-                  (is (= long-id (:metric-id long-data)))
+                  (is (= long-name (:metric-name long-data)))
                   (is (= 1 (:count long-data)))
                   (is (<= 100 (:mean long-data)))
                   (is (<= 100 (:aggregate long-data)))
@@ -368,18 +368,18 @@
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metrics (.getClientMetrics client)
                     client-metrics-data (.getClientMetricsData client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-method))
+                    base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
+                    bytes-read-name (str base-metric-name ".bytes-read")
+                    bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-name bytes-read-name-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
+                (let [bytes-read-data (get client-metrics-data bytes-read-name)]
                   (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
 
                   (is (= 1 (.getCount bytes-read-data)))
-                  (is (= bytes-read-id (.getMetricId bytes-read-data)))
+                  (is (= bytes-read-name (.getMetricName bytes-read-data)))
                   (is (<= 1000 (.getMean bytes-read-data)))
                   (is (<= 1000 (.getAggregate bytes-read-data))))))))))
      (testing "metrics work for failed request"
@@ -401,18 +401,18 @@
                 (is (thrown? SocketTimeoutException (slurp body)))
                 (let [client-metrics (.getClientMetrics client)
                       client-metrics-data (.getClientMetricsData client)
-                      base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                      bytes-read-id (str base-metric-id ".bytes-read")
-                      bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
-                  (is (= (set (list bytes-read-id bytes-read-id-with-method))
+                      base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
+                      bytes-read-name (str base-metric-name ".bytes-read")
+                      bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                  (is (= (set (list bytes-read-name bytes-read-name-with-method))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))
                   (is (every? #(instance? Timer %) (vals client-metrics)))
-                  (let [bytes-read-data (get client-metrics-data bytes-read-id)]
+                  (let [bytes-read-data (get client-metrics-data bytes-read-name)]
                     (is (every? #(instance? ClientMetricData %) (vals client-metrics-data)))
 
                     (is (= 1 (.getCount bytes-read-data)))
-                    (is (= bytes-read-id (.getMetricId bytes-read-data)))
+                    (is (= bytes-read-name (.getMetricName bytes-read-data)))
                     (is (<= 200 (.getMean bytes-read-data)))
                     (is (<= 200 (.getAggregate bytes-read-data)))))))))
          (catch TimeoutException e
@@ -441,16 +441,16 @@
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-method))
+                    base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
+                    bytes-read-name (str base-metric-name ".bytes-read")
+                    bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-name bytes-read-name-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
-                  (is (= {:count 1 :metric-id bytes-read-id}
-                         (select-keys bytes-read-data [:metric-id :count])))
+                (let [bytes-read-data (get client-metrics-data bytes-read-name)]
+                  (is (= {:count 1 :metric-name bytes-read-name}
+                         (select-keys bytes-read-data [:metric-name :count])))
                   (is (<= 1000 (:mean bytes-read-data)))
                   (is (<= 1000 (:aggregate bytes-read-data))))))))))
      (testing "metrics work for a failed request"
@@ -468,16 +468,16 @@
                 (is (thrown? SocketTimeoutException (slurp body))))
               (let [client-metrics (common/get-client-metrics client)
                     client-metrics-data (common/get-client-metrics-data client)
-                    base-metric-id (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-id (str base-metric-id ".bytes-read")
-                    bytes-read-id-with-method (str base-metric-id ".GET" ".bytes-read")]
-                (is (= (set (list bytes-read-id bytes-read-id-with-method))
+                    base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
+                    bytes-read-name (str base-metric-name ".bytes-read")
+                    bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                (is (= (set (list bytes-read-name bytes-read-name-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics)))
-                (let [bytes-read-data (get client-metrics-data bytes-read-id)]
-                  (is (= {:count 1 :metric-id bytes-read-id}
-                         (select-keys bytes-read-data [:metric-id :count])))
+                (let [bytes-read-data (get client-metrics-data bytes-read-name)]
+                  (is (= {:count 1 :metric-name bytes-read-name}
+                         (select-keys bytes-read-data [:metric-name :count])))
                   (is (<= 200 (:mean bytes-read-data)))
                   (is (<= 200 (:aggregate bytes-read-data))))))))
          (catch TimeoutException e

@@ -149,14 +149,14 @@ public class Metrics {
             Map<String, ClientMetricData> metricsData = new HashMap<>();
             for (Map.Entry<String, Timer> entry : timers.entrySet()) {
                 Timer timer = entry.getValue();
-                String metricId = entry.getKey();
+                String metricName = entry.getKey();
                 Double mean = timer.getSnapshot().getMean();
                 Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
                 Long count = timer.getCount();
                 Long aggregate = count * meanMillis;
 
-                ClientMetricData data = new ClientMetricData(metricId, count, meanMillis, aggregate);
-                metricsData.put(metricId, data);
+                ClientMetricData data = new ClientMetricData(metricName, count, meanMillis, aggregate);
+                metricsData.put(metricName, data);
             }
             return metricsData;
         } else {

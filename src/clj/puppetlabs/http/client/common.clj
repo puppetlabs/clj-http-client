@@ -169,7 +169,7 @@
   {schema/Str Timer})
 
 (def MetricData
-  {:metric-id schema/Str
+  {:metric-name schema/Str
    :count schema/Int
    :mean schema/Num
    :aggregate schema/Num})
