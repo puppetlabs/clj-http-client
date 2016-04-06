@@ -181,18 +181,18 @@
       (testing "empty metric filter returns all metric id timers"
         (is (= (set (list foo-id foo-bar-id foo-bar-baz-id))
                (set (keys (Metrics/getClientMetricsDataWithMetricId registry (into-array String []) bytes-read)))
-               (set (keys (metrics/get-client-metrics-data registry (metrics/metric-id-filter []))))))))))
+               (set (keys (metrics/get-client-metrics-data registry (metrics/filter-with-metric-id []))))))))))
 
 (deftest metrics-filter-builder-test
   (let [metric-registry (MetricRegistry.)
         url "http://test.com/foo/bar"]
-   (start-and-stop-timers! metric-registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar"]))
-   (testing "url-filter works"
-     (is (= (metrics/get-client-metrics-data metric-registry {:url url :metric-type :bytes-read})
-            (metrics/get-client-metrics-data metric-registry (metrics/url-filter url)))))
-   (testing "url-method-filter works"
-     (is (= (metrics/get-client-metrics-data metric-registry {:url url :method :get :metric-type :bytes-read})
-            (metrics/get-client-metrics-data metric-registry (metrics/url-method-filter url :get)))))
-   (testing "metric-id-filter works"
-     (is (= (metrics/get-client-metrics-data metric-registry {:metric-id [:foo :bar] :metric-type :bytes-read})
-            (metrics/get-client-metrics-data metric-registry (metrics/metric-id-filter [:foo :bar])))))))
+    (start-and-stop-timers! metric-registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar"]))
+    (testing "url-filter works"
+      (is (= (metrics/get-client-metrics-data metric-registry {:url url :metric-type :bytes-read})
+             (metrics/get-client-metrics-data metric-registry (metrics/filter-with-url url)))))
+    (testing "url-method-filter works"
+      (is (= (metrics/get-client-metrics-data metric-registry {:url url :method :get :metric-type :bytes-read})
+             (metrics/get-client-metrics-data metric-registry (metrics/filter-with-url-and-method url :get)))))
+    (testing "metric-id-filter works"
+      (is (= (metrics/get-client-metrics-data metric-registry {:metric-id [:foo :bar] :metric-type :bytes-read})
+             (metrics/get-client-metrics-data metric-registry (metrics/filter-with-metric-id [:foo :bar])))))))

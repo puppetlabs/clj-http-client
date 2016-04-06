@@ -40,17 +40,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate metric-id-filter :- common/MetricFilter
+(schema/defn ^:always-validate filter-with-metric-id :- common/MetricFilter
   [metric-id :- common/MetricId]
   {:metric-id metric-id
    :metric-type :bytes-read})
 
-(schema/defn ^:always-validate url-filter :- common/MetricFilter
+(schema/defn ^:always-validate filter-with-url :- common/MetricFilter
   [url :- schema/Str]
   {:url url
    :metric-type :bytes-read})
 
-(schema/defn ^:always-validate url-method-filter :- common/MetricFilter
+(schema/defn ^:always-validate filter-with-url-and-method :- common/MetricFilter
   [url :- schema/Str
    method :- common/HTTPMethod]
   {:url url
