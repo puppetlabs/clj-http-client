@@ -8,8 +8,9 @@
             [puppetlabs.http.client.async :as async]
             [puppetlabs.http.client.sync :as sync]
             [puppetlabs.http.client.common :as common]
-            [puppetlabs.trapperkeeper.core :as tk])
-  (:import (com.puppetlabs.http.client.impl ClientMetricData)
+            [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.http.client.metrics :as metrics])
+  (:import (com.puppetlabs.http.client.impl ClientMetricData ClientMetricRegistry)
            (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType Sync)
            (com.codahale.metrics Timer MetricRegistry)
            (java.net SocketTimeoutException)
@@ -64,7 +65,8 @@
              long-request-opts (doto (RequestOptions. long-url)
                                  (.setMetricId (into-array ["foo" "bar" "baz"])))]
          (with-open [client (Async/createClient (doto (ClientOptions.)
-                                                  (.setMetricRegistry metric-registry)))]
+                                                  (.setMetricRegistry
+                                                   (ClientMetricRegistry. metric-registry))))]
            (-> client (.get hello-request-opts) (.deref)) ; warm it up
            (let [short-response (-> client (.get short-request-opts) (.deref))
                  long-response (-> client (.get long-request-opts) (.deref))]
@@ -74,9 +76,12 @@
              (is (= 200 (.getStatus long-response)))
              (is (= "long" (slurp (.getBody long-response))))
              (.timer metric-registry "fake")
-             (let [client-metrics (.getClientMetrics client)
+             (let [client-metric-registry (.getClientMetricRegistry client)
+                   client-metrics (.getClientMetrics client)
                    client-metrics-data (.getClientMetricsData client)
                    all-metrics (.getMetrics metric-registry)]
+               (testing ".getClientMetricRegistry returns the associated ClientMetricRegistry"
+                 (is (instance? ClientMetricRegistry client-metric-registry)))
                (testing ".getClientMetrics returns only http client metrics"
                  (is (= 11 (count all-metrics)))
                  (is (= 10 (count client-metrics)))
@@ -121,6 +126,8 @@
 
                    (is (> (.getAggregate long-data) (.getAggregate short-data))))))))
          (with-open [client (Async/createClient (ClientOptions.))]
+           (testing ".getClientMetricRegistry returns nil if no metric registry passed in"
+             (is (= nil (.getClientMetricRegistry client))))
            (testing ".getClientMetrics returns nil if no metrics registry passed in"
              (let [response (-> client (.get hello-request-opts) (.deref))]
                (is (= 200 (.getStatus response)))
@@ -136,7 +143,9 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (let [metric-registry (MetricRegistry.)]
-        (with-open [client (async/create-client {:metric-registry metric-registry})]
+        (with-open [client (async/create-client
+                            {:metric-registry
+                             (metrics/create-client-metric-registry metric-registry)})]
           @(common/get client hello-url) ; warm it up
           (let [short-response @(common/get client short-url {:as :text :metric-id ["foo" "bar" "baz"]})
                 long-response @(common/get client long-url)]
@@ -145,9 +154,12 @@
             (is (= 200 (:status long-response)))
             (is (= "long" (slurp (:body long-response))))
             (.timer metric-registry "fake")
-            (let [client-metrics (common/get-client-metrics client)
+            (let [client-metric-registry (common/get-client-metric-registry client)
+                  client-metrics (common/get-client-metrics client)
                   client-metrics-data (common/get-client-metrics-data client)
                   all-metrics (.getMetrics metric-registry)]
+              (testing "get-client-metric-registry returns the associated ClientMetricRegistry"
+                (is (instance? ClientMetricRegistry client-metric-registry)))
               (testing "get-client-metrics and get-client-metrics data return only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (count client-metrics)))
@@ -190,6 +202,8 @@
 
                   (is (> (:mean long-data) (:mean short-data)))))))))
       (with-open [client (async/create-client {})]
+        (testing "get-client-metric-registry returns nil if no metric registry passed in"
+          (is (= nil (common/get-client-metric-registry client))))
         (testing "get-client-metrics returns nil if no metrics registry passed in"
           (let [response (common/get client hello-url)]
             (is (= 200 (:status @response)))
@@ -210,7 +224,8 @@
             long-request-opts (doto (RequestOptions. long-url)
                                 (.setMetricId (into-array ["foo" "bar" "baz"])))]
         (with-open [client (Sync/createClient (doto (ClientOptions.)
-                                                (.setMetricRegistry metric-registry)))]
+                                                (.setMetricRegistry
+                                                 (ClientMetricRegistry. metric-registry))))]
           (.get client hello-request-opts) ; warm it up
           (let [short-response (.get client short-request-opts)
                 long-response (.get client long-request-opts)]
@@ -220,9 +235,12 @@
             (is (= 200 (.getStatus long-response)))
             (is (= "long" (slurp (.getBody long-response))))
             (.timer metric-registry "fake")
-            (let [client-metrics (.getClientMetrics client)
+            (let [client-metric-registry (.getClientMetricRegistry client)
+                  client-metrics (.getClientMetrics client)
                   client-metrics-data (.getClientMetricsData client)
                   all-metrics (.getMetrics metric-registry)]
+              (testing ".getClientMetricRegistry returns the associated ClientMetricRegistry"
+                (is (instance? ClientMetricRegistry client-metric-registry)))
               (testing ".getClientMetrics returns only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (count client-metrics)))
@@ -267,6 +285,8 @@
 
                   (is (> (.getMean long-data) (.getMean short-data))))))))
         (with-open [client (Sync/createClient (ClientOptions.))]
+          (testing ".getClientMetricRegistry returns nil if no metric registry passed in"
+            (is (= nil (.getClientMetricRegistry client))))
           (testing ".getClientMetrics returns nil if no metrics registry passed in"
             (let [response (.get client hello-request-opts)]
               (is (= 200 (.getStatus response)))
@@ -282,7 +302,8 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (let [metric-registry (MetricRegistry.)]
-        (with-open [client (sync/create-client {:metric-registry metric-registry})]
+        (with-open [client (sync/create-client
+                            {:metric-registry (metrics/create-client-metric-registry metric-registry)})]
           (common/get client hello-url) ; warm it up
           (let [short-response (common/get client short-url {:as :text})
                 long-response (common/get client long-url {:as :text :metric-id ["foo" "bar" "baz"]})]
@@ -290,9 +311,12 @@
             (is (= {:status 200 :body "short"} (select-keys short-response [:status :body])))
             (is (= {:status 200 :body "long"} (select-keys long-response [:status :body])))
             (.timer metric-registry "fake")
-            (let [client-metrics (common/get-client-metrics client)
+            (let [client-metric-registry (common/get-client-metric-registry client)
+                  client-metrics (common/get-client-metrics client)
                   client-metrics-data (common/get-client-metrics-data client)
                   all-metrics (.getMetrics metric-registry)]
+              (testing "get-client-metric-registry returns the associated ClientMetricRegistry"
+                (is (instance? ClientMetricRegistry client-metric-registry)))
               (testing "get-client-metrics and get-client-metrics data return only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (count client-metrics)))
@@ -335,6 +359,8 @@
 
                   (is (> (:mean long-data) (:mean short-data))))))))
         (with-open [client (sync/create-client {})]
+          (testing "get-client-metric-registry returns nil if no metric registry passed in"
+            (is (= nil (common/get-client-metric-registry client))))
           (testing "get-client-metrics returns nil if no metrics registry passed in"
             (let [response (common/get client hello-url)]
               (is (= 200 (:status response)))
@@ -346,7 +372,7 @@
   (testlogging/with-test-logging
    (let [data (unbuffered-test/generate-data (* 1024 1024))]
      (testing "metrics work for a successful request"
-       (let [metric-registry (MetricRegistry.)]
+       (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (-> (ClientOptions.)
@@ -386,7 +412,7 @@
        (try
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (MetricRegistry.)]
+          (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
             (with-open [client (-> (ClientOptions.)
                                    (.setSocketTimeoutMilliseconds 200)
                                    (.setConnectTimeoutMilliseconds 100)
@@ -424,7 +450,7 @@
    (let [data (unbuffered-test/generate-data (* 1024 1024))
          opts {:as :unbuffered-stream}]
      (testing "metrics work for a successful request"
-       (let [metric-registry (MetricRegistry.)]
+       (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
@@ -457,7 +483,7 @@
        (try
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (MetricRegistry.)]
+          (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
             (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                      :socket-timeout-milliseconds 200
                                                      :metric-registry metric-registry})]

@@ -1,6 +1,5 @@
 package com.puppetlabs.http.client.impl;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.Response;
 import com.puppetlabs.http.client.RequestOptions;
@@ -15,15 +14,19 @@ import java.util.Map;
 
 public class PersistentAsyncHttpClient implements AsyncHttpClient {
     private CloseableHttpAsyncClient client;
-    private MetricRegistry metricRegistry;
+    private ClientMetricRegistry metricRegistry;
 
-    public PersistentAsyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
+    public PersistentAsyncHttpClient(CloseableHttpAsyncClient client, ClientMetricRegistry metricRegistry) {
         this.client = client;
         this.metricRegistry = metricRegistry;
     }
 
     public void close() throws IOException {
         client.close();
+    }
+
+    public ClientMetricRegistry getClientMetricRegistry() {
+        return metricRegistry;
     }
 
     public Map<String, Timer> getClientMetrics(){

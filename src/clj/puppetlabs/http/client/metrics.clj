@@ -1,9 +1,9 @@
 (ns puppetlabs.http.client.metrics
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
-  (:import (com.codahale.metrics Timer)
+  (:import (com.codahale.metrics Timer MetricRegistry)
            (java.util.concurrent TimeUnit)
-           (com.puppetlabs.http.client.impl Metrics$MetricType Metrics)))
+           (com.puppetlabs.http.client.impl Metrics$MetricType Metrics ClientMetricRegistry)))
 
 (schema/defn get-mean :- schema/Num
   [timer :- Timer]
@@ -92,3 +92,7 @@
    (when metric-registry
      (let [timers (get-client-metrics metric-registry metric-filter)]
        (get-metrics-data timers)))))
+
+(schema/defn ^:always-validate create-client-metric-registry :- ClientMetricRegistry
+  [metric-registry :- MetricRegistry]
+  (ClientMetricRegistry. metric-registry))

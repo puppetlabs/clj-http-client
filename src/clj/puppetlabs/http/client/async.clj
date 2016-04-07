@@ -243,6 +243,7 @@
                                          (assoc opts :method method :url url)
                                          nil client metric-registry))
       (close [_] (.close client))
+      (get-client-metric-registry [_] metric-registry)
       (get-client-metrics [_] (metrics/get-client-metrics metric-registry))
       (get-client-metrics [_ metric-filter] (metrics/get-client-metrics metric-registry metric-filter))
       (get-client-metrics-data [_] (metrics/get-client-metrics-data metric-registry))

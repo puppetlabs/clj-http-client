@@ -1,10 +1,11 @@
 (ns puppetlabs.http.client.common
   (:import (java.net URL)
            (javax.net.ssl SSLContext)
-           (com.codahale.metrics MetricRegistry Timer)
+           (com.codahale.metrics Timer)
            (clojure.lang IBlockingDeref)
            (java.io InputStream)
-           (java.nio.charset Charset))
+           (java.nio.charset Charset)
+           (com.puppetlabs.http.client.impl ClientMetricRegistry))
   (:require [schema.core :as schema])
   (:refer-clojure :exclude (get)))
 
@@ -22,6 +23,7 @@
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
   (close [this])
+  (get-client-metric-registry [this])
   (get-client-metrics [this] [this metric-filter])
   (get-client-metrics-data [this] [this metric-filter]))
 
@@ -113,7 +115,7 @@
    (ok :follow-redirects) schema/Bool
    (ok :connect-timeout-milliseconds) schema/Int
    (ok :socket-timeout-milliseconds) schema/Int
-   (ok :metric-registry) MetricRegistry})
+   (ok :metric-registry) ClientMetricRegistry})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after
@@ -163,7 +165,7 @@
   (schema/enum :delete :get :head :option :patch :post :put :trace))
 
 (def OptionalMetricRegistry
-  (schema/maybe MetricRegistry))
+  (schema/maybe ClientMetricRegistry))
 
 (def Metrics
   {schema/Str Timer})

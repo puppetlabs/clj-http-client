@@ -21,7 +21,7 @@ public class ClientMetricFilter implements MetricFilter{
     }
 
     public boolean matches(String s, Metric metric) {
-        if ( name == null ) {
+        if ( name == "all" ) {
             return s.startsWith(Metrics.METRIC_NAMESPACE);
         } else if ( nameEnd == null ){
             return s.equals(name);

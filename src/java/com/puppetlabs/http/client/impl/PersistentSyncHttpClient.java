@@ -8,7 +8,6 @@ import com.puppetlabs.http.client.SyncHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
 import java.io.IOException;
@@ -18,10 +17,10 @@ import java.util.Map;
 
 public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
-    private MetricRegistry metricRegistry;
+    private ClientMetricRegistry metricRegistry;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
-    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
+    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, ClientMetricRegistry metricRegistry) {
         this.client = client;
         this.metricRegistry = metricRegistry;
     }
@@ -29,6 +28,10 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     private static void logAndRethrow(String msg, Throwable t) {
         LOGGER.error(msg, t);
         throw new HttpClientException(msg, t);
+    }
+
+    public ClientMetricRegistry getClientMetricRegistry() {
+        return metricRegistry;
     }
 
     public Map<String, Timer> getClientMetrics(){

@@ -2,6 +2,7 @@ package com.puppetlabs.http.client;
 
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.impl.ClientMetricData;
+import com.puppetlabs.http.client.impl.ClientMetricRegistry;
 import com.puppetlabs.http.client.impl.Metrics;
 import com.puppetlabs.http.client.impl.Promise;
 
@@ -16,6 +17,11 @@ import java.util.Map;
  * {@link com.puppetlabs.http.client.Async#createClient(ClientOptions)}.
  */
 public interface AsyncHttpClient extends Closeable{
+
+    /**
+     * @return the ClientMetricRegistry instance associated with this Client
+     */
+    public ClientMetricRegistry getClientMetricRegistry();
 
     /**
      * @return a Map of metric name to Timer instance

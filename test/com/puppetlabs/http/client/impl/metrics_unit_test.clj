@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.metrics :as metrics])
   (:import (com.codahale.metrics MetricRegistry)
-           (com.puppetlabs.http.client.impl Metrics Metrics$MetricType)
+           (com.puppetlabs.http.client.impl Metrics Metrics$MetricType ClientMetricRegistry)
            (org.apache.http.message BasicHttpRequest)))
 
 (def bytes-read Metrics$MetricType/BYTES_READ)
@@ -15,19 +15,19 @@
     (let [url-id (add-metric-ns "with-url.http://localhost/foo.bytes-read")
           url-method-id (add-metric-ns "with-url.http://localhost/foo.GET.bytes-read")]
       (testing "metric id timers are not created for a request without a metric id"
-        (let [metric-registry (MetricRegistry.)]
+        (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://localhost/foo")
                                         nil)
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are not created for a request with an empty metric id"
-        (let [metric-registry (MetricRegistry.)]
+        (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://localhost/foo")
                                         (into-array String []))
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are created correctly for a request with a metric id"
-        (let [metric-registry (MetricRegistry.)]
+        (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://localhost/foo")
                                         (into-array ["foo" "bar" "baz"]))
@@ -37,7 +37,7 @@
                             (add-metric-ns "with-metric-id.foo.bar.baz.bytes-read")))
                  (set (keys (.getTimers metric-registry)))))))
       (testing "url timers should strip off username, password, query string, and fragment"
-        (let [metric-registry (MetricRegistry.)]
+        (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
           (Metrics/startBytesReadTimers metric-registry
                                         (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one")
                                         nil)
@@ -62,7 +62,7 @@
     (.stop timer)))
 
 (deftest get-client-metrics-data-test
-  (let [registry (MetricRegistry.)
+  (let [registry (ClientMetricRegistry. (MetricRegistry.))
         url "http://test.com/one"
         url2 "http://test.com/one/two"]
     (start-and-stop-timers! registry (BasicHttpRequest. "GET" url) nil)
@@ -172,7 +172,7 @@
 
 (deftest empty-metric-id-filter-test
   (testing "a metric id filter with an empty array returns all metric id timers"
-    (let [registry (MetricRegistry.)
+    (let [registry (ClientMetricRegistry. (MetricRegistry.))
           url "http://test.com/foo/bar"
           foo-id (add-metric-ns "with-metric-id.foo.bytes-read")
           foo-bar-id (add-metric-ns "with-metric-id.foo.bar.bytes-read")
@@ -184,7 +184,7 @@
                (set (keys (metrics/get-client-metrics-data registry (metrics/filter-with-metric-id []))))))))))
 
 (deftest metrics-filter-builder-test
-  (let [metric-registry (MetricRegistry.)
+  (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))
         url "http://test.com/foo/bar"]
     (start-and-stop-timers! metric-registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar"]))
     (testing "url-filter works"
