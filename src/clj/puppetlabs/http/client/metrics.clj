@@ -1,32 +1,18 @@
 (ns puppetlabs.http.client.metrics
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
-  (:import (com.codahale.metrics Timer)
-           (java.util.concurrent TimeUnit)
-           (com.puppetlabs.http.client.impl Metrics$MetricType Metrics)))
+  (:import (com.puppetlabs.http.client.impl Metrics$MetricType Metrics
+                                            ClientMetricData)))
 
-(schema/defn get-mean :- schema/Num
-  [timer :- Timer]
-  (->> timer
-       .getSnapshot
-       .getMean
-       (.toMillis TimeUnit/NANOSECONDS)))
-
-(defn get-metric-data
-  [timer metric-name]
-  (let [count (.getCount timer)
-        mean (get-mean timer)
-        aggregate (* count mean)]
-    {:count count
-     :mean mean
-     :aggregate aggregate
-     :metric-name metric-name}))
-
-(defn get-metrics-data
-  [timers]
-  (reduce (fn [acc [metric-name timer]]
-            (assoc acc metric-name (get-metric-data timer metric-name)))
-          {} timers))
+(schema/defn get-metric-data :- common/MetricData
+  [data :- ClientMetricData]
+  {:count (.getCount data)
+   :mean (.getMean data)
+   :aggregate (.getAggregate data)
+   :metric-name (.getMetricName data)
+   :url (.getUrl data)
+   :method (.getMethod data)
+   :metric-id (.getMetricId data)})
 
 (defn get-java-metric-type
   [metric-type]
@@ -40,55 +26,130 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate filter-with-metric-id :- common/MetricFilter
-  [metric-id :- common/MetricId]
-  {:metric-id metric-id
-   :metric-type :bytes-read})
-
-(schema/defn ^:always-validate filter-with-url :- common/MetricFilter
-  [url :- schema/Str]
-  {:url url
-   :metric-type :bytes-read})
-
-(schema/defn ^:always-validate filter-with-url-and-method :- common/MetricFilter
-  [url :- schema/Str
-   method :- common/HTTPMethod]
-  {:url url
-   :method method
-   :metric-type :bytes-read})
-
-(schema/defn ^:always-validate get-client-metrics :- (schema/maybe common/Metrics)
+(schema/defn ^:always-validate get-client-metrics
+  :- (schema/maybe common/AllMetrics)
   "Returns the http client-specific metrics from the metric registry."
-  ([metric-registry :- common/OptionalMetricRegistry]
-   (when metric-registry
-     (into {} (Metrics/getClientMetrics metric-registry))))
-  ([metric-registry :- common/OptionalMetricRegistry
-    metric-filter :- common/MetricFilter]
-   (when metric-registry
-     (cond
-       (:method metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndMethod
-                                         metric-registry
-                                         (:url metric-filter)
-                                         (uppercase-method (:method metric-filter))
-                                         (get-java-metric-type (:metric-type metric-filter))))
-       (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
-                                      metric-registry
-                                      (:url metric-filter)
-                                      (get-java-metric-type (:metric-type metric-filter))))
-       (:metric-id metric-filter) (into {} (Metrics/getClientMetricsWithMetricId
-                                            metric-registry
-                                            (into-array String (map name (:metric-id metric-filter)))
-                                            (get-java-metric-type (:metric-type metric-filter))))
-       :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
+  [metric-registry :- common/OptionalMetricRegistry]
+  (when metric-registry
+    (let [metrics (Metrics/getClientMetrics metric-registry)]
+      {:url (get metrics "url")
+       :url-and-method (get metrics "url-and-method")
+       :metric-id (get metrics "metric-id")})))
 
-(schema/defn ^:always-validate get-client-metrics-data :- (schema/maybe common/MetricsData)
-  "Returns a map of metric-id to metric data summary."
-  ([metric-registry :- common/OptionalMetricRegistry]
-   (when metric-registry
-     (let [timers (get-client-metrics metric-registry)]
-       (get-metrics-data timers))))
+(schema/defn ^:always-validate get-client-metrics-by-url
+  :- common/Metrics
+  "Returns the http client-specific url metrics matching the specified url."
   ([metric-registry :- common/OptionalMetricRegistry
-    metric-filter :- common/MetricFilter]
+    url :- schema/Str]
+   (get-client-metrics-by-url metric-registry url :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str
+    metric-type :- common/MetricTypes]
    (when metric-registry
-     (let [timers (get-client-metrics metric-registry metric-filter)]
-       (get-metrics-data timers)))))
+     (Metrics/getClientMetricsByUrl
+      metric-registry
+      url
+      (get-java-metric-type metric-type)))))
+
+(schema/defn ^:always-validate get-client-metrics-by-url-and-method
+  :- common/Metrics
+  "Returns the http client-specific url metrics matching the specified url."
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str
+    method :- common/HTTPMethod]
+   (get-client-metrics-by-url-and-method metric-registry url method :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str
+    method :- common/HTTPMethod
+    metric-type :- common/MetricTypes]
+   (when metric-registry
+     (Metrics/getClientMetricsByUrlAndMethod
+      metric-registry
+      url
+      method
+      (get-java-metric-type metric-type)))))
+
+(schema/defn ^:always-validate get-client-metrics-by-metric-id
+  :- common/Metrics
+  "Returns the http client-specific url metrics matching the specified url."
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-id :- common/MetricId]
+   (get-client-metrics-by-metric-id metric-registry metric-id :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-id :- common/MetricId
+    metric-type :- common/MetricTypes]
+   (when metric-registry
+     (Metrics/getClientMetricsByMetricId
+      metric-registry
+      (into-array String (map name metric-id))
+      (get-java-metric-type metric-type)))))
+
+(schema/defn ^:always-validate get-client-metrics-data
+  :- (schema/maybe common/AllMetricsData)
+  "Returns a summary of the metric data for all http client timers, organized
+  in a map by category."
+  ([metric-registry :- common/OptionalMetricRegistry]
+   (get-client-metrics-data metric-registry :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-type :- common/MetricTypes]
+   (when metric-registry
+     (let [data (Metrics/getClientMetricsData
+                 metric-registry
+                 (get-java-metric-type metric-type))]
+       {:url (map get-metric-data (get data "url"))
+        :url-and-method (map get-metric-data (get data "url-and-method"))
+        :metric-id (map get-metric-data (get data "metric-id"))}))))
+
+(schema/defn ^:always-validate get-client-metrics-data-by-url
+  :- common/MetricsData
+  "Returns a summary of the metric data for all http client timers filtered by
+  url."
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str]
+   (get-client-metrics-data-by-url metric-registry url :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str
+    metric-type :- common/MetricTypes]
+   (when metric-registry
+     (let [data (Metrics/getClientMetricsDataByUrl
+                 metric-registry
+                 url
+                 (get-java-metric-type metric-type))]
+       (map get-metric-data data)))))
+
+(schema/defn ^:always-validate get-client-metrics-data-by-url-and-method
+  :- common/MetricsData
+  "Returns a summary of the metric data for all http client timers filtered by
+  url and method."
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str
+    method :- common/HTTPMethod]
+   (get-client-metrics-data-by-url-and-method metric-registry url method :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    url :- schema/Str
+    method :- common/HTTPMethod
+    metric-type :- common/MetricTypes]
+   (when metric-registry
+     (let [data (Metrics/getClientMetricsDataByUrlAndMethod
+                 metric-registry
+                 url
+                 (uppercase-method method)
+                 (get-java-metric-type metric-type))]
+       (map get-metric-data data)))))
+
+(schema/defn ^:always-validate get-client-metrics-data-by-metric-id
+  :- common/MetricsData
+  "Returns a summary of the metric data for all http client timers filtered by
+  metric-id."
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-id :- common/MetricId]
+   (get-client-metrics-data-by-metric-id metric-registry metric-id :bytes-read))
+  ([metric-registry :- common/OptionalMetricRegistry
+    metric-id :- common/MetricId
+    metric-type :- common/MetricTypes]
+   (when metric-registry
+     (let [data (Metrics/getClientMetricsDataByMetricId
+                 metric-registry
+                 (into-array String (map name metric-id))
+                 (get-java-metric-type metric-type))]
+       (map get-metric-data data)))))

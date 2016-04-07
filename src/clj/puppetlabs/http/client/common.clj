@@ -1,10 +1,11 @@
 (ns puppetlabs.http.client.common
   (:import (java.net URL)
            (javax.net.ssl SSLContext)
-           (com.codahale.metrics MetricRegistry Timer)
+           (com.codahale.metrics MetricRegistry)
            (clojure.lang IBlockingDeref)
            (java.io InputStream)
-           (java.nio.charset Charset))
+           (java.nio.charset Charset)
+           (com.puppetlabs.http.client.impl ClientTimer))
   (:require [schema.core :as schema])
   (:refer-clojure :exclude (get)))
 
@@ -22,8 +23,7 @@
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
   (close [this])
-  (get-client-metrics [this] [this metric-filter])
-  (get-client-metrics-data [this] [this metric-filter]))
+  (get-client-metric-registry [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -166,26 +166,29 @@
   (schema/maybe MetricRegistry))
 
 (def Metrics
-  {schema/Str Timer})
+  [ClientTimer])
+
+(def AllMetrics
+  {:url Metrics
+   :url-and-method Metrics
+   :metric-id Metrics})
 
 (def MetricData
   {:metric-name schema/Str
    :count schema/Int
    :mean schema/Num
-   :aggregate schema/Num})
+   :aggregate schema/Num
+   :url (schema/maybe schema/Str)
+   :method (schema/maybe schema/Str)
+   :metric-id [schema/Str]})
 
 (def MetricsData
-  {schema/Str MetricData})
+  [MetricData])
+
+(def AllMetricsData
+  {:url MetricsData
+   :url-and-method MetricsData
+   :metric-id MetricsData})
 
 (def MetricTypes
   (schema/enum :bytes-read))
-
-(def MetricFilter
-  (schema/conditional
-   #(contains? % :url)
-   {:metric-type MetricTypes
-    :url schema/Str
-    (ok :method) HTTPMethod}
-   #(contains? % :metric-id)
-   {:metric-type MetricTypes
-    :metric-id MetricId}))

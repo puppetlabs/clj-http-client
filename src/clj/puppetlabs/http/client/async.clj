@@ -15,7 +15,6 @@
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient))
   (:require [puppetlabs.http.client.common :as common]
-            [puppetlabs.http.client.metrics :as metrics]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
 
@@ -243,7 +242,4 @@
                                          (assoc opts :method method :url url)
                                          nil client metric-registry))
       (close [_] (.close client))
-      (get-client-metrics [_] (metrics/get-client-metrics metric-registry))
-      (get-client-metrics [_ metric-filter] (metrics/get-client-metrics metric-registry metric-filter))
-      (get-client-metrics-data [_] (metrics/get-client-metrics-data metric-registry))
-      (get-client-metrics-data [_ metric-filter] (metrics/get-client-metrics-data metric-registry metric-filter)))))
+      (get-client-metric-registry [_] metric-registry))))

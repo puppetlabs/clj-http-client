@@ -1,5 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.Response;
 import com.puppetlabs.http.client.RequestOptions;
@@ -8,20 +9,18 @@ import com.puppetlabs.http.client.SyncHttpClient;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
 
 public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
     private MetricRegistry metricRegistry;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
-    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
+    public PersistentSyncHttpClient(CloseableHttpAsyncClient client,
+                                    MetricRegistry metricRegistry) {
         this.client = client;
         this.metricRegistry = metricRegistry;
     }
@@ -31,42 +30,15 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         throw new HttpClientException(msg, t);
     }
 
-    public Map<String, Timer> getClientMetrics(){
-        return Metrics.getClientMetrics(metricRegistry);
-    }
-
-    public Map<String, Timer> getClientMetrics(String url, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsWithUrl(metricRegistry, url, metricType);
-    }
-
-    public Map<String, Timer> getClientMetrics(String url, String method, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsWithUrlAndMethod(metricRegistry, url, method, metricType);
-    }
-
-    public Map<String, Timer> getClientMetrics(String[] metricId, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsWithMetricId(metricRegistry, metricId, metricType);
-    }
-
-    public Map<String, ClientMetricData> getClientMetricsData(){
-        return Metrics.getClientMetricsData(metricRegistry);
-    }
-
-    public Map<String, ClientMetricData> getClientMetricsData(String url, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsDataWithUrl(metricRegistry, url, metricType);
-    }
-
-    public Map<String, ClientMetricData> getClientMetricsData(String url, String method, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsDataWithUrlAndMethod(metricRegistry, url, method, metricType);
-    }
-
-    public Map<String, ClientMetricData> getClientMetricsData(String[] metricId, Metrics.MetricType metricType) {
-        return Metrics.getClientMetricsDataWithMetricId(metricRegistry, metricId, metricType);
+    public MetricRegistry getMetricRegistry() {
+        return metricRegistry;
     }
 
     public Response request(RequestOptions requestOptions, HttpMethod method) {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
-        JavaClient.requestWithClient(requestOptions, method, null, client, responseDelivery, metricRegistry);
+        JavaClient.requestWithClient(requestOptions, method, null, client,
+                responseDelivery, metricRegistry);
         Response response = null;
         try {
             response = promise.deref();

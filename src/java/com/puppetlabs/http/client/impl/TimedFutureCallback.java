@@ -11,7 +11,8 @@ public final class TimedFutureCallback<T> implements FutureCallback<T> {
 
     private final ArrayList<Timer.Context> timerContexts;
 
-    public TimedFutureCallback(FutureCallback<T> delegate, ArrayList<Timer.Context> timerContexts) {
+    public TimedFutureCallback(FutureCallback<T> delegate,
+                               ArrayList<Timer.Context> timerContexts) {
         this.delegate = delegate;
         this.timerContexts = timerContexts;
     }

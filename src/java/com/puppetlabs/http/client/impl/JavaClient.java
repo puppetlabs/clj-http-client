@@ -1,11 +1,11 @@
 package com.puppetlabs.http.client.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.ClientOptions;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.ResponseBodyType;
-import com.codahale.metrics.MetricRegistry;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Consts;
@@ -357,7 +357,8 @@ public class JavaClient {
             executeWithConsumer(client, futureCallback, request, registry, metricId);
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
-                    new TimedFutureCallback<>(futureCallback, Metrics.startBytesReadTimers(registry, request, metricId));
+                    new TimedFutureCallback<>(futureCallback,
+                            Metrics.startBytesReadTimers(registry, request, metricId));
             client.execute(request, timedFutureCallback);
         }
     }

@@ -87,7 +87,8 @@ public class Sync {
      * @return A persistent synchronous HTTP client
      */
     public static SyncHttpClient createClient(ClientOptions clientOptions) {
-        return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions), clientOptions.getMetricRegistry());
+        return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions),
+                clientOptions.getMetricRegistry());
     }
 
     /**
