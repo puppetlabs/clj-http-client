@@ -10,7 +10,7 @@
             [puppetlabs.http.client.common :as common]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.http.client.metrics :as metrics])
-  (:import (com.puppetlabs.http.client.impl ClientMetricData ClientMetricRegistry)
+  (:import (com.puppetlabs.http.client.impl ClientMetricData ClientMetricRegistry Metrics)
            (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType Sync)
            (com.codahale.metrics Timer MetricRegistry)
            (java.net SocketTimeoutException)
@@ -77,12 +77,12 @@
              (is (= "long" (slurp (.getBody long-response))))
              (.timer metric-registry "fake")
              (let [client-metric-registry (.getClientMetricRegistry client)
-                   client-metrics (.getClientMetrics client)
-                   client-metrics-data (.getClientMetricsData client)
+                   client-metrics (Metrics/getClientMetrics client-metric-registry)
+                   client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                    all-metrics (.getMetrics metric-registry)]
                (testing ".getClientMetricRegistry returns the associated ClientMetricRegistry"
                  (is (instance? ClientMetricRegistry client-metric-registry)))
-               (testing ".getClientMetrics returns only http client metrics"
+               (testing "Metrics/getClientMetrics returns only http client metrics"
                  (is (= 11 (count all-metrics)))
                  (is (= 10 (count client-metrics)))
                  (is (= 10 (count client-metrics-data))))
@@ -127,13 +127,7 @@
                    (is (> (.getAggregate long-data) (.getAggregate short-data))))))))
          (with-open [client (Async/createClient (ClientOptions.))]
            (testing ".getClientMetricRegistry returns nil if no metric registry passed in"
-             (is (= nil (.getClientMetricRegistry client))))
-           (testing ".getClientMetrics returns nil if no metrics registry passed in"
-             (let [response (-> client (.get hello-request-opts) (.deref))]
-               (is (= 200 (.getStatus response)))
-               (is (= "Hello, World!" (slurp (.getBody response))))
-               (is (= nil (.getClientMetrics client)))
-               (is (= nil (.getClientMetricsData client)))))))))))
+             (is (= nil (.getClientMetricRegistry client))))))))))
 
 (deftest metrics-test-clojure-async
   (testing "metrics work with clojure async client"
@@ -155,8 +149,8 @@
             (is (= "long" (slurp (:body long-response))))
             (.timer metric-registry "fake")
             (let [client-metric-registry (common/get-client-metric-registry client)
-                  client-metrics (common/get-client-metrics client)
-                  client-metrics-data (common/get-client-metrics-data client)
+                  client-metrics (metrics/get-client-metrics client-metric-registry)
+                  client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
                   all-metrics (.getMetrics metric-registry)]
               (testing "get-client-metric-registry returns the associated ClientMetricRegistry"
                 (is (instance? ClientMetricRegistry client-metric-registry)))
@@ -203,13 +197,7 @@
                   (is (> (:mean long-data) (:mean short-data)))))))))
       (with-open [client (async/create-client {})]
         (testing "get-client-metric-registry returns nil if no metric registry passed in"
-          (is (= nil (common/get-client-metric-registry client))))
-        (testing "get-client-metrics returns nil if no metrics registry passed in"
-          (let [response (common/get client hello-url)]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))
-            (is (= nil (common/get-client-metrics client)))
-            (is (= nil (common/get-client-metrics-data client))))))))))
+          (is (= nil (common/get-client-metric-registry client)))))))))
 
 (deftest metrics-test-java-sync
   (testing "metrics work with java sync client"
@@ -236,23 +224,23 @@
             (is (= "long" (slurp (.getBody long-response))))
             (.timer metric-registry "fake")
             (let [client-metric-registry (.getClientMetricRegistry client)
-                  client-metrics (.getClientMetrics client)
-                  client-metrics-data (.getClientMetricsData client)
+                  client-metrics (Metrics/getClientMetrics client-metric-registry)
+                  client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                   all-metrics (.getMetrics metric-registry)]
               (testing ".getClientMetricRegistry returns the associated ClientMetricRegistry"
                 (is (instance? ClientMetricRegistry client-metric-registry)))
-              (testing ".getClientMetrics returns only http client metrics"
+              (testing "Metrics/getClientMetrics returns only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (count client-metrics)))
                 (is (= 10 (count client-metrics-data))))
-              (testing ".getClientMetrics returns a map of metric name to timer instance"
+              (testing "Metrics/getClientMetrics returns a map of metric name to timer instance"
                 (is (= (set (list hello-name hello-name-with-method short-name short-name-with-get
                                   short-name-with-post long-name long-name-with-method
                                   long-foo-name long-foo-bar-name long-foo-bar-baz-name))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
                 (is (every? #(instance? Timer %) (vals client-metrics))))
-              (testing ".getClientMetricsData returns a map of metric name to metric data"
+              (testing "Metrics/getClientMetricsData returns a map of metric name to metric data"
                 (let [short-data (get client-metrics-data short-name)
                       short-data-get (get client-metrics-data short-name-with-get)
                       short-data-post (get client-metrics-data short-name-with-post)
@@ -286,13 +274,7 @@
                   (is (> (.getMean long-data) (.getMean short-data))))))))
         (with-open [client (Sync/createClient (ClientOptions.))]
           (testing ".getClientMetricRegistry returns nil if no metric registry passed in"
-            (is (= nil (.getClientMetricRegistry client))))
-          (testing ".getClientMetrics returns nil if no metrics registry passed in"
-            (let [response (.get client hello-request-opts)]
-              (is (= 200 (.getStatus response)))
-              (is (= "Hello, World!" (slurp (.getBody response))))
-              (is (= nil (.getClientMetrics client)))
-              (is (= nil (.getClientMetricsData client)))))))))))
+            (is (= nil (.getClientMetricRegistry client))))))))))
 
 (deftest metrics-test-clojure-sync
   (testing "metrics work with clojure sync client"
@@ -312,8 +294,8 @@
             (is (= {:status 200 :body "long"} (select-keys long-response [:status :body])))
             (.timer metric-registry "fake")
             (let [client-metric-registry (common/get-client-metric-registry client)
-                  client-metrics (common/get-client-metrics client)
-                  client-metrics-data (common/get-client-metrics-data client)
+                  client-metrics (metrics/get-client-metrics client-metric-registry)
+                  client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
                   all-metrics (.getMetrics metric-registry)]
               (testing "get-client-metric-registry returns the associated ClientMetricRegistry"
                 (is (instance? ClientMetricRegistry client-metric-registry)))
@@ -360,13 +342,7 @@
                   (is (> (:mean long-data) (:mean short-data))))))))
         (with-open [client (sync/create-client {})]
           (testing "get-client-metric-registry returns nil if no metric registry passed in"
-            (is (= nil (common/get-client-metric-registry client))))
-          (testing "get-client-metrics returns nil if no metrics registry passed in"
-            (let [response (common/get client hello-url)]
-              (is (= 200 (:status response)))
-              (is (= "Hello, World!" (slurp (:body response))))
-              (is (= nil (common/get-client-metrics client)))
-              (is (= nil (common/get-client-metrics-data client)))))))))))
+            (is (= nil (common/get-client-metric-registry client))))))))))
 
 (deftest java-metrics-for-unbuffered-streaming-test
   (testlogging/with-test-logging
@@ -392,8 +368,9 @@
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
                 (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
-              (let [client-metrics (.getClientMetrics client)
-                    client-metrics-data (.getClientMetricsData client)
+              (let [client-metric-registry (.getClientMetricRegistry client)
+                    client-metrics (Metrics/getClientMetrics client-metric-registry)
+                    client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                     base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                     bytes-read-name (str base-metric-name ".bytes-read")
                     bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
@@ -425,8 +402,9 @@
                     body (.getBody response)]
                 (is (nil? error))
                 (is (thrown? SocketTimeoutException (slurp body)))
-                (let [client-metrics (.getClientMetrics client)
-                      client-metrics-data (.getClientMetricsData client)
+                (let [client-metric-registry (.getClientMetricRegistry client)
+                      client-metrics (Metrics/getClientMetrics client-metric-registry)
+                      client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                       base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                       bytes-read-name (str base-metric-name ".bytes-read")
                       bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
@@ -465,8 +443,9 @@
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
                 (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
-              (let [client-metrics (common/get-client-metrics client)
-                    client-metrics-data (common/get-client-metrics-data client)
+              (let [client-metric-registry (common/get-client-metric-registry client)
+                    client-metrics (metrics/get-client-metrics client-metric-registry)
+                    client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
                     base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                     bytes-read-name (str base-metric-name ".bytes-read")
                     bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
@@ -492,8 +471,9 @@
                 (is (nil? error))
                 ;; Consume the body to get the exception
                 (is (thrown? SocketTimeoutException (slurp body))))
-              (let [client-metrics (common/get-client-metrics client)
-                    client-metrics-data (common/get-client-metrics-data client)
+              (let [client-metric-registry (common/get-client-metric-registry client)
+                    client-metrics (metrics/get-client-metrics client-metric-registry)
+                    client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
                     base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
                     bytes-read-name (str base-metric-name ".bytes-read")
                     bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]

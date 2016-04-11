@@ -23,9 +23,7 @@
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
   (close [this])
-  (get-client-metric-registry [this])
-  (get-client-metrics [this] [this metric-filter])
-  (get-client-metrics-data [this] [this metric-filter]))
+  (get-client-metric-registry [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas

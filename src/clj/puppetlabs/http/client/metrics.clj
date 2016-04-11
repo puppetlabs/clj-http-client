@@ -66,16 +66,16 @@
     metric-filter :- common/MetricFilter]
    (when metric-registry
      (cond
-       (:method metric-filter) (into {} (Metrics/getClientMetricsWithUrlAndMethod
+       (:method metric-filter) (into {} (Metrics/getClientMetrics
                                          metric-registry
                                          (:url metric-filter)
                                          (uppercase-method (:method metric-filter))
                                          (get-java-metric-type (:metric-type metric-filter))))
-       (:url metric-filter) (into {} (Metrics/getClientMetricsWithUrl
+       (:url metric-filter) (into {} (Metrics/getClientMetrics
                                       metric-registry
                                       (:url metric-filter)
                                       (get-java-metric-type (:metric-type metric-filter))))
-       (:metric-id metric-filter) (into {} (Metrics/getClientMetricsWithMetricId
+       (:metric-id metric-filter) (into {} (Metrics/getClientMetrics
                                             metric-registry
                                             (into-array String (map name (:metric-id metric-filter)))
                                             (get-java-metric-type (:metric-type metric-filter))))

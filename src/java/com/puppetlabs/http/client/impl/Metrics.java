@@ -114,9 +114,9 @@ public class Metrics {
         }
     }
 
-    public static Map<String, Timer> getClientMetricsWithUrl(ClientMetricRegistry metricRegistry,
-                                                             final String url,
-                                                             final MetricType metricType){
+    public static Map<String, Timer> getClientMetrics(ClientMetricRegistry metricRegistry,
+                                                      final String url,
+                                                      final MetricType metricType){
         if (metricRegistry != null) {
             String metricName = metricRegistry.getUrlMetricNames().get(url);
             return metricRegistry.getTimers(new ClientMetricFilter(metricName));
@@ -125,10 +125,10 @@ public class Metrics {
         }
     }
 
-    public static Map<String, Timer> getClientMetricsWithUrlAndMethod(ClientMetricRegistry metricRegistry,
-                                                                    final String url,
-                                                                    final String method,
-                                                                    final MetricType metricType){
+    public static Map<String, Timer> getClientMetrics(ClientMetricRegistry metricRegistry,
+                                                      final String url,
+                                                      final String method,
+                                                      final MetricType metricType){
         if (metricRegistry != null) {
             String metricName = metricRegistry.getUrlMethodMetricNames().get(url + "." + method);
             return metricRegistry.getTimers(new ClientMetricFilter(metricName));
@@ -137,9 +137,9 @@ public class Metrics {
         }
     }
 
-    public static Map<String, Timer> getClientMetricsWithMetricId(ClientMetricRegistry metricRegistry,
-                                                                  final String[] metricId,
-                                                                  final MetricType metricType){
+    public static Map<String, Timer> getClientMetrics(ClientMetricRegistry metricRegistry,
+                                                      final String[] metricId,
+                                                      final MetricType metricType){
         if (metricRegistry != null) {
             if (metricId.length == 0) {
                 String metricNameStart = MetricRegistry.name(METRIC_NAMESPACE, ID_NAMESPACE);
@@ -179,25 +179,25 @@ public class Metrics {
         return computeClientMetricsData(timers);
     }
 
-    public static Map<String, ClientMetricData> getClientMetricsDataWithUrl(ClientMetricRegistry metricRegistry,
-                                                                            String url,
-                                                                            MetricType metricType){
-        Map<String, Timer> timers = getClientMetricsWithUrl(metricRegistry, url, metricType);
+    public static Map<String, ClientMetricData> getClientMetricsData(ClientMetricRegistry metricRegistry,
+                                                                     String url,
+                                                                     MetricType metricType){
+        Map<String, Timer> timers = getClientMetrics(metricRegistry, url, metricType);
         return computeClientMetricsData(timers);
     }
 
-    public static Map<String, ClientMetricData> getClientMetricsDataWithUrlAndMethod(ClientMetricRegistry metricRegistry,
-                                                                                     String url,
-                                                                                     String method,
-                                                                                     MetricType metricType){
-        Map<String, Timer> timers = getClientMetricsWithUrlAndMethod(metricRegistry, url, method, metricType);
+    public static Map<String, ClientMetricData> getClientMetricsData(ClientMetricRegistry metricRegistry,
+                                                                     String url,
+                                                                     String method,
+                                                                     MetricType metricType){
+        Map<String, Timer> timers = getClientMetrics(metricRegistry, url, method, metricType);
         return computeClientMetricsData(timers);
     }
 
-    public static Map<String, ClientMetricData> getClientMetricsDataWithMetricId(ClientMetricRegistry metricRegistry,
-                                                                                 String[] metricId,
-                                                                                 MetricType metricType){
-        Map<String, Timer> timers = getClientMetricsWithMetricId(metricRegistry, metricId, metricType);
+    public static Map<String, ClientMetricData> getClientMetricsData(ClientMetricRegistry metricRegistry,
+                                                                     String[] metricId,
+                                                                     MetricType metricType){
+        Map<String, Timer> timers = getClientMetrics(metricRegistry, metricId, metricType);
         return computeClientMetricsData(timers);
     }
 }

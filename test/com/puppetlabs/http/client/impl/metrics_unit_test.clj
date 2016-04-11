@@ -82,7 +82,7 @@
              (set (keys (Metrics/getClientMetrics registry)))
              (set (keys (Metrics/getClientMetricsData registry))))))
     (testing "getClientMetricsData with url returns the right thing"
-      (let [java-data (Metrics/getClientMetricsDataWithUrl registry url bytes-read)
+      (let [java-data (Metrics/getClientMetricsData registry url bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url :metric-type :bytes-read})]
         (is (= (add-metric-ns "with-url.http://test.com/one.bytes-read")
@@ -90,7 +90,7 @@
                (first (keys clj-data))))
         (is (= 3 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
-      (let [java-data (Metrics/getClientMetricsDataWithUrl registry url2 bytes-read)
+      (let [java-data (Metrics/getClientMetricsData registry url2 bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url2 :metric-type :bytes-read})]
         (is (= (add-metric-ns "with-url.http://test.com/one/two.bytes-read")
@@ -99,11 +99,11 @@
         (is (= 1 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
       (testing "getClientMetricsData with url returns nothing if url is not a full match"
-        (is (= {} (Metrics/getClientMetricsDataWithUrl registry "http://test.com" bytes-read)
+        (is (= {} (Metrics/getClientMetricsData registry "http://test.com" bytes-read)
                (metrics/get-client-metrics-data
                 registry {:url "http://test.com" :metric-type :bytes-read})))))
     (testing "getClientMetricsData with url and method returns the right thing"
-      (let [java-data (Metrics/getClientMetricsDataWithUrlAndMethod registry url "GET" bytes-read)
+      (let [java-data (Metrics/getClientMetricsData registry url "GET" bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url :method :get :metric-type :bytes-read})]
         (is (= (add-metric-ns "with-url.http://test.com/one.GET.bytes-read")
@@ -111,7 +111,7 @@
                (first (keys java-data))))
         (is (= 1 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
-      (let [java-data (Metrics/getClientMetricsDataWithUrlAndMethod registry url "POST" bytes-read)
+      (let [java-data (Metrics/getClientMetricsData registry url "POST" bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url :method :post :metric-type :bytes-read})]
         (is (= (add-metric-ns "with-url.http://test.com/one.POST.bytes-read")
@@ -119,7 +119,7 @@
                (first (keys clj-data))))
         (is (= 2 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
-      (let [java-data (Metrics/getClientMetricsDataWithUrlAndMethod registry url2 "GET" bytes-read)
+      (let [java-data (Metrics/getClientMetricsData registry url2 "GET" bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url2 :method :get :metric-type :bytes-read})]
         (is (= (add-metric-ns "with-url.http://test.com/one/two.GET.bytes-read")
@@ -128,12 +128,12 @@
         (is (= 1 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
       (testing "getClientMetricsData with url and method returns nothing if method is not a match"
-        (is (= {} (Metrics/getClientMetricsDataWithUrlAndMethod
+        (is (= {} (Metrics/getClientMetricsData
                    registry "http://test.com" "PUT" bytes-read)
                (metrics/get-client-metrics-data
                 registry {:url "http://test.com" :method :put :metric-type :bytes-read})))))
     (testing "getClientMetricsData with metric id returns the right thing"
-      (let [java-data (Metrics/getClientMetricsDataWithMetricId
+      (let [java-data (Metrics/getClientMetricsData
                        registry (into-array ["foo"]) bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:metric-id ["foo"] :metric-type :bytes-read})]
@@ -142,7 +142,7 @@
                (first (keys clj-data))))
         (is (= 2 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
-      (let [java-data (Metrics/getClientMetricsDataWithMetricId
+      (let [java-data (Metrics/getClientMetricsData
                        registry (into-array ["foo" "bar"]) bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:metric-id ["foo" "bar"] :metric-type :bytes-read})]
@@ -151,7 +151,7 @@
                (first (keys clj-data))))
         (is (= 1 (.getCount (first (vals java-data)))
                (:count (first (vals clj-data))))))
-      (let [java-data (Metrics/getClientMetricsDataWithMetricId
+      (let [java-data (Metrics/getClientMetricsData
                        registry (into-array ["foo" "abc"]) bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:metric-id ["foo" "abc"] :metric-type :bytes-read})]
@@ -165,10 +165,13 @@
                  (metrics/get-client-metrics-data
                   registry {:metric-id ["foo" :abc] :metric-type :bytes-read})))))
       (testing "getClientMetricsData with metric id returns nothing if id is not a match"
-        (is (= {} (Metrics/getClientMetricsDataWithMetricId
+        (is (= {} (Metrics/getClientMetricsData
                    registry (into-array ["foo" "cat"]) bytes-read)
                (metrics/get-client-metrics-data
-                registry {:metric-id ["foo" "cat"] :metric-type :bytes-read})))))))
+                registry {:metric-id ["foo" "cat"] :metric-type :bytes-read}))))
+      (testing "getClientMetrics|Data returns nil if no metric registry passed in"
+        (is (= nil (Metrics/getClientMetricsData nil) (Metrics/getClientMetrics nil)))
+        (is (= nil (metrics/get-client-metrics-data nil) (metrics/get-client-metrics nil)))))))
 
 (deftest empty-metric-id-filter-test
   (testing "a metric id filter with an empty array returns all metric id timers"
@@ -180,7 +183,7 @@
       (start-and-stop-timers! registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar" "baz"]))
       (testing "empty metric filter returns all metric id timers"
         (is (= (set (list foo-id foo-bar-id foo-bar-baz-id))
-               (set (keys (Metrics/getClientMetricsDataWithMetricId registry (into-array String []) bytes-read)))
+               (set (keys (Metrics/getClientMetricsData registry (into-array String []) bytes-read)))
                (set (keys (metrics/get-client-metrics-data registry (metrics/filter-with-metric-id []))))))))))
 
 (deftest metrics-filter-builder-test
