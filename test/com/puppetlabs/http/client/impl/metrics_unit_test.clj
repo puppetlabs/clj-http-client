@@ -13,7 +13,7 @@
 (deftest start-bytes-read-timers-test
   (testing "startBytesReadTimers creates the right timers"
     (let [url-id (add-metric-ns "with-url.http://localhost/foo.bytes-read")
-          url-method-id (add-metric-ns "with-url.http://localhost/foo.GET.bytes-read")]
+          url-method-id (add-metric-ns "with-url-and-method.http://localhost/foo.GET.bytes-read")]
       (testing "metric id timers are not created for a request without a metric id"
         (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
           (Metrics/startBytesReadTimers metric-registry
@@ -51,7 +51,7 @@
                                         (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?#x%2cyz")
                                         nil)
           (is (= (set (list (add-metric-ns "with-url.http://localhost:1234/foo%2cbar/baz.bytes-read")
-                            (add-metric-ns "with-url.http://localhost:1234/foo%2cbar/baz.GET.bytes-read")))
+                            (add-metric-ns "with-url-and-method.http://localhost:1234/foo%2cbar/baz.GET.bytes-read")))
                  (set (keys (.getTimers metric-registry))))))))))
 
 (defn start-and-stop-timers! [registry req id]
@@ -72,12 +72,12 @@
     (testing "getClientMetrics without args returns all timers"
       (is (= (set
               ["puppetlabs.http-client.experimental.with-url.http://test.com/one.bytes-read"
-               "puppetlabs.http-client.experimental.with-url.http://test.com/one.GET.bytes-read"
-               "puppetlabs.http-client.experimental.with-url.http://test.com/one.POST.bytes-read"
+               "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.GET.bytes-read"
+               "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.POST.bytes-read"
                "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read"
                "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read"
                "puppetlabs.http-client.experimental.with-url.http://test.com/one/two.bytes-read"
-               "puppetlabs.http-client.experimental.with-url.http://test.com/one/two.GET.bytes-read"
+               "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one/two.GET.bytes-read"
                "puppetlabs.http-client.experimental.with-metric-id.foo.abc.bytes-read"])
              (set (keys (Metrics/getClientMetrics registry)))
              (set (keys (Metrics/getClientMetricsData registry))))))
@@ -106,7 +106,7 @@
       (let [java-data (Metrics/getClientMetricsData registry url "GET" bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url :method :get :metric-type :bytes-read})]
-        (is (= (add-metric-ns "with-url.http://test.com/one.GET.bytes-read")
+        (is (= (add-metric-ns "with-url-and-method.http://test.com/one.GET.bytes-read")
                (first (keys clj-data))
                (first (keys java-data))))
         (is (= 1 (.getCount (first (vals java-data)))
@@ -114,7 +114,7 @@
       (let [java-data (Metrics/getClientMetricsData registry url "POST" bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url :method :post :metric-type :bytes-read})]
-        (is (= (add-metric-ns "with-url.http://test.com/one.POST.bytes-read")
+        (is (= (add-metric-ns "with-url-and-method.http://test.com/one.POST.bytes-read")
                (first (keys java-data))
                (first (keys clj-data))))
         (is (= 2 (.getCount (first (vals java-data)))
@@ -122,7 +122,7 @@
       (let [java-data (Metrics/getClientMetricsData registry url2 "GET" bytes-read)
             clj-data (metrics/get-client-metrics-data
                       registry {:url url2 :method :get :metric-type :bytes-read})]
-        (is (= (add-metric-ns "with-url.http://test.com/one/two.GET.bytes-read")
+        (is (= (add-metric-ns "with-url-and-method.http://test.com/one/two.GET.bytes-read")
                (first (keys java-data))
                (first (keys clj-data))))
         (is (= 1 (.getCount (first (vals java-data)))

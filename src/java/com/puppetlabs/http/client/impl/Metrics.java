@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 public class Metrics {
     public static final String METRIC_NAMESPACE = "puppetlabs.http-client.experimental";
     public static final String URL_NAMESPACE = "with-url";
+    public static final String URL_METHOD_NAMESPACE = "with-url-and-method";
     public static final String ID_NAMESPACE = "with-metric-id";
     public static final String BYTES_READ_STRING = "bytes-read";
     public enum MetricType { BYTES_READ; }
@@ -71,7 +72,7 @@ public class Metrics {
 
             final String urlName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
                     strippedUrl, BYTES_READ_STRING);
-            final String urlAndMethodName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
+            final String urlAndMethodName = MetricRegistry.name(METRIC_NAMESPACE, URL_METHOD_NAMESPACE,
                     strippedUrl, method, BYTES_READ_STRING);
 
             urlMetricNames.putIfAbsent(strippedUrl, urlName);

@@ -16,6 +16,8 @@
            (java.net SocketTimeoutException)
            (java.util.concurrent TimeoutException)))
 
+(def metric-namespace "puppetlabs.http-client.experimental")
+
 (tk/defservice test-metric-web-service
                [[:WebserverService add-ring-handler]]
                (init [this context]
@@ -36,21 +38,23 @@
 (def short-url "http://localhost:10000/short")
 (def long-url "http://localhost:10000/long")
 
-(def short-name-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/short")
-(def short-name (str short-name-base ".bytes-read"))
-(def short-name-with-get (str short-name-base ".GET" ".bytes-read"))
-(def short-name-with-post (str short-name-base ".POST" ".bytes-read"))
+(def short-name (format "%s.with-url.%s.bytes-read" metric-namespace short-url))
+(def short-name-with-get (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                 metric-namespace short-url))
+(def short-name-with-post (format "%s.with-url-and-method.%s.POST.bytes-read"
+                                  metric-namespace short-url))
 
-(def long-name-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/long")
-(def long-name (str long-name-base ".bytes-read"))
-(def long-name-with-method (str long-name-base ".GET" ".bytes-read"))
+(def long-name (format "%s.with-url.%s.bytes-read" metric-namespace long-url))
+(def long-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                   metric-namespace long-url))
+
 (def long-foo-name "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
 (def long-foo-bar-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
 (def long-foo-bar-baz-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")
 
-(def hello-name-base "puppetlabs.http-client.experimental.with-url.http://localhost:10000/hello")
-(def hello-name (str hello-name-base ".bytes-read"))
-(def hello-name-with-method (str hello-name-base ".GET" ".bytes-read"))
+(def hello-name (format "%s.with-url.%s.bytes-read" metric-namespace hello-url))
+(def hello-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                    metric-namespace hello-url))
 
 (deftest metrics-test-java-async
   (testing "metrics work with java async client"
@@ -356,7 +360,8 @@
                                  (.setConnectTimeoutMilliseconds 100)
                                  (.setMetricRegistry metric-registry)
                                  (Async/createClient))]
-            (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+            (let [url (str "http://localhost:" port "/hello")
+                  request-options (doto (RequestOptions. url)
                                     (.setAs ResponseBodyType/UNBUFFERED_STREAM))
                   response (-> client (.get request-options) .deref)
                   status (.getStatus response)
@@ -371,9 +376,9 @@
               (let [client-metric-registry (.getClientMetricRegistry client)
                     client-metrics (Metrics/getClientMetrics client-metric-registry)
                     client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                    base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-name (str base-metric-name ".bytes-read")
-                    bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                    bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
+                    bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                                        metric-namespace url)]
                 (is (= (set (list bytes-read-name bytes-read-name-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
@@ -395,7 +400,8 @@
                                    (.setConnectTimeoutMilliseconds 100)
                                    (.setMetricRegistry metric-registry)
                                    (Async/createClient))]
-              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+              (let [url (str "http://localhost:" port "/hello")
+                    request-options (doto (RequestOptions. url)
                                       (.setAs ResponseBodyType/UNBUFFERED_STREAM))
                     response (-> client (.get request-options) .deref)
                     error (.getError response)
@@ -405,9 +411,9 @@
                 (let [client-metric-registry (.getClientMetricRegistry client)
                       client-metrics (Metrics/getClientMetrics client-metric-registry)
                       client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                      base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                      bytes-read-name (str base-metric-name ".bytes-read")
-                      bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                      bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
+                      bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                                          metric-namespace url)]
                   (is (= (set (list bytes-read-name bytes-read-name-with-method))
                          (set (keys client-metrics))
                          (set (keys client-metrics-data))))
@@ -434,7 +440,8 @@
           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                    :socket-timeout-milliseconds 20000
                                                    :metric-registry metric-registry})]
-            (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
+            (let [url (str "http://localhost:" port "/hello")
+                  response @(common/get client url opts)
                   {:keys [status body]} response]
               (is (= 200 status))
               (let [instream body
@@ -446,9 +453,9 @@
               (let [client-metric-registry (common/get-client-metric-registry client)
                     client-metrics (metrics/get-client-metrics client-metric-registry)
                     client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
-                    base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-name (str base-metric-name ".bytes-read")
-                    bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                    bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
+                    bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                                        metric-namespace url)]
                 (is (= (set (list bytes-read-name bytes-read-name-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
@@ -462,11 +469,12 @@
        (try
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
+          (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))
+                url (str "http://localhost:" port "/hello")]
             (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                      :socket-timeout-milliseconds 200
                                                      :metric-registry metric-registry})]
-              (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
+              (let [response @(common/get client url opts)
                     {:keys [body error]} response]
                 (is (nil? error))
                 ;; Consume the body to get the exception
@@ -474,9 +482,9 @@
               (let [client-metric-registry (common/get-client-metric-registry client)
                     client-metrics (metrics/get-client-metrics client-metric-registry)
                     client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
-                    base-metric-name (str "puppetlabs.http-client.experimental.with-url.http://localhost:" port "/hello")
-                    bytes-read-name (str base-metric-name ".bytes-read")
-                    bytes-read-name-with-method (str base-metric-name ".GET" ".bytes-read")]
+                    bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
+                    bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                                                        metric-namespace url)]
                 (is (= (set (list bytes-read-name bytes-read-name-with-method))
                        (set (keys client-metrics))
                        (set (keys client-metrics-data))))
