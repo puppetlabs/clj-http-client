@@ -168,6 +168,11 @@
 (def Metrics
   {schema/Str Timer})
 
+(def AllMetrics
+  {:url Metrics
+   :url-and-method Metrics
+   :metric-id (schema/maybe Metrics)})
+
 (def MetricData
   {:metric-name schema/Str
    :count schema/Int
@@ -176,6 +181,11 @@
 
 (def MetricsData
   {schema/Str MetricData})
+
+(def AllMetricsData
+  {:url MetricsData
+   :url-and-method MetricsData
+   :metric-id (schema/maybe MetricsData)})
 
 (def MetricTypes
   (schema/enum :bytes-read))

@@ -57,11 +57,15 @@
    :method method
    :metric-type :bytes-read})
 
-(schema/defn ^:always-validate get-client-metrics :- (schema/maybe common/Metrics)
+(schema/defn ^:always-validate get-client-metrics
+  :- (schema/either (schema/maybe common/Metrics) common/AllMetrics)
   "Returns the http client-specific metrics from the metric registry."
   ([metric-registry :- common/OptionalMetricRegistry]
    (when metric-registry
-     (into {} (Metrics/getClientMetrics metric-registry))))
+     (let [metrics (Metrics/getClientMetrics metric-registry)]
+       {:url (into {} (get metrics "url"))
+        :url-and-method (into {} (get metrics "url-and-method"))
+        :metric-id (into {} (get metrics "metric-id"))})))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-filter :- common/MetricFilter]
    (when metric-registry
@@ -81,12 +85,13 @@
                                             (get-java-metric-type (:metric-type metric-filter))))
        :else (throw (IllegalArgumentException. "Not an allowed metric filter."))))))
 
-(schema/defn ^:always-validate get-client-metrics-data :- (schema/maybe common/MetricsData)
+(schema/defn ^:always-validate get-client-metrics-data
+  :- (schema/either (schema/maybe common/MetricsData) common/AllMetricsData)
   "Returns a map of metric-id to metric data summary."
   ([metric-registry :- common/OptionalMetricRegistry]
    (when metric-registry
      (let [timers (get-client-metrics metric-registry)]
-       (get-metrics-data timers))))
+       (into {} (map (fn [[k v]] {k (get-metrics-data v)}) timers)))))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-filter :- common/MetricFilter]
    (when metric-registry

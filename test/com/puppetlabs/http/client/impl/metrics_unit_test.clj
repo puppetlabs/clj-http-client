@@ -69,18 +69,24 @@
     (start-and-stop-timers! registry (BasicHttpRequest. "POST" url) nil)
     (start-and-stop-timers! registry (BasicHttpRequest. "POST" url) (into-array ["foo" "bar"]))
     (start-and-stop-timers! registry (BasicHttpRequest. "GET" url2) (into-array ["foo" "abc"]))
-    (testing "getClientMetrics without args returns all timers"
-      (is (= (set
-              ["puppetlabs.http-client.experimental.with-url.http://test.com/one.bytes-read"
-               "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.GET.bytes-read"
-               "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.POST.bytes-read"
-               "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read"
-               "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read"
-               "puppetlabs.http-client.experimental.with-url.http://test.com/one/two.bytes-read"
-               "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one/two.GET.bytes-read"
-               "puppetlabs.http-client.experimental.with-metric-id.foo.abc.bytes-read"])
+    (testing "getClientMetrics without args returns all timers organized by category"
+      (is (= (set ["url" "url-and-method" "metric-id"])
              (set (keys (Metrics/getClientMetrics registry)))
-             (set (keys (Metrics/getClientMetricsData registry))))))
+             (set (keys (Metrics/getClientMetricsData registry)))))
+      (is (= (set ["puppetlabs.http-client.experimental.with-url.http://test.com/one.bytes-read"
+                   "puppetlabs.http-client.experimental.with-url.http://test.com/one/two.bytes-read"])
+             (set (keys (get (Metrics/getClientMetrics registry) "url")))
+             (set (keys (get (Metrics/getClientMetricsData registry) "url")))))
+      (is (= (set ["puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.GET.bytes-read"
+                   "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.POST.bytes-read"
+                   "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one/two.GET.bytes-read"])
+             (set (keys (get (Metrics/getClientMetrics registry) "url-and-method")))
+             (set (keys (get (Metrics/getClientMetricsData registry) "url-and-method")))))
+      (is (= (set ["puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read"
+                   "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read"
+                   "puppetlabs.http-client.experimental.with-metric-id.foo.abc.bytes-read"])
+             (set (keys (get (Metrics/getClientMetrics registry) "metric-id")))
+             (set (keys (get (Metrics/getClientMetricsData registry) "metric-id"))))))
     (testing "getClientMetricsData with url returns the right thing"
       (let [java-data (Metrics/getClientMetricsData registry url bytes-read)
             clj-data (metrics/get-client-metrics-data
@@ -171,7 +177,25 @@
                 registry {:metric-id ["foo" "cat"] :metric-type :bytes-read}))))
       (testing "getClientMetrics|Data returns nil if no metric registry passed in"
         (is (= nil (Metrics/getClientMetricsData nil) (Metrics/getClientMetrics nil)))
-        (is (= nil (metrics/get-client-metrics-data nil) (metrics/get-client-metrics nil)))))))
+        (is (= nil (metrics/get-client-metrics-data nil) (metrics/get-client-metrics nil))))
+      (testing "getClientMetrics returns correctly without metric-id on request"
+        (let [registry (ClientMetricRegistry. (MetricRegistry.))
+              url "http://test.com/one"]
+          (start-and-stop-timers! registry (BasicHttpRequest. "GET" url) nil)
+          (let [client-metrics (Metrics/getClientMetrics registry)
+                client-metrics-data (Metrics/getClientMetricsData registry)]
+            (is (= (set ["url" "url-and-method" "metric-id"])
+                   (set (keys client-metrics))
+                   (set (keys client-metrics-data))))
+            (is (= (set ["puppetlabs.http-client.experimental.with-url.http://test.com/one.bytes-read"])
+                   (set (keys (get client-metrics "url")))
+                   (set (keys (get client-metrics-data "url")))))
+            (is (= (set ["puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.GET.bytes-read"])
+                   (set (keys (get client-metrics "url-and-method")))
+                   (set (keys (get client-metrics-data "url-and-method")))))
+            (is (= {}
+                   (get client-metrics "metric-id")
+                   (get client-metrics-data "metric-id")))))))))
 
 (deftest empty-metric-id-filter-test
   (testing "a metric id filter with an empty array returns all metric id timers"
