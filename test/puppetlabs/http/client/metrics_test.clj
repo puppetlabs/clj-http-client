@@ -10,9 +10,9 @@
             [puppetlabs.http.client.common :as common]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.http.client.metrics :as metrics])
-  (:import (com.puppetlabs.http.client.impl ClientMetricData ClientMetricRegistry Metrics)
+  (:import (com.puppetlabs.http.client.impl ClientMetricData Metrics ClientTimer)
            (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType Sync)
-           (com.codahale.metrics Timer MetricRegistry)
+           (com.codahale.metrics MetricRegistry)
            (java.net SocketTimeoutException)
            (java.util.concurrent TimeoutException)))
 
@@ -69,8 +69,7 @@
              long-request-opts (doto (RequestOptions. long-url)
                                  (.setMetricId (into-array ["foo" "bar" "baz"])))]
          (with-open [client (Async/createClient (doto (ClientOptions.)
-                                                  (.setMetricRegistry
-                                                   (ClientMetricRegistry. metric-registry))))]
+                                                  (.setMetricRegistry metric-registry)))]
            (-> client (.get hello-request-opts) (.deref)) ; warm it up
            (let [short-response (-> client (.get short-request-opts) (.deref))
                  long-response (-> client (.get long-request-opts) (.deref))]
@@ -80,7 +79,7 @@
              (is (= 200 (.getStatus long-response)))
              (is (= "long" (slurp (.getBody long-response))))
              (.timer metric-registry "fake")
-             (let [client-metric-registry (.getClientMetricRegistry client)
+             (let [client-metric-registry (.getMetricRegistry client)
                    client-metrics (Metrics/getClientMetrics client-metric-registry)
                    client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                    url-metrics (get client-metrics "url")
@@ -90,8 +89,8 @@
                    url-and-method-metrics-data (get client-metrics-data "url-and-method")
                    metric-id-metrics-data (get client-metrics-data "metric-id")
                    all-metrics (.getMetrics metric-registry)]
-               (testing ".getClientMetricRegistry returns the associated ClientMetricRegistry"
-                 (is (instance? ClientMetricRegistry client-metric-registry)))
+               (testing ".getMetricRegistry returns the associated MetricRegistry"
+                 (is (instance? MetricRegistry client-metric-registry)))
                (testing "Metrics/getClientMetrics returns only http client metrics"
                  (is (= 11 (count all-metrics)))
                  (is (= 10 (+ (count url-metrics)
@@ -102,27 +101,29 @@
                               (count metric-id-metrics-data)))))
                (testing "get-client-metrics returns a map of metric name to timer instance"
                  (is (= (set (list hello-name short-name long-name))
-                        (set (keys url-metrics))
-                        (set (keys url-metrics-data))))
+                        (set (map #(.getMetricName %) url-metrics))
+                        (set (map #(.getMetricName %) url-metrics-data))))
                  (is (= (set (list hello-name-with-method short-name-with-get
                                    short-name-with-post long-name-with-method))
-                        (set (keys url-and-method-metrics))
-                        (set (keys url-and-method-metrics-data))))
+                        (set (map #(.getMetricName %) url-and-method-metrics))
+                        (set (map #(.getMetricName %) url-and-method-metrics-data))))
                  (is (= (set (list long-foo-name long-foo-bar-name long-foo-bar-baz-name))
-                        (set (keys metric-id-metrics))
-                        (set (keys metric-id-metrics-data))))
-                 (is (every? #(instance? Timer %) (vals url-metrics)))
-                 (is (every? #(instance? Timer %) (vals url-and-method-metrics)))
-                 (is (every? #(instance? Timer %) (vals metric-id-metrics))))
-               (testing "get-client-metrics-data returns a map of metric category to metric name to metric data"
-                 (let [short-data (get url-metrics-data short-name)
-                       short-data-get (get url-and-method-metrics-data short-name-with-get)
-                       short-data-post (get url-and-method-metrics-data short-name-with-post)
-                       long-data (get url-metrics-data long-name)]
+                        (set (map #(.getMetricName %) metric-id-metrics))
+                        (set (map #(.getMetricName %) metric-id-metrics-data))))
+                 (is (every? #(instance? ClientTimer %) url-metrics))
+                 (is (every? #(instance? ClientTimer %) url-and-method-metrics))
+                 (is (every? #(instance? ClientTimer %) metric-id-metrics)))
+               (testing "get-client-metrics-data returns a map of metric category to arrays of metric data"
+                 (let [short-data (first (filter #(= short-name (.getMetricName %)) url-metrics-data))
+                       short-data-get (first (filter #(= short-name-with-get (.getMetricName %))
+                                               url-and-method-metrics-data))
+                       short-data-post (first (filter #(= short-name-with-post (.getMetricName %))
+                                                url-and-method-metrics-data))
+                       long-data (first (filter #(= long-name (.getMetricName %)) url-metrics-data))]
                    (is (every? #(instance? ClientMetricData %)
-                               (concat (vals url-metrics-data)
-                                       (vals url-and-method-metrics-data)
-                                       (vals metric-id-metrics-data))))
+                               (concat url-metrics-data
+                                       url-and-method-metrics-data
+                                       metric-id-metrics-data)))
 
                    (is (= short-name (.getMetricName short-data)))
                    (is (= 2 (.getCount short-data)))
@@ -150,8 +151,8 @@
 
                    (is (> (.getAggregate long-data) (.getAggregate short-data))))))))
          (with-open [client (Async/createClient (ClientOptions.))]
-           (testing ".getClientMetricRegistry returns nil if no metric registry passed in"
-             (is (= nil (.getClientMetricRegistry client))))))))))
+           (testing ".getMetricRegistry returns nil if no metric registry passed in"
+             (is (= nil (.getMetricRegistry client))))))))))
 
 (deftest metrics-test-clojure-async
   (testing "metrics work with clojure async client"
@@ -162,8 +163,7 @@
       {:webserver {:port 10000}}
       (let [metric-registry (MetricRegistry.)]
         (with-open [client (async/create-client
-                            {:metric-registry
-                             (metrics/create-client-metric-registry metric-registry)})]
+                            {:metric-registry metric-registry})]
           @(common/get client hello-url) ; warm it up
           (let [short-response @(common/get client short-url {:as :text :metric-id ["foo" "bar" "baz"]})
                 long-response @(common/get client long-url)]
@@ -182,8 +182,8 @@
                   url-and-method-metrics-data (:url-and-method client-metrics-data)
                   metric-id-metrics-data (:metric-id client-metrics-data)
                   all-metrics (.getMetrics metric-registry)]
-              (testing "get-client-metric-registry returns the associated ClientMetricRegistry"
-                (is (instance? ClientMetricRegistry client-metric-registry)))
+              (testing "get-client-metric-registry returns the associated MetricRegistry"
+                (is (instance? MetricRegistry client-metric-registry)))
               (testing "get-client-metrics and get-client-metrics data return only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (+ (count url-metrics)
@@ -194,23 +194,25 @@
                              (count metric-id-metrics-data)))))
               (testing "get-client-metrics returns a map of metric name to timer instance"
                 (is (= (set (list hello-name short-name long-name))
-                       (set (keys url-metrics))
-                       (set (keys url-metrics-data))))
+                       (set (map #(.getMetricName %) url-metrics))
+                       (set (map :metric-name url-metrics-data))))
                 (is (= (set (list hello-name-with-method short-name-with-get
                                   short-name-with-post long-name-with-method))
-                       (set (keys url-and-method-metrics))
-                       (set (keys url-and-method-metrics-data))))
+                       (set (map #(.getMetricName %) url-and-method-metrics))
+                       (set (map :metric-name url-and-method-metrics-data))))
                 (is (= (set (list long-foo-name long-foo-bar-name long-foo-bar-baz-name))
-                       (set (keys metric-id-metrics))
-                       (set (keys metric-id-metrics-data))))
-                (is (every? #(instance? Timer %) (vals url-metrics)))
-                (is (every? #(instance? Timer %) (vals url-and-method-metrics)))
-                (is (every? #(instance? Timer %) (vals metric-id-metrics))))
+                       (set (map #(.getMetricName %) metric-id-metrics))
+                       (set (map :metric-name metric-id-metrics-data))))
+                (is (every? #(instance? ClientTimer %) url-metrics))
+                (is (every? #(instance? ClientTimer %) url-and-method-metrics))
+                (is (every? #(instance? ClientTimer %) metric-id-metrics)))
               (testing "get-client-metrics-data returns a map of metric category to metric name to metric data"
-                (let [short-data (get url-metrics-data short-name)
-                      short-data-get (get url-and-method-metrics-data short-name-with-get)
-                      short-data-post (get url-and-method-metrics-data short-name-with-post)
-                      long-data (get url-metrics-data long-name)]
+                (let [short-data (first (filter #(= short-name (:metric-name %)) url-metrics-data))
+                      short-data-get (first (filter #(= short-name-with-get (:metric-name %))
+                                                    url-and-method-metrics-data))
+                      short-data-post (first (filter #(= short-name-with-post (:metric-name %))
+                                                     url-and-method-metrics-data))
+                      long-data (first (filter #(= long-name (:metric-name %)) url-metrics-data))]
                   (is (= short-name (:metric-name short-data)))
                   (is (= 2 (:count short-data)))
                   (is (<= 5 (:mean short-data)))
@@ -253,8 +255,7 @@
             long-request-opts (doto (RequestOptions. long-url)
                                 (.setMetricId (into-array ["foo" "bar" "baz"])))]
         (with-open [client (Sync/createClient (doto (ClientOptions.)
-                                                (.setMetricRegistry
-                                                 (ClientMetricRegistry. metric-registry))))]
+                                                (.setMetricRegistry metric-registry)))]
           (.get client hello-request-opts) ; warm it up
           (let [short-response (.get client short-request-opts)
                 long-response (.get client long-request-opts)]
@@ -264,7 +265,7 @@
             (is (= 200 (.getStatus long-response)))
             (is (= "long" (slurp (.getBody long-response))))
             (.timer metric-registry "fake")
-            (let [client-metric-registry (.getClientMetricRegistry client)
+            (let [client-metric-registry (.getMetricRegistry client)
                   client-metrics (Metrics/getClientMetrics client-metric-registry)
                   client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                   url-metrics (get client-metrics "url")
@@ -274,8 +275,8 @@
                   url-and-method-metrics-data (get client-metrics-data "url-and-method")
                   metric-id-metrics-data (get client-metrics-data "metric-id")
                   all-metrics (.getMetrics metric-registry)]
-              (testing ".getClientMetricRegistry returns the associated ClientMetricRegistry"
-                (is (instance? ClientMetricRegistry client-metric-registry)))
+              (testing ".getMetricRegistry returns the associated MetricRegistry"
+                (is (instance? MetricRegistry client-metric-registry)))
               (testing "Metrics/getClientMetrics returns only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (+ (count url-metrics)
@@ -285,28 +286,31 @@
                              (count url-and-method-metrics-data)
                              (count metric-id-metrics-data)))))
               (testing "get-client-metrics returns a map of metric name to timer instance"
+
                 (is (= (set (list hello-name short-name long-name))
-                       (set (keys url-metrics))
-                       (set (keys url-metrics-data))))
+                       (set (map #(.getMetricName %) url-metrics))
+                       (set (map #(.getMetricName %) url-metrics-data))))
                 (is (= (set (list hello-name-with-method short-name-with-get
                                   short-name-with-post long-name-with-method))
-                       (set (keys url-and-method-metrics))
-                       (set (keys url-and-method-metrics-data))))
+                       (set (map #(.getMetricName %) url-and-method-metrics))
+                       (set (map #(.getMetricName %) url-and-method-metrics-data))))
                 (is (= (set (list long-foo-name long-foo-bar-name long-foo-bar-baz-name))
-                       (set (keys metric-id-metrics))
-                       (set (keys metric-id-metrics-data))))
-                (is (every? #(instance? Timer %) (vals url-metrics)))
-                (is (every? #(instance? Timer %) (vals url-and-method-metrics)))
-                (is (every? #(instance? Timer %) (vals metric-id-metrics))))
-              (testing "get-client-metrics-data returns a map of metric category to metric name to metric data"
-                (let [short-data (get url-metrics-data short-name)
-                      short-data-get (get url-and-method-metrics-data short-name-with-get)
-                      short-data-post (get url-and-method-metrics-data short-name-with-post)
-                      long-data (get url-metrics-data long-name)]
+                       (set (map #(.getMetricName %) metric-id-metrics))
+                       (set (map #(.getMetricName %) metric-id-metrics-data))))
+                (is (every? #(instance? ClientTimer %) url-metrics))
+                (is (every? #(instance? ClientTimer %) url-and-method-metrics))
+                (is (every? #(instance? ClientTimer %) metric-id-metrics)))
+              (testing "get-client-metrics-data returns a map of metric category to arrays of metric data"
+                (let [short-data (first (filter #(= short-name (.getMetricName %)) url-metrics-data))
+                      short-data-get (first (filter #(= short-name-with-get (.getMetricName %))
+                                                    url-and-method-metrics-data))
+                      short-data-post (first (filter #(= short-name-with-post (.getMetricName %))
+                                                     url-and-method-metrics-data))
+                      long-data (first (filter #(= long-name (.getMetricName %)) url-metrics-data))]
                   (is (every? #(instance? ClientMetricData %)
-                              (concat (vals url-metrics-data)
-                                      (vals url-and-method-metrics-data)
-                                      (vals metric-id-metrics-data))))
+                              (concat url-metrics-data
+                                      url-and-method-metrics-data
+                                      metric-id-metrics-data)))
 
                   (is (= short-name (.getMetricName short-data)))
                   (is (= 2 (.getCount short-data)))
@@ -334,8 +338,8 @@
 
                   (is (> (.getMean long-data) (.getMean short-data))))))))
         (with-open [client (Sync/createClient (ClientOptions.))]
-          (testing ".getClientMetricRegistry returns nil if no metric registry passed in"
-            (is (= nil (.getClientMetricRegistry client))))))))))
+          (testing ".getMetricRegistry returns nil if no metric registry passed in"
+            (is (= nil (.getMetricRegistry client))))))))))
 
 (deftest metrics-test-clojure-sync
   (testing "metrics work with clojure sync client"
@@ -345,8 +349,7 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (let [metric-registry (MetricRegistry.)]
-        (with-open [client (sync/create-client
-                            {:metric-registry (metrics/create-client-metric-registry metric-registry)})]
+        (with-open [client (sync/create-client {:metric-registry metric-registry})]
           (common/get client hello-url) ; warm it up
           (let [short-response (common/get client short-url {:as :text})
                 long-response (common/get client long-url {:as :text :metric-id ["foo" "bar" "baz"]})]
@@ -364,8 +367,8 @@
                   url-and-method-metrics-data (:url-and-method client-metrics-data)
                   metric-id-metrics-data (:metric-id client-metrics-data)
                   all-metrics (.getMetrics metric-registry)]
-              (testing "get-client-metric-registry returns the associated ClientMetricRegistry"
-                (is (instance? ClientMetricRegistry client-metric-registry)))
+              (testing "get-client-metric-registry returns the associated MetricRegistry"
+                (is (instance? MetricRegistry client-metric-registry)))
               (testing "get-client-metrics and get-client-metrics data return only http client metrics"
                 (is (= 11 (count all-metrics)))
                 (is (= 10 (+ (count url-metrics)
@@ -376,23 +379,25 @@
                              (count metric-id-metrics-data)))))
               (testing "get-client-metrics returns a map of metric name to timer instance"
                 (is (= (set (list hello-name short-name long-name))
-                       (set (keys url-metrics))
-                       (set (keys url-metrics-data))))
+                       (set (map #(.getMetricName %) url-metrics))
+                       (set (map :metric-name url-metrics-data))))
                 (is (= (set (list hello-name-with-method short-name-with-get
                                   short-name-with-post long-name-with-method))
-                       (set (keys url-and-method-metrics))
-                       (set (keys url-and-method-metrics-data))))
+                       (set (map #(.getMetricName %) url-and-method-metrics))
+                       (set (map :metric-name url-and-method-metrics-data))))
                 (is (= (set (list long-foo-name long-foo-bar-name long-foo-bar-baz-name))
-                       (set (keys metric-id-metrics))
-                       (set (keys metric-id-metrics-data))))
-                (is (every? #(instance? Timer %) (vals url-metrics)))
-                (is (every? #(instance? Timer %) (vals url-and-method-metrics)))
-                (is (every? #(instance? Timer %) (vals metric-id-metrics))))
+                       (set (map #(.getMetricName %) metric-id-metrics))
+                       (set (map :metric-name metric-id-metrics-data))))
+                (is (every? #(instance? ClientTimer %) url-metrics))
+                (is (every? #(instance? ClientTimer %) url-and-method-metrics))
+                (is (every? #(instance? ClientTimer %) metric-id-metrics)))
               (testing "get-client-metrics-data returns a map of metric category to metric name to metric data"
-                (let [short-data (get url-metrics-data short-name)
-                      short-data-get (get url-and-method-metrics-data short-name-with-get)
-                      short-data-post (get url-and-method-metrics-data short-name-with-post)
-                      long-data (get url-metrics-data long-name)]
+                (let [short-data (first (filter #(= short-name (:metric-name %)) url-metrics-data))
+                      short-data-get (first (filter #(= short-name-with-get (:metric-name %))
+                                                    url-and-method-metrics-data))
+                      short-data-post (first (filter #(= short-name-with-post (:metric-name %))
+                                                     url-and-method-metrics-data))
+                      long-data (first (filter #(= long-name (:metric-name %)) url-metrics-data))]
                   (is (= short-name (:metric-name short-data)))
                   (is (= 2 (:count short-data)))
                   (is (<= 5 (:mean short-data)))
@@ -426,7 +431,7 @@
   (testlogging/with-test-logging
    (let [data (unbuffered-test/generate-data (* 1024 1024))]
      (testing "metrics work for a successful request"
-       (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
+       (let [metric-registry (MetricRegistry.)]
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (-> (ClientOptions.)
@@ -447,26 +452,26 @@
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
                 (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
-              (let [client-metric-registry (.getClientMetricRegistry client)
+              (let [client-metric-registry (.getMetricRegistry client)
                     client-metrics (Metrics/getClientMetrics client-metric-registry)
                     client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                     bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
                     bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
                                                         metric-namespace url)]
                 (is (= [bytes-read-name]
-                       (keys (get client-metrics "url"))
-                       (keys (get client-metrics-data "url"))))
+                       (map #(.getMetricName %) (get client-metrics "url"))
+                       (map #(.getMetricName %) (get client-metrics-data "url"))))
                 (is (= [bytes-read-name-with-method]
-                       (keys (get client-metrics "url-and-method"))
-                       (keys (get client-metrics-data "url-and-method"))))
-                (is (= {} (get client-metrics "metric-id") (get client-metrics-data "metric-id")))
-                (is (every? #(instance? Timer %)
-                            (concat (vals (get client-metrics "url"))
-                                    (vals (get client-metrics "url-and-method")))))
-                (let [bytes-read-data (get-in client-metrics-data ["url" bytes-read-name])]
+                       (map #(.getMetricName %) (get client-metrics "url-and-method"))
+                       (map #(.getMetricName %) (get client-metrics-data "url-and-method"))))
+                (is (= [] (get client-metrics "metric-id") (get client-metrics-data "metric-id")))
+                (is (every? #(instance? ClientTimer %)
+                            (concat (get client-metrics "url")
+                                    (get client-metrics "url-and-method"))))
+                (let [bytes-read-data (first (get client-metrics-data "url"))]
                   (is (every? #(instance? ClientMetricData %)
-                              (concat (vals (get client-metrics-data "url"))
-                                      (vals (get client-metrics-data "url-and-method")))))
+                              (concat (get client-metrics-data "url")
+                                      (get client-metrics-data "url-and-method"))))
 
                   (is (= 1 (.getCount bytes-read-data)))
                   (is (= bytes-read-name (.getMetricName bytes-read-data)))
@@ -476,7 +481,7 @@
        (try
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
+          (let [metric-registry (MetricRegistry.)]
             (with-open [client (-> (ClientOptions.)
                                    (.setSocketTimeoutMilliseconds 200)
                                    (.setConnectTimeoutMilliseconds 100)
@@ -490,26 +495,26 @@
                     body (.getBody response)]
                 (is (nil? error))
                 (is (thrown? SocketTimeoutException (slurp body)))
-                (let [client-metric-registry (.getClientMetricRegistry client)
+                (let [client-metric-registry (.getMetricRegistry client)
                       client-metrics (Metrics/getClientMetrics client-metric-registry)
                       client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
                       bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
                       bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
                                                           metric-namespace url)]
                   (is (= [bytes-read-name]
-                         (keys (get client-metrics "url"))
-                         (keys (get client-metrics-data "url"))))
+                         (map #(.getMetricName %) (get client-metrics "url"))
+                         (map #(.getMetricName %) (get client-metrics-data "url"))))
                   (is (= [bytes-read-name-with-method]
-                         (keys (get client-metrics "url-and-method"))
-                         (keys (get client-metrics-data "url-and-method"))))
-                  (is (= {} (get client-metrics "metric-id") (get client-metrics-data "metric-id")))
-                  (is (every? #(instance? Timer %)
-                              (concat (vals (get client-metrics "url"))
-                                      (vals (get client-metrics "url-and-method")))))
-                  (let [bytes-read-data (get-in client-metrics-data ["url" bytes-read-name])]
+                         (map #(.getMetricName %) (get client-metrics "url-and-method"))
+                         (map #(.getMetricName %) (get client-metrics-data "url-and-method"))))
+                  (is (= [] (get client-metrics "metric-id") (get client-metrics-data "metric-id")))
+                  (is (every? #(instance? ClientTimer %)
+                              (concat (get client-metrics "url")
+                                      (get client-metrics "url-and-method"))))
+                  (let [bytes-read-data (first (get client-metrics-data "url"))]
                     (is (every? #(instance? ClientMetricData %)
-                                (concat (vals (get client-metrics-data "url"))
-                                        (vals (get client-metrics-data "url-and-method")))))
+                                (concat (get client-metrics-data "url")
+                                        (get client-metrics-data "url-and-method"))))
 
                     (is (= 1 (.getCount bytes-read-data)))
                     (is (= bytes-read-name (.getMetricName bytes-read-data)))
@@ -524,7 +529,7 @@
    (let [data (unbuffered-test/generate-data (* 1024 1024))
          opts {:as :unbuffered-stream}]
      (testing "metrics work for a successful request"
-       (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))]
+       (let [metric-registry (MetricRegistry.)]
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
@@ -547,16 +552,16 @@
                     bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
                                                         metric-namespace url)]
                 (is (= [bytes-read-name]
-                       (keys (:url client-metrics))
-                       (keys (:url client-metrics-data))))
+                       (map #(.getMetricName %) (:url client-metrics))
+                       (map :metric-name (:url client-metrics-data))))
                 (is (= [bytes-read-name-with-method]
-                       (keys (:url-and-method client-metrics))
-                       (keys (:url-and-method client-metrics-data))))
-                (is (= {} (:metric-id client-metrics) (:metric-id client-metrics-data)))
-                (is (every? #(instance? Timer %)
-                            (concat (vals (:url client-metrics))
-                                    (vals (:url-and-method client-metrics)))))
-                (let [bytes-read-data (get-in client-metrics-data [:url bytes-read-name])]
+                       (map #(.getMetricName %) (:url-and-method client-metrics))
+                       (map :metric-name  (:url-and-method client-metrics-data))))
+                (is (= [] (:metric-id client-metrics) (:metric-id client-metrics-data)))
+                (is (every? #(instance? ClientTimer %)
+                            (concat (:url client-metrics)
+                                    (:url-and-method client-metrics))))
+                (let [bytes-read-data (first (:url client-metrics-data))]
                   (is (= {:count 1 :metric-name bytes-read-name}
                          (select-keys bytes-read-data [:metric-name :count])))
                   (is (<= 1000 (:mean bytes-read-data)))
@@ -565,7 +570,7 @@
        (try
          (testwebserver/with-test-webserver-and-config
           (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (ClientMetricRegistry. (MetricRegistry.))
+          (let [metric-registry (MetricRegistry.)
                 url (str "http://localhost:" port "/hello")]
             (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                      :socket-timeout-milliseconds 200
@@ -582,16 +587,16 @@
                     bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
                                                         metric-namespace url)]
                 (is (= [bytes-read-name]
-                       (keys (:url client-metrics))
-                       (keys (:url client-metrics-data))))
+                       (map #(.getMetricName %) (:url client-metrics))
+                       (map :metric-name (:url client-metrics-data))))
                 (is (= [bytes-read-name-with-method]
-                       (keys (:url-and-method client-metrics))
-                       (keys (:url-and-method client-metrics-data))))
-                (is (= {} (:metric-id client-metrics) (:metric-id client-metrics-data)))
-                (is (every? #(instance? Timer %)
-                            (concat (vals (:url client-metrics))
-                                    (vals (:url-and-method client-metrics)))))
-                (let [bytes-read-data (get-in client-metrics-data [:url bytes-read-name])]
+                       (map #(.getMetricName %) (:url-and-method client-metrics))
+                       (map :metric-name (:url-and-method client-metrics-data))))
+                (is (= [] (:metric-id client-metrics) (:metric-id client-metrics-data)))
+                (is (every? #(instance? ClientTimer %)
+                            (concat (:url client-metrics)
+                                    (:url-and-method client-metrics))))
+                (let [bytes-read-data (first (:url client-metrics-data))]
                   (is (= {:count 1 :metric-name bytes-read-name}
                          (select-keys bytes-read-data [:metric-name :count])))
                   (is (<= 200 (:mean bytes-read-data)))

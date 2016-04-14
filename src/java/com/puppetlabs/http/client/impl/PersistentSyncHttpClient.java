@@ -1,5 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.Response;
 import com.puppetlabs.http.client.RequestOptions;
@@ -15,10 +16,10 @@ import java.net.URISyntaxException;
 
 public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
-    private ClientMetricRegistry metricRegistry;
+    private MetricRegistry metricRegistry;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
-    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, ClientMetricRegistry metricRegistry) {
+    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
         this.client = client;
         this.metricRegistry = metricRegistry;
     }
@@ -28,7 +29,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         throw new HttpClientException(msg, t);
     }
 
-    public ClientMetricRegistry getClientMetricRegistry() {
+    public MetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
 

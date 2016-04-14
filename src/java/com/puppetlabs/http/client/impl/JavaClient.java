@@ -1,5 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.ClientOptions;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.HttpMethod;
@@ -260,7 +261,7 @@ public class JavaClient {
     private static void executeWithConsumer(final CloseableHttpAsyncClient client,
                                             final FutureCallback<HttpResponse> futureCallback,
                                             final HttpRequestBase request,
-                                            final ClientMetricRegistry metricRegistry,
+                                            final MetricRegistry metricRegistry,
                                             final String[] metricId) {
 
         /*
@@ -322,7 +323,7 @@ public class JavaClient {
                                          final IResponseCallback callback,
                                          final CloseableHttpAsyncClient client,
                                          final ResponseDeliveryDelegate responseDeliveryDelegate,
-                                         final ClientMetricRegistry registry) {
+                                         final MetricRegistry registry) {
 
         final CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 

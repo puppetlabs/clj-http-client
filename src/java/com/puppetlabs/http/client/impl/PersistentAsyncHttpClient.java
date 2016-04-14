@@ -1,5 +1,6 @@
 package com.puppetlabs.http.client.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.Response;
 import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.HttpMethod;
@@ -12,9 +13,9 @@ import java.net.URISyntaxException;
 
 public class PersistentAsyncHttpClient implements AsyncHttpClient {
     private CloseableHttpAsyncClient client;
-    private ClientMetricRegistry metricRegistry;
+    private MetricRegistry metricRegistry;
 
-    public PersistentAsyncHttpClient(CloseableHttpAsyncClient client, ClientMetricRegistry metricRegistry) {
+    public PersistentAsyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
         this.client = client;
         this.metricRegistry = metricRegistry;
     }
@@ -23,7 +24,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         client.close();
     }
 
-    public ClientMetricRegistry getClientMetricRegistry() {
+    public MetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
 

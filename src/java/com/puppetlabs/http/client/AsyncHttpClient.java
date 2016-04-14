@@ -1,6 +1,6 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.ClientMetricRegistry;
+import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.impl.Promise;
 
 import java.io.Closeable;
@@ -15,9 +15,9 @@ import java.net.URISyntaxException;
 public interface AsyncHttpClient extends Closeable{
 
     /**
-     * @return the ClientMetricRegistry instance associated with this Client
+     * @return the MetricRegistry instance associated with this Client
      */
-    public ClientMetricRegistry getClientMetricRegistry();
+    public MetricRegistry getMetricRegistry();
 
     /**
      * Performs a GET request
