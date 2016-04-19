@@ -24,7 +24,7 @@
 (schema/defn ^:always-validate create-default-client :- HttpAsyncClient
   [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
            follow-redirects force-redirects connect-timeout-milliseconds
-           socket-timeout-milliseconds]}:- common/ClientOptions]
+           socket-timeout-milliseconds metric-registry]}:- common/ClientOptions]
   (let [client-options (ClientOptions.)]
     (cond-> client-options
             (some? ssl-context) (.setSslContext ssl-context)
@@ -38,7 +38,8 @@
             (some? connect-timeout-milliseconds)
             (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
             (some? socket-timeout-milliseconds)
-            (.setSocketTimeoutMilliseconds socket-timeout-milliseconds))
+            (.setSocketTimeoutMilliseconds socket-timeout-milliseconds)
+            (some? metric-registry) (.setMetricRegistry metric-registry))
     (JavaClient/createClient client-options)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -110,6 +111,11 @@
     :text ResponseBodyType/TEXT
     ResponseBodyType/STREAM))
 
+(defn parse-metric-id
+  [opts]
+  (when-let [metric-id (:metric-id opts)]
+    (into-array (map name metric-id))))
+
 (schema/defn clojure-options->java :- RequestOptions
   [opts :- common/RequestOptions]
   (-> (parse-url opts)
@@ -117,7 +123,8 @@
       (.setAs (clojure-response-body-type->java opts))
       (.setBody (:body opts))
       (.setDecompressBody (clojure.core/get opts :decompress-body true))
-      (.setHeaders (:headers opts))))
+      (.setHeaders (:headers opts))
+      (.setMetricId (parse-metric-id opts))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -144,21 +151,29 @@
    * :as - used to control the data type of the response body.  Supported values
        are `:text` and `:stream`, which will return a `String` or an
        `InputStream`, respectively.  Defaults to `:stream`.
-   * :query-params - used to set the query parameters of an http request"
-  [opts :- common/RawUserRequestOptions
-   callback :- common/ResponseCallbackFn
-   client :- HttpAsyncClient]
-  (let [result (promise)
-        defaults {:headers         {}
-                  :body            nil
-                  :decompress-body true
-                  :as              :stream}
-        opts (merge defaults opts)
-        java-request-options (clojure-options->java opts)
-        java-method (clojure-method->java opts)
-        response-delivery-delegate (get-response-delivery-delegate opts result)]
-    (JavaClient/requestWithClient java-request-options java-method callback client response-delivery-delegate)
-    result))
+   * :query-params - used to set the query parameters of an http request
+   * :metric-id - array of strings or keywords, used to set the metrics to be
+       timed for the request."
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn
+    client :- HttpAsyncClient]
+    (request-with-client opts callback client nil))
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn
+    client :- HttpAsyncClient
+    metric-registry :- common/OptionalMetricRegistry]
+   (let [result (promise)
+         defaults {:headers {}
+                   :body nil
+                   :decompress-body true
+                   :as :stream}
+         opts (merge defaults opts)
+         java-request-options (clojure-options->java opts)
+         java-method (clojure-method->java opts)
+         response-delivery-delegate (get-response-delivery-delegate opts result)]
+     (JavaClient/requestWithClient java-request-options java-method callback
+                                   client response-delivery-delegate metric-registry)
+     result)))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
   "Creates a client to be used for making one or more HTTP requests.
@@ -186,6 +201,8 @@
    * :cipher-suites - used to set the cipher suites that the client could
        select from when talking to the server. Defaults to the complete
        set of suites supported by the underlying language runtime.
+   * :metric-registry - a MetricRegistry instance used to collect metrics
+       on client requests.
 
    opts (ssl-specific where only one of the following combinations permitted):
 
@@ -201,7 +218,8 @@
 
    * :ssl-ca-cert - path to a PEM file containing the CA cert"
   [opts :- common/ClientOptions]
-  (let [client (create-default-client opts)]
+  (let [client (create-default-client opts)
+        metric-registry (:metric-registry opts)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
       (get [this url opts] (common/make-request this url :get opts))
@@ -216,9 +234,12 @@
       (trace [this url] (common/trace this url {}))
       (trace [this url opts] (common/make-request this url :trace opts))
       (options [this url] (common/options this url {}))
-      (options [this url opts] (common/make-request this url :post opts))
+      (options [this url opts] (common/make-request this url :options opts))
       (patch [this url] (common/patch this url {}))
       (patch [this url opts] (common/make-request this url :patch opts))
       (make-request [this url method] (common/make-request this url method {}))
-      (make-request [_ url method opts] (request-with-client (assoc opts :method method :url url) nil client))
-      (close [_] (.close client)))))
+      (make-request [_ url method opts] (request-with-client
+                                         (assoc opts :method method :url url)
+                                         nil client metric-registry))
+      (close [_] (.close client))
+      (get-client-metric-registry [_] metric-registry))))

@@ -1,5 +1,7 @@
 package com.puppetlabs.http.client;
 
+import com.codahale.metrics.MetricRegistry;
+
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -10,6 +12,11 @@ import java.net.URISyntaxException;
  * returned by {@link com.puppetlabs.http.client.Sync#createClient(ClientOptions)}
  */
 public interface SyncHttpClient extends Closeable {
+
+    /**
+     * @return the MetricRegistry instance associated with this Client
+     */
+    public MetricRegistry getMetricRegistry();
 
     /**
      * Makes a configurable HTTP request
