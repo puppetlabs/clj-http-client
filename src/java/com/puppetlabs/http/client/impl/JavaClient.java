@@ -357,7 +357,8 @@ public class JavaClient {
             executeWithConsumer(client, futureCallback, request, registry, metricId);
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
-                    new TimedFutureCallback<>(futureCallback, Metrics.startBytesReadTimers(registry, request, metricId));
+                    new TimedFutureCallback<>(futureCallback,
+                            Metrics.startBytesReadTimers(registry, request, metricId));
             client.execute(request, timedFutureCallback);
         }
     }

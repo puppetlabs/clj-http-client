@@ -17,7 +17,8 @@ public class ClientMetricFilter implements MetricFilter{
         this.metricType = metricType;
     }
 
-    public ClientMetricFilter(String url, String method, ArrayList<String> metricId, Metrics.MetricType metricType) {
+    public ClientMetricFilter(String url, String method, ArrayList<String> metricId,
+                              Metrics.MetricType metricType) {
         this.category = null;
         this.url = url;
         this.method = method;
@@ -25,7 +26,8 @@ public class ClientMetricFilter implements MetricFilter{
         this.metricType = metricType;
     }
 
-    private boolean isMatch(ClientTimer metric, String url, String method, ArrayList<String> metricId, Metrics.MetricType metricType) {
+    private boolean isMatch(ClientTimer metric, String url, String method,
+                            ArrayList<String> metricId, Metrics.MetricType metricType) {
         if ( metric.getMetricType().equals(metricType) ) {
             if ( category != null ) {
                 switch (category) {

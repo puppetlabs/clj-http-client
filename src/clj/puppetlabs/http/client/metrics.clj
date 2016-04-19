@@ -1,7 +1,8 @@
 (ns puppetlabs.http.client.metrics
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
-  (:import (com.puppetlabs.http.client.impl Metrics$MetricType Metrics ClientMetricData)))
+  (:import (com.puppetlabs.http.client.impl Metrics$MetricType Metrics
+                                            ClientMetricData)))
 
 (schema/defn get-metric-data :- common/MetricData
   [data :- ClientMetricData]
@@ -85,7 +86,8 @@
 
 (schema/defn ^:always-validate get-client-metrics-data
   :- (schema/maybe common/AllMetricsData)
-  "Returns a summary of the metric data for all http client timers."
+  "Returns a summary of the metric data for all http client timers, organized
+  in a map by category."
   ([metric-registry :- common/OptionalMetricRegistry]
    (get-client-metrics-data metric-registry :bytes-read))
   ([metric-registry :- common/OptionalMetricRegistry
@@ -100,7 +102,8 @@
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url
   :- common/MetricsData
-  "Returns a summary of the metric data for all http client timers filtered by url."
+  "Returns a summary of the metric data for all http client timers filtered by
+  url."
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str]
    (get-client-metrics-data-by-url metric-registry url :bytes-read))
@@ -116,7 +119,8 @@
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url-and-method
   :- common/MetricsData
-  "Returns a summary of the metric data for all http client timers filtered by url and method."
+  "Returns a summary of the metric data for all http client timers filtered by
+  url and method."
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     method :- common/HTTPMethod]
@@ -135,7 +139,8 @@
 
 (schema/defn ^:always-validate get-client-metrics-data-by-metric-id
   :- common/MetricsData
-  "Returns a summary of the metric data for all http client timers filtered by metric-id."
+  "Returns a summary of the metric data for all http client timers filtered by
+  metric-id."
   ([metric-registry :- common/OptionalMetricRegistry
     metric-id :- common/MetricId]
    (get-client-metrics-data-by-metric-id metric-registry metric-id :bytes-read))

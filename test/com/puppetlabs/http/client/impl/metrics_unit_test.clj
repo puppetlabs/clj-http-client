@@ -38,20 +38,29 @@
                  (set (keys (.getTimers metric-registry)))))))
       (testing "url timers should strip off username, password, query string, and fragment"
         (let [metric-registry (MetricRegistry.)]
-          (Metrics/startBytesReadTimers metric-registry
-                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one")
-                                        nil)
-          (Metrics/startBytesReadTimers metric-registry
-                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz#x%2cyz")
-                                        nil)
-          (Metrics/startBytesReadTimers metric-registry
-                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one#x%2cyz")
-                                        nil)
-          (Metrics/startBytesReadTimers metric-registry
-                                        (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?#x%2cyz")
-                                        nil)
-          (is (= (set (list (add-metric-ns "with-url.http://localhost:1234/foo%2cbar/baz.bytes-read")
-                            (add-metric-ns "with-url-and-method.http://localhost:1234/foo%2cbar/baz.GET.bytes-read")))
+          (Metrics/startBytesReadTimers
+           metric-registry
+           (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one")
+           nil)
+          (Metrics/startBytesReadTimers
+           metric-registry
+           (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz#x%2cyz")
+           nil)
+          (Metrics/startBytesReadTimers
+           metric-registry
+           (BasicHttpRequest.
+            "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one#x%2cyz")
+           nil)
+          (Metrics/startBytesReadTimers
+           metric-registry
+           (BasicHttpRequest.
+            "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?#x%2cyz")
+           nil)
+          (is (= (set (list
+                       (add-metric-ns
+                        "with-url.http://localhost:1234/foo%2cbar/baz.bytes-read")
+                       (add-metric-ns
+                        "with-url-and-method.http://localhost:1234/foo%2cbar/baz.GET.bytes-read")))
                  (set (keys (.getTimers metric-registry))))))))))
 
 (defn start-and-stop-timers! [registry req id]
@@ -76,26 +85,36 @@
       (is (= (set [:url :url-and-method :metric-id])
              (set (keys (metrics/get-client-metrics registry)))
              (set (keys (metrics/get-client-metrics-data registry)))))
-      (is (= (set ["puppetlabs.http-client.experimental.with-url.http://test.com/one.bytes-read"
-                   "puppetlabs.http-client.experimental.with-url.http://test.com/one/two.bytes-read"])
+      (is (= (set
+              [(add-metric-ns "with-url.http://test.com/one.bytes-read")
+               (add-metric-ns "with-url.http://test.com/one/two.bytes-read")])
              (set (map #(.getMetricName %) (get (Metrics/getClientMetrics registry) "url")))
              (set (map #(.getMetricName %) (:url (metrics/get-client-metrics registry))))
              (set (map #(.getMetricName %) (get (Metrics/getClientMetricsData registry) "url")))
              (set (map :metric-name (:url (metrics/get-client-metrics-data registry))))))
-      (is (= (set ["puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.GET.bytes-read"
-                   "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.POST.bytes-read"
-                   "puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one/two.GET.bytes-read"])
-             (set (map #(.getMetricName %) (get (Metrics/getClientMetrics registry) "url-and-method")))
-             (set (map #(.getMetricName %) (:url-and-method (metrics/get-client-metrics registry))))
-             (set (map #(.getMetricName %) (get (Metrics/getClientMetricsData registry) "url-and-method")))
-             (set (map :metric-name (:url-and-method (metrics/get-client-metrics-data registry))))))
+      (is (= (set
+              [(add-metric-ns "with-url-and-method.http://test.com/one.GET.bytes-read")
+               (add-metric-ns "with-url-and-method.http://test.com/one.POST.bytes-read")
+               (add-metric-ns "with-url-and-method.http://test.com/one/two.GET.bytes-read")])
+             (set (map #(.getMetricName %)
+                       (get (Metrics/getClientMetrics registry) "url-and-method")))
+             (set (map #(.getMetricName %)
+                       (:url-and-method (metrics/get-client-metrics registry))))
+             (set (map #(.getMetricName %)
+                       (get (Metrics/getClientMetricsData registry) "url-and-method")))
+             (set (map :metric-name
+                       (:url-and-method (metrics/get-client-metrics-data registry))))))
       (is (= (set ["puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read"
                    "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read"
                    "puppetlabs.http-client.experimental.with-metric-id.foo.abc.bytes-read"])
-             (set (map #(.getMetricName %) (get (Metrics/getClientMetrics registry) "metric-id")))
-             (set (map #(.getMetricName %) (:metric-id (metrics/get-client-metrics registry))))
-             (set (map #(.getMetricName %) (get (Metrics/getClientMetricsData registry) "metric-id")))
-             (set (map :metric-name (:metric-id (metrics/get-client-metrics-data registry)))))))
+             (set (map #(.getMetricName %)
+                       (get (Metrics/getClientMetrics registry) "metric-id")))
+             (set (map #(.getMetricName %)
+                       (:metric-id (metrics/get-client-metrics registry))))
+             (set (map #(.getMetricName %)
+                       (get (Metrics/getClientMetricsData registry) "metric-id")))
+             (set (map :metric-name
+                       (:metric-id (metrics/get-client-metrics-data registry)))))))
     (testing "getClientMetricsData with url returns the right thing"
       (let [java-data (Metrics/getClientMetricsDataByUrl registry url bytes-read)
             clj-data (metrics/get-client-metrics-data-by-url registry url)]
@@ -125,15 +144,18 @@
                (:metric-name (first clj-data))))
         (is (= 1 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod registry url "POST" bytes-read)
-            clj-data (metrics/get-client-metrics-data-by-url-and-method registry url :post)]
+      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod
+                       registry url "POST" bytes-read)
+            clj-data (metrics/get-client-metrics-data-by-url-and-method
+                      registry url :post)]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-url-and-method.http://test.com/one.POST.bytes-read")
                (.getMetricName (first java-data))
                (:metric-name (first clj-data))))
         (is (= 2 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod registry url2 "GET" bytes-read)
+      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod
+                       registry url2 "GET" bytes-read)
             clj-data (metrics/get-client-metrics-data-by-url-and-method registry url2 :get)]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-url-and-method.http://test.com/one/two.GET.bytes-read")
@@ -157,7 +179,8 @@
                (:count (first clj-data)))))
       (let [java-data (Metrics/getClientMetricsDataByMetricId
                        registry (into-array ["foo" "bar"]) bytes-read)
-            clj-data (metrics/get-client-metrics-data-by-metric-id registry ["foo" "bar"])]
+            clj-data (metrics/get-client-metrics-data-by-metric-id
+                      registry ["foo" "bar"])]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-metric-id.foo.bar.bytes-read")
                (.getMetricName  (first java-data))
@@ -166,7 +189,8 @@
                (:count (first clj-data)))))
       (let [java-data (Metrics/getClientMetricsDataByMetricId
                        registry (into-array ["foo" "abc"]) bytes-read)
-            clj-data (metrics/get-client-metrics-data-by-metric-id registry ["foo" "abc"])]
+            clj-data (metrics/get-client-metrics-data-by-metric-id
+                      registry ["foo" "abc"])]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-metric-id.foo.abc.bytes-read")
                (.getMetricName (first java-data))
@@ -183,7 +207,8 @@
       (testing "getClientMetrics|Data returns nil if no metric registry passed in"
         (is (= nil (Metrics/getClientMetrics nil) (Metrics/getClientMetricsData nil)))
         (is (= nil (metrics/get-client-metrics nil) (metrics/get-client-metrics-data nil))))
-      (testing "getClientMetrics|Data returns map with empty arrays as values if no requests have been made yet"
+      (testing (str "getClientMetrics|Data returns map with empty arrays as values"
+                    " if no requests have been made yet")
         (is (= {"url" [] "url-and-method" [] "metric-id" []}
                (into {} (Metrics/getClientMetrics (MetricRegistry.)))
                (into {} (Metrics/getClientMetricsData (MetricRegistry.)))))
@@ -199,12 +224,16 @@
             (is (= (set ["url" "url-and-method" "metric-id"])
                    (set (keys client-metrics))
                    (set (keys client-metrics-data))))
-            (is (= (set ["puppetlabs.http-client.experimental.with-url.http://test.com/one.bytes-read"])
+            (is (= (set [(add-metric-ns
+                          "with-url.http://test.com/one.bytes-read")])
                    (set (map #(.getMetricName %) (get client-metrics "url")))
                    (set (map #(.getMetricName %) (get client-metrics-data "url")))))
-            (is (= (set ["puppetlabs.http-client.experimental.with-url-and-method.http://test.com/one.GET.bytes-read"])
-                   (set (map #(.getMetricName %) (get client-metrics "url-and-method")))
-                   (set (map #(.getMetricName %) (get client-metrics-data "url-and-method")))))
+            (is (= (set [(add-metric-ns
+                          "with-url-and-method.http://test.com/one.GET.bytes-read")])
+                   (set (map #(.getMetricName %)
+                             (get client-metrics "url-and-method")))
+                   (set (map #(.getMetricName %)
+                             (get client-metrics-data "url-and-method")))))
             (is (= []
                    (get client-metrics "metric-id")
                    (get client-metrics-data "metric-id")))))))))
@@ -216,8 +245,12 @@
           foo-id (add-metric-ns "with-metric-id.foo.bytes-read")
           foo-bar-id (add-metric-ns "with-metric-id.foo.bar.bytes-read")
           foo-bar-baz-id (add-metric-ns "with-metric-id.foo.bar.baz.bytes-read")]
-      (start-and-stop-timers! registry (BasicHttpRequest. "GET" url) (into-array ["foo" "bar" "baz"]))
+      (start-and-stop-timers! registry (BasicHttpRequest. "GET" url)
+                              (into-array ["foo" "bar" "baz"]))
       (testing "empty metric filter returns all metric id timers"
         (is (= (set (list foo-id foo-bar-id foo-bar-baz-id))
-               (set (map #(.getMetricName %) (Metrics/getClientMetricsDataByMetricId registry (into-array String []) bytes-read)))
-               (set (map :metric-name (metrics/get-client-metrics-data-by-metric-id registry [])))))))))
+               (set (map #(.getMetricName %)
+                         (Metrics/getClientMetricsDataByMetricId
+                          registry (into-array String []) bytes-read)))
+               (set (map :metric-name
+                         (metrics/get-client-metrics-data-by-metric-id registry [])))))))))

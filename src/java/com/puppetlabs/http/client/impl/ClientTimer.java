@@ -19,7 +19,8 @@ public class ClientTimer  extends Timer {
         this.metricType = metricType;
     }
 
-    public ClientTimer(String metricName, String url, String method, Metrics.MetricType metricType) {
+    public ClientTimer(String metricName, String url, String method,
+                       Metrics.MetricType metricType) {
         super();
         this.metricName = metricName;
         this.url = url;
@@ -27,7 +28,8 @@ public class ClientTimer  extends Timer {
         this.metricType = metricType;
     }
 
-    public ClientTimer(String metricName, ArrayList<String> metricId, Metrics.MetricType metricType) {
+    public ClientTimer(String metricName, ArrayList<String> metricId,
+                       Metrics.MetricType metricType) {
         super();
         this.metricName = metricName;
         this.metricId = metricId;

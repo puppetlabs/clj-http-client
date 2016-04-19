@@ -19,7 +19,8 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     private MetricRegistry metricRegistry;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
-    public PersistentSyncHttpClient(CloseableHttpAsyncClient client, MetricRegistry metricRegistry) {
+    public PersistentSyncHttpClient(CloseableHttpAsyncClient client,
+                                    MetricRegistry metricRegistry) {
         this.client = client;
         this.metricRegistry = metricRegistry;
     }
@@ -36,7 +37,8 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     public Response request(RequestOptions requestOptions, HttpMethod method) {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
-        JavaClient.requestWithClient(requestOptions, method, null, client, responseDelivery, metricRegistry);
+        JavaClient.requestWithClient(requestOptions, method, null, client,
+                responseDelivery, metricRegistry);
         Response response = null;
         try {
             response = promise.deref();

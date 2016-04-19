@@ -32,7 +32,8 @@ public class Metrics {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
 
-    synchronized private static ClientTimer getOrAddTimer(MetricRegistry metricRegistry, String name, ClientTimer newTimer) {
+    synchronized private static ClientTimer getOrAddTimer(MetricRegistry metricRegistry,
+                                                          String name, ClientTimer newTimer) {
         Metric timer = metricRegistry.getMetrics().get(name);
 
         if ( timer == null ) {
@@ -40,7 +41,8 @@ public class Metrics {
         } else if ( ClientTimer.class.isInstance(timer) ) {
             return (ClientTimer) timer;
         } else {
-            throw new IllegalArgumentException(name + " is already used for a different type of metric");
+            throw new IllegalArgumentException(name +
+                    " is already used for a different type of metric");
         }
     }
 
@@ -57,7 +59,7 @@ public class Metrics {
             currentIdWithNamespace.addAll(currentId);
             currentIdWithNamespace.add(BYTES_READ_STRING);
             String metric_name = MetricRegistry.name(METRIC_NAMESPACE,
-                currentIdWithNamespace.toArray(new String[currentIdWithNamespace.size()]));
+                    currentIdWithNamespace.toArray(new String[currentIdWithNamespace.size()]));
 
             ClientTimer timer = new ClientTimer(metric_name, currentId, MetricType.BYTES_READ);
             timerContexts.add(getOrAddTimer(registry, metric_name, timer).time());
@@ -72,7 +74,7 @@ public class Metrics {
             final RequestLine requestLine = request.getRequestLine();
             final URI uri = new URI(requestLine.getUri());
 
-             // if the port is not specified, `getPort()` returns -1
+            // if the port is not specified, `getPort()` returns -1
             final String port = uri.getPort() == -1 ? "" : ":" + uri.getPort();
             final String strippedUrl = uri.getScheme() + "://" + uri.getHost()
                     + port + uri.getRawPath();
@@ -86,7 +88,8 @@ public class Metrics {
             ClientTimer urlTimer = new ClientTimer(urlName, strippedUrl, MetricType.BYTES_READ);
             timerContexts.add(getOrAddTimer(registry, urlName, urlTimer).time());
 
-            ClientTimer urlMethodTimer = new ClientTimer(urlAndMethodName, strippedUrl, method, MetricType.BYTES_READ);
+            ClientTimer urlMethodTimer = new ClientTimer(urlAndMethodName, strippedUrl,
+                    method, MetricType.BYTES_READ);
             timerContexts.add(getOrAddTimer(registry, urlAndMethodName, urlMethodTimer).time());
         } catch (URISyntaxException e) {
             // this shouldn't be possible
@@ -101,7 +104,7 @@ public class Metrics {
                                                                 HttpRequest request,
                                                                 String[] metricId) {
         if (clientRegistry != null) {
-            ArrayList<Timer.Context> urlTimerContexts = startBytesReadUrlTimers(clientRegistry, request);
+            ArrayList<Timer.Context> urlTimerContexts = startBytesReadUrlTimers(clientRegistry,request);
             ArrayList<Timer.Context> allTimerContexts = new ArrayList<>(urlTimerContexts);
             if (metricId != null) {
                 ArrayList<Timer.Context> metricIdTimers =
@@ -128,12 +131,16 @@ public class Metrics {
         return getClientMetrics(metricRegistry, MetricType.BYTES_READ);
     }
 
-    public static Map<String, ArrayList<ClientTimer>> getClientMetrics(MetricRegistry metricRegistry, MetricType metricType){
+    public static Map<String, ArrayList<ClientTimer>> getClientMetrics(MetricRegistry metricRegistry,
+                                                                       MetricType metricType){
         if (metricRegistry != null) {
             Map<String, ArrayList<ClientTimer>> timers = new HashMap<>();
-            timers.put("url", getClientTimerArray(metricRegistry.getTimers(new ClientMetricFilter(URL_NAMESPACE, metricType))));
-            timers.put("url-and-method", getClientTimerArray(metricRegistry.getTimers(new ClientMetricFilter(URL_METHOD_NAMESPACE, metricType))));
-            timers.put("metric-id", getClientTimerArray(metricRegistry.getTimers(new ClientMetricFilter(ID_NAMESPACE, metricType))));
+            timers.put("url", getClientTimerArray(metricRegistry.getTimers(
+                    new ClientMetricFilter(URL_NAMESPACE, metricType))));
+            timers.put("url-and-method", getClientTimerArray(metricRegistry.getTimers(
+                    new ClientMetricFilter(URL_METHOD_NAMESPACE, metricType))));
+            timers.put("metric-id", getClientTimerArray(metricRegistry.getTimers(
+                    new ClientMetricFilter(ID_NAMESPACE, metricType))));
             return timers;
         } else {
             return null;
@@ -144,7 +151,8 @@ public class Metrics {
                                                                final String url,
                                                                final MetricType metricType){
         if (metricRegistry != null) {
-            Map<String, Timer> timers = metricRegistry.getTimers(new ClientMetricFilter(url, null, null, metricType));
+            Map<String, Timer> timers = metricRegistry.getTimers(
+                    new ClientMetricFilter(url, null, null, metricType));
             return getClientTimerArray(timers);
         } else {
             return null;
@@ -156,7 +164,8 @@ public class Metrics {
                                                                         final String method,
                                                                         final MetricType metricType){
         if (metricRegistry != null) {
-            Map<String, Timer> timers = metricRegistry.getTimers(new ClientMetricFilter(url, method, null, metricType));
+            Map<String, Timer> timers = metricRegistry.getTimers(
+                    new ClientMetricFilter(url, method, null, metricType));
             return getClientTimerArray(timers);
         } else {
             return null;
@@ -168,10 +177,13 @@ public class Metrics {
                                                                     final MetricType metricType){
         if (metricRegistry != null) {
             if (metricId.length == 0) {
-                Map<String, Timer> timers = metricRegistry.getTimers(new ClientMetricFilter(ID_NAMESPACE, metricType));
+                Map<String, Timer> timers = metricRegistry.getTimers(
+                        new ClientMetricFilter(ID_NAMESPACE, metricType));
                 return getClientTimerArray(timers);
             } else {
-                Map<String, Timer> timers = metricRegistry.getTimers(new ClientMetricFilter(null, null, new ArrayList<String>(Arrays.asList(metricId)), metricType));
+                Map<String, Timer> timers = metricRegistry.getTimers(
+                        new ClientMetricFilter(null, null,
+                                new ArrayList<String>(Arrays.asList(metricId)), metricType));
                 return getClientTimerArray(timers);
             }
         } else {
@@ -192,7 +204,8 @@ public class Metrics {
                 String method = timer.getMethod();
                 ArrayList<String> metricId = timer.getMetricId();
 
-                ClientMetricData data = new ClientMetricData(metricName, count, meanMillis, aggregate, url, method, metricId);
+                ClientMetricData data = new ClientMetricData(metricName, count, meanMillis,
+                        aggregate, url, method, metricId);
                 metricsData.add(data);
             }
             return metricsData;
@@ -205,7 +218,8 @@ public class Metrics {
         return getClientMetricsData(metricRegistry, MetricType.BYTES_READ);
     }
 
-    public static Map<String, ArrayList<ClientMetricData>> getClientMetricsData(MetricRegistry metricRegistry, MetricType metricType){
+    public static Map<String, ArrayList<ClientMetricData>> getClientMetricsData(MetricRegistry metricRegistry,
+                                                                                MetricType metricType){
         if ( metricRegistry != null ) {
             Map<String, ArrayList<ClientTimer>> timers = getClientMetrics(metricRegistry, metricType);
             Map<String, ArrayList<ClientMetricData>> data = new HashMap<>();
@@ -229,14 +243,15 @@ public class Metrics {
                                                                                  String url,
                                                                                  String method,
                                                                                  MetricType metricType){
-        ArrayList<ClientTimer> timers = getClientMetricsByUrlAndMethod(metricRegistry, url, method, metricType);
+        ArrayList<ClientTimer> timers = getClientMetricsByUrlAndMethod(metricRegistry, url,
+                method, metricType);
         return computeClientMetricsData(timers);
     }
 
     public static ArrayList<ClientMetricData> getClientMetricsDataByMetricId(MetricRegistry metricRegistry,
                                                                              String[] metricId,
                                                                              MetricType metricType){
-       ArrayList<ClientTimer> timers = getClientMetricsByMetricId(metricRegistry, metricId, metricType);
+        ArrayList<ClientTimer> timers = getClientMetricsByMetricId(metricRegistry, metricId, metricType);
         return computeClientMetricsData(timers);
     }
 }

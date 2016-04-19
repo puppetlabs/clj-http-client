@@ -21,6 +21,7 @@ public class Async {
      * @return an AsyncHttpClient that can be used to make requests
      */
     public static AsyncHttpClient createClient(ClientOptions clientOptions) {
-        return new PersistentAsyncHttpClient(JavaClient.createClient(clientOptions), clientOptions.getMetricRegistry());
+        return new PersistentAsyncHttpClient(JavaClient.createClient(clientOptions),
+                clientOptions.getMetricRegistry());
     }
 }
