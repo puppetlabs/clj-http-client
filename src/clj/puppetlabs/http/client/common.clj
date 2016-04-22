@@ -191,4 +191,4 @@
    :metric-id MetricsData})
 
 (def MetricTypes
-  (schema/enum :bytes-read))
+  (schema/enum :full-response))

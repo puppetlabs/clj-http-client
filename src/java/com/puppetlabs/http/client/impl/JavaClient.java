@@ -314,7 +314,7 @@ public class JavaClient {
 
         TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
                 new TimedFutureCallback<>(streamingCompleteCallback,
-                        Metrics.startBytesReadTimers(metricRegistry, request, metricId));
+                        Metrics.startFullResponseTimers(metricRegistry, request, metricId));
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
@@ -358,7 +358,7 @@ public class JavaClient {
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
                     new TimedFutureCallback<>(futureCallback,
-                            Metrics.startBytesReadTimers(registry, request, metricId));
+                            Metrics.startFullResponseTimers(registry, request, metricId));
             client.execute(request, timedFutureCallback);
         }
     }

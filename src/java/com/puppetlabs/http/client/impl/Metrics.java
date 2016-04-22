@@ -21,13 +21,13 @@ public class Metrics {
     public static final String URL_NAMESPACE = "with-url";
     public static final String URL_METHOD_NAMESPACE = "with-url-and-method";
     public static final String ID_NAMESPACE = "with-metric-id";
-    public static final String BYTES_READ_STRING = "bytes-read";
-    public enum MetricType { BYTES_READ; }
+    public static final String FULL_RESPONSE_STRING = "full-response";
+    public enum MetricType { FULL_RESPONSE; }
 
     public static String metricTypeString(Metrics.MetricType metricType) {
         // currently this is the only metric type we have; in the future when
         // there are multiple types this will do something more useful
-        return BYTES_READ_STRING;
+        return FULL_RESPONSE_STRING;
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
@@ -52,8 +52,8 @@ public class Metrics {
         throw new IllegalArgumentException(name +" is already used for a different type of metric");
     }
 
-    private static ArrayList<Timer.Context> startBytesReadMetricIdTimers(MetricRegistry registry,
-                                                                         String[] metricId) {
+    private static ArrayList<Timer.Context> startFullResponseMetricIdTimers(MetricRegistry registry,
+                                                                            String[] metricId) {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
         for (int i = 0; i < metricId.length; i++) {
             ArrayList<String> currentId = new ArrayList<>();
@@ -63,18 +63,18 @@ public class Metrics {
             ArrayList<String> currentIdWithNamespace = new ArrayList<>();
             currentIdWithNamespace.add(ID_NAMESPACE);
             currentIdWithNamespace.addAll(currentId);
-            currentIdWithNamespace.add(BYTES_READ_STRING);
+            currentIdWithNamespace.add(FULL_RESPONSE_STRING);
             String metric_name = MetricRegistry.name(METRIC_NAMESPACE,
                     currentIdWithNamespace.toArray(new String[currentIdWithNamespace.size()]));
 
-            ClientTimer timer = new ClientTimer(metric_name, currentId, MetricType.BYTES_READ);
+            ClientTimer timer = new ClientTimer(metric_name, currentId, MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, metric_name, timer).time());
         }
         return timerContexts;
     }
 
-    private static ArrayList<Timer.Context> startBytesReadUrlTimers(MetricRegistry registry,
-                                                                    HttpRequest request) {
+    private static ArrayList<Timer.Context> startFullResponseUrlTimers(MetricRegistry registry,
+                                                                       HttpRequest request) {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
         try {
             final RequestLine requestLine = request.getRequestLine();
@@ -87,15 +87,15 @@ public class Metrics {
             final String method = requestLine.getMethod();
 
             final String urlName = MetricRegistry.name(METRIC_NAMESPACE, URL_NAMESPACE,
-                    strippedUrl, BYTES_READ_STRING);
+                    strippedUrl, FULL_RESPONSE_STRING);
             final String urlAndMethodName = MetricRegistry.name(METRIC_NAMESPACE, URL_METHOD_NAMESPACE,
-                    strippedUrl, method, BYTES_READ_STRING);
+                    strippedUrl, method, FULL_RESPONSE_STRING);
 
-            ClientTimer urlTimer = new ClientTimer(urlName, strippedUrl, MetricType.BYTES_READ);
+            ClientTimer urlTimer = new ClientTimer(urlName, strippedUrl, MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, urlName, urlTimer).time());
 
             ClientTimer urlMethodTimer = new ClientTimer(urlAndMethodName, strippedUrl,
-                    method, MetricType.BYTES_READ);
+                    method, MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, urlAndMethodName, urlMethodTimer).time());
         } catch (URISyntaxException e) {
             // this shouldn't be possible
@@ -106,15 +106,15 @@ public class Metrics {
         return timerContexts;
     }
 
-    public static ArrayList<Timer.Context> startBytesReadTimers(MetricRegistry clientRegistry,
-                                                                HttpRequest request,
-                                                                String[] metricId) {
+    public static ArrayList<Timer.Context> startFullResponseTimers(MetricRegistry clientRegistry,
+                                                                   HttpRequest request,
+                                                                   String[] metricId) {
         if (clientRegistry != null) {
-            ArrayList<Timer.Context> urlTimerContexts = startBytesReadUrlTimers(clientRegistry,request);
+            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry,request);
             ArrayList<Timer.Context> allTimerContexts = new ArrayList<>(urlTimerContexts);
             if (metricId != null) {
                 ArrayList<Timer.Context> metricIdTimers =
-                        startBytesReadMetricIdTimers(clientRegistry, metricId);
+                        startFullResponseMetricIdTimers(clientRegistry, metricId);
                 allTimerContexts.addAll(metricIdTimers);
             }
             return allTimerContexts;
@@ -134,7 +134,7 @@ public class Metrics {
     }
 
     public static Map<String, ArrayList<ClientTimer>> getClientMetrics(MetricRegistry metricRegistry){
-        return getClientMetrics(metricRegistry, MetricType.BYTES_READ);
+        return getClientMetrics(metricRegistry, MetricType.FULL_RESPONSE);
     }
 
     public static Map<String, ArrayList<ClientTimer>> getClientMetrics(MetricRegistry metricRegistry,
@@ -221,7 +221,7 @@ public class Metrics {
     }
 
     public static Map<String, ArrayList<ClientMetricData>> getClientMetricsData(MetricRegistry metricRegistry){
-        return getClientMetricsData(metricRegistry, MetricType.BYTES_READ);
+        return getClientMetricsData(metricRegistry, MetricType.FULL_RESPONSE);
     }
 
     public static Map<String, ArrayList<ClientMetricData>> getClientMetricsData(MetricRegistry metricRegistry,

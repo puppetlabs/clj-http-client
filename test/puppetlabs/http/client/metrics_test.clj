@@ -40,25 +40,25 @@
 (def short-url "http://localhost:10000/short")
 (def long-url "http://localhost:10000/long")
 
-(def short-name (format "%s.with-url.%s.bytes-read" metric-namespace short-url))
-(def short-name-with-get (format "%s.with-url-and-method.%s.GET.bytes-read"
+(def short-name (format "%s.with-url.%s.full-response" metric-namespace short-url))
+(def short-name-with-get (format "%s.with-url-and-method.%s.GET.full-response"
                                  metric-namespace short-url))
-(def short-name-with-post (format "%s.with-url-and-method.%s.POST.bytes-read"
+(def short-name-with-post (format "%s.with-url-and-method.%s.POST.full-response"
                                   metric-namespace short-url))
 
-(def long-name (format "%s.with-url.%s.bytes-read" metric-namespace long-url))
-(def long-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+(def long-name (format "%s.with-url.%s.full-response" metric-namespace long-url))
+(def long-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                    metric-namespace long-url))
 
 (def long-foo-name
-  "puppetlabs.http-client.experimental.with-metric-id.foo.bytes-read")
+  "puppetlabs.http-client.experimental.with-metric-id.foo.full-response")
 (def long-foo-bar-name
-  "puppetlabs.http-client.experimental.with-metric-id.foo.bar.bytes-read")
+  "puppetlabs.http-client.experimental.with-metric-id.foo.bar.full-response")
 (def long-foo-bar-baz-name
-  "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.bytes-read")
+  "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.full-response")
 
-(def hello-name (format "%s.with-url.%s.bytes-read" metric-namespace hello-url))
-(def hello-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+(def hello-name (format "%s.with-url.%s.full-response" metric-namespace hello-url))
+(def hello-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                     metric-namespace hello-url))
 
 (deftest metrics-test-java-async
@@ -455,33 +455,33 @@
                     buf (make-array Byte/TYPE 4)]
                 (.read instream buf)
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
-                (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
+                (Thread/sleep 1000) ;; check that the full-response metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metric-registry (.getMetricRegistry client)
                     client-metrics (Metrics/getClientMetrics client-metric-registry)
                     client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                    bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
-                    bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                    full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
+                    full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                                         metric-namespace url)]
-                (is (= [bytes-read-name]
+                (is (= [full-response-name]
                        (map #(.getMetricName %) (get client-metrics "url"))
                        (map #(.getMetricName %) (get client-metrics-data "url"))))
-                (is (= [bytes-read-name-with-method]
+                (is (= [full-response-name-with-method]
                        (map #(.getMetricName %) (get client-metrics "url-and-method"))
                        (map #(.getMetricName %) (get client-metrics-data "url-and-method"))))
                 (is (= [] (get client-metrics "metric-id") (get client-metrics-data "metric-id")))
                 (is (every? #(instance? ClientTimer %)
                             (concat (get client-metrics "url")
                                     (get client-metrics "url-and-method"))))
-                (let [bytes-read-data (first (get client-metrics-data "url"))]
+                (let [full-response-data (first (get client-metrics-data "url"))]
                   (is (every? #(instance? ClientMetricData %)
                               (concat (get client-metrics-data "url")
                                       (get client-metrics-data "url-and-method"))))
 
-                  (is (= 1 (.getCount bytes-read-data)))
-                  (is (= bytes-read-name (.getMetricName bytes-read-data)))
-                  (is (<= 1000 (.getMean bytes-read-data)))
-                  (is (<= 1000 (.getAggregate bytes-read-data))))))))))
+                  (is (= 1 (.getCount full-response-data)))
+                  (is (= full-response-name (.getMetricName full-response-data)))
+                  (is (<= 1000 (.getMean full-response-data)))
+                  (is (<= 1000 (.getAggregate full-response-data))))))))))
      (testing "metrics work for failed request"
        (try
          (testwebserver/with-test-webserver-and-config
@@ -503,13 +503,13 @@
                 (let [client-metric-registry (.getMetricRegistry client)
                       client-metrics (Metrics/getClientMetrics client-metric-registry)
                       client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                      bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
-                      bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                      full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
+                      full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                                           metric-namespace url)]
-                  (is (= [bytes-read-name]
+                  (is (= [full-response-name]
                          (map #(.getMetricName %) (get client-metrics "url"))
                          (map #(.getMetricName %) (get client-metrics-data "url"))))
-                  (is (= [bytes-read-name-with-method]
+                  (is (= [full-response-name-with-method]
                          (map #(.getMetricName %) (get client-metrics "url-and-method"))
                          (map #(.getMetricName %) (get client-metrics-data "url-and-method"))))
                   (is (= [] (get client-metrics "metric-id")
@@ -517,15 +517,15 @@
                   (is (every? #(instance? ClientTimer %)
                               (concat (get client-metrics "url")
                                       (get client-metrics "url-and-method"))))
-                  (let [bytes-read-data (first (get client-metrics-data "url"))]
+                  (let [full-response-data (first (get client-metrics-data "url"))]
                     (is (every? #(instance? ClientMetricData %)
                                 (concat (get client-metrics-data "url")
                                         (get client-metrics-data "url-and-method"))))
 
-                    (is (= 1 (.getCount bytes-read-data)))
-                    (is (= bytes-read-name (.getMetricName bytes-read-data)))
-                    (is (<= 200 (.getMean bytes-read-data)))
-                    (is (<= 200 (.getAggregate bytes-read-data)))))))))
+                    (is (= 1 (.getCount full-response-data)))
+                    (is (= full-response-name (.getMetricName full-response-data)))
+                    (is (<= 200 (.getMean full-response-data)))
+                    (is (<= 200 (.getAggregate full-response-data)))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))
@@ -549,29 +549,29 @@
                     buf (make-array Byte/TYPE 4)]
                 (.read instream buf)
                 (is (= "xxxx" (String. buf "UTF-8"))) ;; Make sure we can read a few chars off of the stream
-                (Thread/sleep 1000) ;; check that the bytes-read metric takes this into account
+                (Thread/sleep 1000) ;; check that the full-response metric takes this into account
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream))))) ;; Read the rest and validate
               (let [client-metric-registry (common/get-client-metric-registry client)
                     client-metrics (metrics/get-client-metrics client-metric-registry)
                     client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
-                    bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
-                    bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                    full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
+                    full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                                         metric-namespace url)]
-                (is (= [bytes-read-name]
+                (is (= [full-response-name]
                        (map #(.getMetricName %) (:url client-metrics))
                        (map :metric-name (:url client-metrics-data))))
-                (is (= [bytes-read-name-with-method]
+                (is (= [full-response-name-with-method]
                        (map #(.getMetricName %) (:url-and-method client-metrics))
                        (map :metric-name  (:url-and-method client-metrics-data))))
                 (is (= [] (:metric-id client-metrics) (:metric-id client-metrics-data)))
                 (is (every? #(instance? ClientTimer %)
                             (concat (:url client-metrics)
                                     (:url-and-method client-metrics))))
-                (let [bytes-read-data (first (:url client-metrics-data))]
-                  (is (= {:count 1 :metric-name bytes-read-name}
-                         (select-keys bytes-read-data [:metric-name :count])))
-                  (is (<= 1000 (:mean bytes-read-data)))
-                  (is (<= 1000 (:aggregate bytes-read-data))))))))))
+                (let [full-response-data (first (:url client-metrics-data))]
+                  (is (= {:count 1 :metric-name full-response-name}
+                         (select-keys full-response-data [:metric-name :count])))
+                  (is (<= 1000 (:mean full-response-data)))
+                  (is (<= 1000 (:aggregate full-response-data))))))))))
      (testing "metrics work for a failed request"
        (try
          (testwebserver/with-test-webserver-and-config
@@ -589,24 +589,24 @@
               (let [client-metric-registry (common/get-client-metric-registry client)
                     client-metrics (metrics/get-client-metrics client-metric-registry)
                     client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
-                    bytes-read-name (format "%s.with-url.%s.bytes-read" metric-namespace url)
-                    bytes-read-name-with-method (format "%s.with-url-and-method.%s.GET.bytes-read"
+                    full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
+                    full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                                         metric-namespace url)]
-                (is (= [bytes-read-name]
+                (is (= [full-response-name]
                        (map #(.getMetricName %) (:url client-metrics))
                        (map :metric-name (:url client-metrics-data))))
-                (is (= [bytes-read-name-with-method]
+                (is (= [full-response-name-with-method]
                        (map #(.getMetricName %) (:url-and-method client-metrics))
                        (map :metric-name (:url-and-method client-metrics-data))))
                 (is (= [] (:metric-id client-metrics) (:metric-id client-metrics-data)))
                 (is (every? #(instance? ClientTimer %)
                             (concat (:url client-metrics)
                                     (:url-and-method client-metrics))))
-                (let [bytes-read-data (first (:url client-metrics-data))]
-                  (is (= {:count 1 :metric-name bytes-read-name}
-                         (select-keys bytes-read-data [:metric-name :count])))
-                  (is (<= 200 (:mean bytes-read-data)))
-                  (is (<= 200 (:aggregate bytes-read-data))))))))
+                (let [full-response-data (first (:url client-metrics-data))]
+                  (is (= {:count 1 :metric-name full-response-name}
+                         (select-keys full-response-data [:metric-name :count])))
+                  (is (<= 200 (:mean full-response-data)))
+                  (is (<= 200 (:aggregate full-response-data))))))))
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))

@@ -17,7 +17,7 @@
 (defn get-java-metric-type
   [metric-type]
   (case metric-type
-    :bytes-read Metrics$MetricType/BYTES_READ))
+    :full-response Metrics$MetricType/FULL_RESPONSE))
 
 (defn uppercase-method
   [method]
@@ -41,7 +41,7 @@
   "Returns the http client-specific url metrics matching the specified url."
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str]
-   (get-client-metrics-by-url metric-registry url :bytes-read))
+   (get-client-metrics-by-url metric-registry url :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     metric-type :- common/MetricTypes]
@@ -57,7 +57,7 @@
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     method :- common/HTTPMethod]
-   (get-client-metrics-by-url-and-method metric-registry url method :bytes-read))
+   (get-client-metrics-by-url-and-method metric-registry url method :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     method :- common/HTTPMethod
@@ -74,7 +74,7 @@
   "Returns the http client-specific url metrics matching the specified url."
   ([metric-registry :- common/OptionalMetricRegistry
     metric-id :- common/MetricId]
-   (get-client-metrics-by-metric-id metric-registry metric-id :bytes-read))
+   (get-client-metrics-by-metric-id metric-registry metric-id :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-id :- common/MetricId
     metric-type :- common/MetricTypes]
@@ -89,7 +89,7 @@
   "Returns a summary of the metric data for all http client timers, organized
   in a map by category."
   ([metric-registry :- common/OptionalMetricRegistry]
-   (get-client-metrics-data metric-registry :bytes-read))
+   (get-client-metrics-data metric-registry :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-type :- common/MetricTypes]
    (when metric-registry
@@ -106,7 +106,7 @@
   url."
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str]
-   (get-client-metrics-data-by-url metric-registry url :bytes-read))
+   (get-client-metrics-data-by-url metric-registry url :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     metric-type :- common/MetricTypes]
@@ -124,7 +124,7 @@
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     method :- common/HTTPMethod]
-   (get-client-metrics-data-by-url-and-method metric-registry url method :bytes-read))
+   (get-client-metrics-data-by-url-and-method metric-registry url method :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     url :- schema/Str
     method :- common/HTTPMethod
@@ -143,7 +143,7 @@
   metric-id."
   ([metric-registry :- common/OptionalMetricRegistry
     metric-id :- common/MetricId]
-   (get-client-metrics-data-by-metric-id metric-registry metric-id :bytes-read))
+   (get-client-metrics-data-by-metric-id metric-registry metric-id :full-response))
   ([metric-registry :- common/OptionalMetricRegistry
     metric-id :- common/MetricId
     metric-type :- common/MetricTypes]
