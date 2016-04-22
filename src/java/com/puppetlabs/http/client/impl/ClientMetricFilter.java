@@ -26,8 +26,7 @@ public class ClientMetricFilter implements MetricFilter{
         this.metricType = metricType;
     }
 
-    private boolean isMatch(ClientTimer metric, String url, String method,
-                            ArrayList<String> metricId, Metrics.MetricType metricType) {
+    private boolean isMatch(ClientTimer metric) {
         if ( metric.getMetricType().equals(metricType) ) {
             if ( category != null ) {
                 switch (category) {
@@ -53,7 +52,7 @@ public class ClientMetricFilter implements MetricFilter{
 
     public boolean matches(String s, Metric metric) {
         if ( metric instanceof ClientTimer ){
-            return isMatch((ClientTimer) metric, url, method, metricId, metricType);
+            return isMatch((ClientTimer) metric);
         } else {
             return false;
         }

@@ -24,12 +24,6 @@ public class Metrics {
     public static final String FULL_RESPONSE_STRING = "full-response";
     public enum MetricType { FULL_RESPONSE; }
 
-    public static String metricTypeString(Metrics.MetricType metricType) {
-        // currently this is the only metric type we have; in the future when
-        // there are multiple types this will do something more useful
-        return FULL_RESPONSE_STRING;
-    }
-
     private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
 
     private static ClientTimer getOrAddTimer(MetricRegistry metricRegistry,
