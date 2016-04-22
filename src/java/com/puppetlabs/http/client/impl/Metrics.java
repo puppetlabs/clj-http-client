@@ -32,18 +32,24 @@ public class Metrics {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
 
-    synchronized private static ClientTimer getOrAddTimer(MetricRegistry metricRegistry,
-                                                          String name, ClientTimer newTimer) {
-        Metric timer = metricRegistry.getMetrics().get(name);
-
-        if ( timer == null ) {
-            return metricRegistry.register(name, newTimer);
-        } else if ( ClientTimer.class.isInstance(timer) ) {
-            return (ClientTimer) timer;
-        } else {
-            throw new IllegalArgumentException(name +
-                    " is already used for a different type of metric");
+    private static ClientTimer getOrAddTimer(MetricRegistry metricRegistry,
+                                             String name,
+                                             ClientTimer newTimer) {
+        final Map<String, Metric> metrics = metricRegistry.getMetrics();
+        final Metric metric = metrics.get(name);
+        if ( metric instanceof ClientTimer ) {
+            return (ClientTimer) metric;
+        } else if ( metric == null ) {
+            try {
+                return metricRegistry.register(name, newTimer);
+            } catch (IllegalArgumentException e) {
+                final Metric added = metricRegistry.getMetrics().get(name);
+                if ( added instanceof ClientTimer ) {
+                    return (ClientTimer) added;
+                }
+            }
         }
+        throw new IllegalArgumentException(name +" is already used for a different type of metric");
     }
 
     private static ArrayList<Timer.Context> startBytesReadMetricIdTimers(MetricRegistry registry,
