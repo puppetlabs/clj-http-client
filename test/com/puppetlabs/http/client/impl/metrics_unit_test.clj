@@ -1,9 +1,12 @@
 (ns com.puppetlabs.http.client.impl.metrics-unit-test
   (:require [clojure.test :refer :all]
-            [puppetlabs.http.client.metrics :as metrics])
+            [puppetlabs.http.client.metrics :as metrics]
+            [schema.test :as schema-test])
   (:import (com.codahale.metrics MetricRegistry)
            (com.puppetlabs.http.client.impl Metrics Metrics$MetricType)
            (org.apache.http.message BasicHttpRequest)))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (def full-response Metrics$MetricType/FULL_RESPONSE)
 

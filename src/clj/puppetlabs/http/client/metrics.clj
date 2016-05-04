@@ -4,15 +4,24 @@
   (:import (com.puppetlabs.http.client.impl Metrics$MetricType Metrics
                                             ClientMetricData)))
 
-(schema/defn get-metric-data :- common/MetricData
+(schema/defn get-base-metric-data :- common/BaseMetricData
   [data :- ClientMetricData]
   {:count (.getCount data)
    :mean (.getMean data)
    :aggregate (.getAggregate data)
-   :metric-name (.getMetricName data)
-   :url (.getUrl data)
-   :method (.getMethod data)
-   :metric-id (.getMetricId data)})
+   :metric-name (.getMetricName data)})
+
+(schema/defn get-url-metric-data :- common/UrlMetricData
+  [data :- ClientMetricData]
+  (assoc (get-base-metric-data data) :url (.getUrl data)))
+
+(schema/defn get-url-and-method-metric-data :- common/UrlAndMethodMetricData
+  [data :- ClientMetricData]
+  (assoc (get-url-metric-data data) :method (.getMethod data)))
+
+(schema/defn get-metric-id-metric-data :- common/MetricIdMetricData
+  [data :- ClientMetricData]
+  (assoc (get-base-metric-data data) :metric-id (.getMetricId data)))
 
 (defn get-java-metric-type
   [metric-type]
@@ -96,12 +105,12 @@
      (let [data (Metrics/getClientMetricsData
                  metric-registry
                  (get-java-metric-type metric-type))]
-       {:url (map get-metric-data (get data "url"))
-        :url-and-method (map get-metric-data (get data "url-and-method"))
-        :metric-id (map get-metric-data (get data "metric-id"))}))))
+       {:url (map get-url-metric-data (get data "url"))
+        :url-and-method (map get-url-and-method-metric-data (get data "url-and-method"))
+        :metric-id (map get-metric-id-metric-data (get data "metric-id"))}))))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url
-  :- common/MetricsData
+  :- [common/UrlMetricData]
   "Returns a summary of the metric data for all http client timers filtered by
   url."
   ([metric-registry :- common/OptionalMetricRegistry
@@ -115,10 +124,10 @@
                  metric-registry
                  url
                  (get-java-metric-type metric-type))]
-       (map get-metric-data data)))))
+       (map get-url-metric-data data)))))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url-and-method
-  :- common/MetricsData
+  :- [common/UrlAndMethodMetricData]
   "Returns a summary of the metric data for all http client timers filtered by
   url and method."
   ([metric-registry :- common/OptionalMetricRegistry
@@ -135,10 +144,10 @@
                  url
                  (uppercase-method method)
                  (get-java-metric-type metric-type))]
-       (map get-metric-data data)))))
+       (map get-url-and-method-metric-data data)))))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-metric-id
-  :- common/MetricsData
+  :- [common/MetricIdMetricData]
   "Returns a summary of the metric data for all http client timers filtered by
   metric-id."
   ([metric-registry :- common/OptionalMetricRegistry
@@ -152,4 +161,4 @@
                  metric-registry
                  (into-array String (map name metric-id))
                  (get-java-metric-type metric-type))]
-       (map get-metric-data data)))))
+       (map get-metric-id-metric-data data)))))

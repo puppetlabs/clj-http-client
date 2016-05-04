@@ -9,13 +9,16 @@
             [puppetlabs.http.client.sync :as sync]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.http.client.metrics :as metrics])
+            [puppetlabs.http.client.metrics :as metrics]
+            [schema.test :as schema-test])
   (:import (com.puppetlabs.http.client.impl ClientMetricData Metrics ClientTimer)
            (com.puppetlabs.http.client Async RequestOptions
                                        ClientOptions ResponseBodyType Sync)
            (com.codahale.metrics MetricRegistry)
            (java.net SocketTimeoutException)
            (java.util.concurrent TimeoutException)))
+
+(use-fixtures :once schema-test/validate-schemas)
 
 (def metric-namespace "puppetlabs.http-client.experimental")
 

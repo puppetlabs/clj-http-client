@@ -173,22 +173,25 @@
    :url-and-method Metrics
    :metric-id Metrics})
 
-(def MetricData
+(def BaseMetricData
   {:metric-name schema/Str
    :count schema/Int
    :mean schema/Num
-   :aggregate schema/Num
-   :url (schema/maybe schema/Str)
-   :method (schema/maybe schema/Str)
-   :metric-id [schema/Str]})
+   :aggregate schema/Num})
 
-(def MetricsData
-  [MetricData])
+(def UrlMetricData
+  (assoc BaseMetricData :url schema/Str))
+
+(def UrlAndMethodMetricData
+  (assoc UrlMetricData :method schema/Str))
+
+(def MetricIdMetricData
+  (assoc BaseMetricData :metric-id [schema/Str]))
 
 (def AllMetricsData
-  {:url MetricsData
-   :url-and-method MetricsData
-   :metric-id MetricsData})
+  {:url [UrlMetricData]
+   :url-and-method [UrlAndMethodMetricData]
+   :metric-id [MetricIdMetricData]})
 
 (def MetricTypes
   (schema/enum :full-response))
