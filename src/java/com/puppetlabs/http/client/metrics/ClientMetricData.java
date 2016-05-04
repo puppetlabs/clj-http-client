@@ -1,6 +1,6 @@
 package com.puppetlabs.http.client.metrics;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class ClientMetricData {
     private String metricName;
@@ -9,10 +9,10 @@ public class ClientMetricData {
     private Long aggregate;
     private String url;
     private String method;
-    private ArrayList<String> metricId;
+    private List<String> metricId;
 
     ClientMetricData(String metricName, Long count, Long mean, Long aggregate,
-                     String url, String method, ArrayList<String> metricId) {
+                     String url, String method, List<String> metricId) {
         this.metricName = metricName;
         this.count = count;
         this.mean = mean;
@@ -46,7 +46,7 @@ public class ClientMetricData {
         return method;
     }
 
-    public ArrayList<String> getMetricId() {
+    public List<String> getMetricId() {
         return metricId;
     }
 }

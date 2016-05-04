@@ -4,7 +4,10 @@ import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.metrics.ClientTimer;
+import com.puppetlabs.http.client.metrics.MetricIdClientTimer;
 import com.puppetlabs.http.client.metrics.Metrics;
+import com.puppetlabs.http.client.metrics.UrlAndMethodClientTimer;
+import com.puppetlabs.http.client.metrics.UrlClientTimer;
 import org.apache.http.HttpRequest;
 import org.apache.http.RequestLine;
 import org.slf4j.Logger;
@@ -53,7 +56,7 @@ public class TimerUtils {
             String metric_name = MetricRegistry.name(Metrics.METRIC_NAMESPACE,
                     currentIdWithNamespace.toArray(new String[currentIdWithNamespace.size()]));
 
-            ClientTimer timer = new ClientTimer(metric_name, currentId, Metrics.MetricType.FULL_RESPONSE);
+            ClientTimer timer = new MetricIdClientTimer(metric_name, currentId, Metrics.MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, metric_name, timer).time());
         }
         return timerContexts;
@@ -72,10 +75,10 @@ public class TimerUtils {
             final String urlAndMethodName = MetricRegistry.name(Metrics.METRIC_NAMESPACE, Metrics.URL_METHOD_NAMESPACE,
                     strippedUrl, method, Metrics.FULL_RESPONSE_STRING);
 
-            ClientTimer urlTimer = new ClientTimer(urlName, strippedUrl, Metrics.MetricType.FULL_RESPONSE);
+            ClientTimer urlTimer = new UrlClientTimer(urlName, strippedUrl, Metrics.MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, urlName, urlTimer).time());
 
-            ClientTimer urlMethodTimer = new ClientTimer(urlAndMethodName, strippedUrl,
+            ClientTimer urlMethodTimer = new UrlAndMethodClientTimer(urlAndMethodName, strippedUrl,
                     method, Metrics.MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, urlAndMethodName, urlMethodTimer).time());
         } catch (URISyntaxException e) {
