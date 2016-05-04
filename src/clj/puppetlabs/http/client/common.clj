@@ -5,7 +5,7 @@
            (clojure.lang IBlockingDeref)
            (java.io InputStream)
            (java.nio.charset Charset)
-           (com.puppetlabs.http.client.impl ClientTimer))
+           (com.puppetlabs.http.client.metrics ClientTimer))
   (:require [schema.core :as schema])
   (:refer-clojure :exclude (get)))
 

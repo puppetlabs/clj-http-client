@@ -1,7 +1,9 @@
-package com.puppetlabs.http.client.impl;
+package com.puppetlabs.http.client.impl.metrics;
 
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.Metric;
+import com.puppetlabs.http.client.metrics.Metrics;
+import com.puppetlabs.http.client.metrics.ClientTimer;
 
 import java.util.ArrayList;
 

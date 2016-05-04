@@ -1,7 +1,7 @@
 (ns puppetlabs.http.client.metrics
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
-  (:import (com.puppetlabs.http.client.impl Metrics$MetricType Metrics
+  (:import (com.puppetlabs.http.client.metrics Metrics$MetricType Metrics
                                             ClientMetricData)
            (com.codahale.metrics MetricRegistry)))
 

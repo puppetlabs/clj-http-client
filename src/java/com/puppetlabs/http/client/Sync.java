@@ -1,12 +1,9 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.SslUtils;
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.PersistentSyncHttpClient;
-import com.puppetlabs.http.client.impl.CoercedClientOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.codahale.metrics.MetricRegistry;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;

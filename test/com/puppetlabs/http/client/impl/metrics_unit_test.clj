@@ -3,7 +3,7 @@
             [puppetlabs.http.client.metrics :as metrics]
             [schema.test :as schema-test])
   (:import (com.codahale.metrics MetricRegistry)
-           (com.puppetlabs.http.client.impl Metrics)
+           (com.puppetlabs.http.client.metrics Metrics)
            (org.apache.http.message BasicHttpRequest)
            (clojure.lang ExceptionInfo)))
 
