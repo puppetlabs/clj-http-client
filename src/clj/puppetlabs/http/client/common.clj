@@ -162,9 +162,6 @@
 (def HTTPMethod
   (schema/enum :delete :get :head :option :patch :post :put :trace))
 
-(def OptionalMetricRegistry
-  (schema/maybe MetricRegistry))
-
 (def Metrics
   [ClientTimer])
 

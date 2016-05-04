@@ -2,7 +2,8 @@
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
   (:import (com.puppetlabs.http.client.impl Metrics$MetricType Metrics
-                                            ClientMetricData)))
+                                            ClientMetricData)
+           (com.codahale.metrics MetricRegistry)))
 
 (schema/defn get-base-metric-data :- common/BaseMetricData
   [data :- ClientMetricData]
@@ -38,90 +39,82 @@
 (schema/defn ^:always-validate get-client-metrics
   :- (schema/maybe common/AllMetrics)
   "Returns the http client-specific metrics from the metric registry."
-  [metric-registry :- common/OptionalMetricRegistry]
-  (when metric-registry
-    (let [metrics (Metrics/getClientMetrics metric-registry)]
-      {:url (get metrics "url")
-       :url-and-method (get metrics "url-and-method")
-       :metric-id (get metrics "metric-id")})))
+  [metric-registry :- MetricRegistry]
+  (let [metrics (Metrics/getClientMetrics metric-registry)]
+    {:url (get metrics "url")
+     :url-and-method (get metrics "url-and-method")
+     :metric-id (get metrics "metric-id")}))
 
 (schema/defn ^:always-validate get-client-metrics-by-url
   :- common/Metrics
   "Returns the http client-specific url metrics matching the specified url."
-  [metric-registry :- common/OptionalMetricRegistry
+  [metric-registry :- MetricRegistry
    url :- schema/Str]
-  (when metric-registry
-    (Metrics/getClientMetricsByUrl
-     metric-registry
-     url)))
+  (Metrics/getClientMetricsByUrl
+   metric-registry
+   url))
 
 (schema/defn ^:always-validate get-client-metrics-by-url-and-method
   :- common/Metrics
   "Returns the http client-specific url metrics matching the specified url."
-  [metric-registry :- common/OptionalMetricRegistry
+  [metric-registry :- MetricRegistry
    url :- schema/Str
    method :- common/HTTPMethod]
-  (when metric-registry
-    (Metrics/getClientMetricsByUrlAndMethod
-     metric-registry
-     url
-     method)))
+  (Metrics/getClientMetricsByUrlAndMethod
+   metric-registry
+   url
+   method))
 
 (schema/defn ^:always-validate get-client-metrics-by-metric-id
   :- common/Metrics
   "Returns the http client-specific url metrics matching the specified url."
-  [metric-registry :- common/OptionalMetricRegistry
+  [metric-registry :- MetricRegistry
    metric-id :- common/MetricId]
-  (when metric-registry
-    (Metrics/getClientMetricsByMetricId
-     metric-registry
-     (into-array String (map name metric-id)))))
+  (Metrics/getClientMetricsByMetricId
+   metric-registry
+   (into-array String (map name metric-id))))
 
 (schema/defn ^:always-validate get-client-metrics-data
-  :- (schema/maybe common/AllMetricsData)
+  :- common/AllMetricsData
   "Returns a summary of the metric data for all http client timers, organized
   in a map by category."
-  [metric-registry :- common/OptionalMetricRegistry]
-  (when metric-registry
-    (let [data (Metrics/getClientMetricsData metric-registry)]
-      {:url (map get-url-metric-data (get data "url"))
-       :url-and-method (map get-url-and-method-metric-data (get data "url-and-method"))
-       :metric-id (map get-metric-id-metric-data (get data "metric-id"))})))
+  [metric-registry :- MetricRegistry]
+  (let [data (Metrics/getClientMetricsData metric-registry)]
+    {:url (map get-url-metric-data (get data "url"))
+     :url-and-method (map get-url-and-method-metric-data (get data "url-and-method"))
+     :metric-id (map get-metric-id-metric-data (get data "metric-id"))}))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url
   :- [common/UrlMetricData]
   "Returns a summary of the metric data for all http client timers filtered by
   url."
-  [metric-registry :- common/OptionalMetricRegistry
+  [metric-registry :- MetricRegistry
    url :- schema/Str]
-  (when metric-registry
-    (let [data (Metrics/getClientMetricsDataByUrl
-                metric-registry
-                url)]
-      (map get-url-metric-data data))))
+  (let [data (Metrics/getClientMetricsDataByUrl
+              metric-registry
+              url)]
+    (map get-url-metric-data data)))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url-and-method
   :- [common/UrlAndMethodMetricData]
   "Returns a summary of the metric data for all http client timers filtered by
   url and method."
-  [metric-registry :- common/OptionalMetricRegistry
+  [metric-registry :- MetricRegistry
    url :- schema/Str
    method :- common/HTTPMethod]
-  (when metric-registry
-    (let [data (Metrics/getClientMetricsDataByUrlAndMethod
-                metric-registry
-                url
-                (uppercase-method method))]
-      (map get-url-and-method-metric-data data))))
+  (let [data (Metrics/getClientMetricsDataByUrlAndMethod
+              metric-registry
+              url
+              (uppercase-method method))]
+    (map get-url-and-method-metric-data data)))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-metric-id
   :- [common/MetricIdMetricData]
   "Returns a summary of the metric data for all http client timers filtered by
   metric-id."
-  [metric-registry :- common/OptionalMetricRegistry
+  [metric-registry :- MetricRegistry
    metric-id :- common/MetricId]
-  (when metric-registry
-    (let [data (Metrics/getClientMetricsDataByMetricId
-                metric-registry
-                (into-array String (map name metric-id)))]
-      (map get-metric-id-metric-data data))))
+  (let [data (Metrics/getClientMetricsDataByMetricId
+              metric-registry
+              (into-array String (map name metric-id)))]
+    (map get-metric-id-metric-data data)))

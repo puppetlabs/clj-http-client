@@ -13,7 +13,8 @@
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
            (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
            (org.apache.http.client.utils URIBuilder)
-           (org.apache.http.nio.client HttpAsyncClient))
+           (org.apache.http.nio.client HttpAsyncClient)
+           (com.codahale.metrics MetricRegistry))
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema])
   (:refer-clojure :exclude (get)))
@@ -161,7 +162,7 @@
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient
-    metric-registry :- common/OptionalMetricRegistry]
+    metric-registry :- (schema/maybe MetricRegistry)]
    (let [result (promise)
          defaults {:headers {}
                    :body nil

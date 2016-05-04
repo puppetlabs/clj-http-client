@@ -4,7 +4,8 @@
             [schema.test :as schema-test])
   (:import (com.codahale.metrics MetricRegistry)
            (com.puppetlabs.http.client.impl Metrics)
-           (org.apache.http.message BasicHttpRequest)))
+           (org.apache.http.message BasicHttpRequest)
+           (clojure.lang ExceptionInfo)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -198,9 +199,11 @@
       (testing "getClientMetricsData with metric id returns nothing if id is not a match"
         (is (= [] (Metrics/getClientMetricsDataByMetricId registry (into-array ["foo" "cat"]))
                (metrics/get-client-metrics-data-by-metric-id registry ["foo" "cat"]))))
-      (testing "getClientMetrics|Data returns nil if no metric registry passed in"
-        (is (= nil (Metrics/getClientMetrics nil) (Metrics/getClientMetricsData nil)))
-        (is (= nil (metrics/get-client-metrics nil) (metrics/get-client-metrics-data nil))))
+      (testing "getClientMetrics|Data returns throws an error if no metric registry passed in"
+        (is (thrown? ExceptionInfo (metrics/get-client-metrics nil)))
+        (is (thrown? ExceptionInfo (metrics/get-client-metrics-data nil)))
+        (is (thrown? IllegalArgumentException (Metrics/getClientMetrics nil)))
+        (is (thrown? IllegalArgumentException (Metrics/getClientMetricsData nil))))
       (testing (str "getClientMetrics|Data returns map with empty arrays as values"
                     " if no requests have been made yet")
         (is (= {"url" [] "url-and-method" [] "metric-id" []}

@@ -138,7 +138,7 @@ public class Metrics {
                     new ClientMetricFilter(ID_NAMESPACE, MetricType.FULL_RESPONSE))));
             return timers;
         } else {
-            return null;
+            throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
@@ -149,7 +149,7 @@ public class Metrics {
                     new ClientMetricFilter(url, null, null, MetricType.FULL_RESPONSE));
             return getClientTimerArray(timers);
         } else {
-            return null;
+            throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
@@ -161,7 +161,7 @@ public class Metrics {
                     new ClientMetricFilter(url, method, null, MetricType.FULL_RESPONSE));
             return getClientTimerArray(timers);
         } else {
-            return null;
+            throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
@@ -180,7 +180,7 @@ public class Metrics {
                 return getClientTimerArray(timers);
             }
         } else {
-            return null;
+            throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
@@ -216,7 +216,7 @@ public class Metrics {
             data.put("metric-id", computeClientMetricsData(timers.get("metric-id")));
             return data;
         } else {
-            return null;
+            throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
