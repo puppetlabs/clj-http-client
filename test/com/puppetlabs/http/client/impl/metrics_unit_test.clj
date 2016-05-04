@@ -3,12 +3,10 @@
             [puppetlabs.http.client.metrics :as metrics]
             [schema.test :as schema-test])
   (:import (com.codahale.metrics MetricRegistry)
-           (com.puppetlabs.http.client.impl Metrics Metrics$MetricType)
+           (com.puppetlabs.http.client.impl Metrics)
            (org.apache.http.message BasicHttpRequest)))
 
 (use-fixtures :once schema-test/validate-schemas)
-
-(def full-response Metrics$MetricType/FULL_RESPONSE)
 
 (defn add-metric-ns [string]
   (str "puppetlabs.http-client.experimental." string))
@@ -119,7 +117,7 @@
              (set (map :metric-name
                        (:metric-id (metrics/get-client-metrics-data registry)))))))
     (testing "getClientMetricsData with url returns the right thing"
-      (let [java-data (Metrics/getClientMetricsDataByUrl registry url full-response)
+      (let [java-data (Metrics/getClientMetricsDataByUrl registry url)
             clj-data (metrics/get-client-metrics-data-by-url registry url)]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-url.http://test.com/one.full-response")
@@ -127,7 +125,7 @@
                (:metric-name (first clj-data))))
         (is (= 3 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByUrl registry url2 full-response)
+      (let [java-data (Metrics/getClientMetricsDataByUrl registry url2)
             clj-data (metrics/get-client-metrics-data-by-url registry url2)]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-url.http://test.com/one/two.full-response")
@@ -136,10 +134,10 @@
         (is (= 1 (.getCount (first java-data))
                (:count (first clj-data)))))
       (testing "getClientMetricsData with url returns nothing if url is not a full match"
-        (is (= [] (Metrics/getClientMetricsDataByUrl registry "http://test.com" full-response)
+        (is (= [] (Metrics/getClientMetricsDataByUrl registry "http://test.com")
                (metrics/get-client-metrics-data-by-url registry "http://test.com")))))
     (testing "getClientMetricsData with url and method returns the right thing"
-      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod registry url "GET" full-response)
+      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod registry url "GET")
             clj-data (metrics/get-client-metrics-data-by-url-and-method registry url :get)]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-url-and-method.http://test.com/one.GET.full-response")
@@ -147,8 +145,7 @@
                (:metric-name (first clj-data))))
         (is (= 1 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod
-                       registry url "POST" full-response)
+      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod registry url "POST")
             clj-data (metrics/get-client-metrics-data-by-url-and-method
                       registry url :post)]
         (is (= 1 (count java-data) (count clj-data)))
@@ -157,8 +154,7 @@
                (:metric-name (first clj-data))))
         (is (= 2 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod
-                       registry url2 "GET" full-response)
+      (let [java-data (Metrics/getClientMetricsDataByUrlAndMethod registry url2 "GET")
             clj-data (metrics/get-client-metrics-data-by-url-and-method registry url2 :get)]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-url-and-method.http://test.com/one/two.GET.full-response")
@@ -167,12 +163,10 @@
         (is (= 1 (.getCount (first java-data))
                (:count (first clj-data)))))
       (testing "getClientMetricsData with url and method returns nothing if method is not a match"
-        (is (= [] (Metrics/getClientMetricsDataByUrlAndMethod
-                   registry "http://test.com" "PUT" full-response)
+        (is (= [] (Metrics/getClientMetricsDataByUrlAndMethod registry "http://test.com" "PUT")
                (metrics/get-client-metrics-data-by-url-and-method registry "http://test.com" :put)))))
     (testing "getClientMetricsData with metric id returns the right thing"
-      (let [java-data (Metrics/getClientMetricsDataByMetricId
-                       registry (into-array ["foo"]) full-response)
+      (let [java-data (Metrics/getClientMetricsDataByMetricId registry (into-array ["foo"]))
             clj-data (metrics/get-client-metrics-data-by-metric-id registry ["foo"])]
         (is (= 1 (count java-data) (count clj-data)))
         (is (= (add-metric-ns "with-metric-id.foo.full-response")
@@ -180,8 +174,7 @@
                (:metric-name (first clj-data))))
         (is (= 2 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByMetricId
-                       registry (into-array ["foo" "bar"]) full-response)
+      (let [java-data (Metrics/getClientMetricsDataByMetricId registry (into-array ["foo" "bar"]))
             clj-data (metrics/get-client-metrics-data-by-metric-id
                       registry ["foo" "bar"])]
         (is (= 1 (count java-data) (count clj-data)))
@@ -190,8 +183,7 @@
                (:metric-name (first clj-data))))
         (is (= 1 (.getCount (first java-data))
                (:count (first clj-data)))))
-      (let [java-data (Metrics/getClientMetricsDataByMetricId
-                       registry (into-array ["foo" "abc"]) full-response)
+      (let [java-data (Metrics/getClientMetricsDataByMetricId registry (into-array ["foo" "abc"]))
             clj-data (metrics/get-client-metrics-data-by-metric-id
                       registry ["foo" "abc"])]
         (is (= 1 (count java-data) (count clj-data)))
@@ -204,8 +196,7 @@
           (is (= clj-data
                  (metrics/get-client-metrics-data-by-metric-id registry ["foo" :abc])))))
       (testing "getClientMetricsData with metric id returns nothing if id is not a match"
-        (is (= [] (Metrics/getClientMetricsDataByMetricId
-                   registry (into-array ["foo" "cat"]) full-response)
+        (is (= [] (Metrics/getClientMetricsDataByMetricId registry (into-array ["foo" "cat"]))
                (metrics/get-client-metrics-data-by-metric-id registry ["foo" "cat"]))))
       (testing "getClientMetrics|Data returns nil if no metric registry passed in"
         (is (= nil (Metrics/getClientMetrics nil) (Metrics/getClientMetricsData nil)))
@@ -253,7 +244,6 @@
       (testing "empty metric filter returns all metric id timers"
         (is (= (set (list foo-id foo-bar-id foo-bar-baz-id))
                (set (map #(.getMetricName %)
-                         (Metrics/getClientMetricsDataByMetricId
-                          registry (into-array String []) full-response)))
+                         (Metrics/getClientMetricsDataByMetricId registry (into-array String []))))
                (set (map :metric-name
                          (metrics/get-client-metrics-data-by-metric-id registry [])))))))))
