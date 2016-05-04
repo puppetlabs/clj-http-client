@@ -1,4 +1,4 @@
-package com.puppetlabs.http.client.impl;
+package com.puppetlabs.http.client.metrics;
 
 import com.codahale.metrics.Timer;
 

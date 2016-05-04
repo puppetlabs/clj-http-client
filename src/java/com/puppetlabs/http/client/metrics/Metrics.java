@@ -1,8 +1,9 @@
-package com.puppetlabs.http.client.impl;
+package com.puppetlabs.http.client.metrics;
 
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.puppetlabs.http.client.impl.metrics.ClientMetricFilter;
 import org.apache.http.HttpRequest;
 import org.apache.http.RequestLine;
 import org.slf4j.Logger;

@@ -11,12 +11,12 @@
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.http.client.metrics :as metrics]
             [schema.test :as schema-test])
-  (:import (com.puppetlabs.http.client.impl ClientMetricData Metrics ClientTimer)
-           (com.puppetlabs.http.client Async RequestOptions
+  (:import (com.puppetlabs.http.client Async RequestOptions
                                        ClientOptions ResponseBodyType Sync)
            (com.codahale.metrics MetricRegistry)
            (java.net SocketTimeoutException)
-           (java.util.concurrent TimeoutException)))
+           (java.util.concurrent TimeoutException)
+           (com.puppetlabs.http.client.metrics Metrics ClientTimer ClientMetricData)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
