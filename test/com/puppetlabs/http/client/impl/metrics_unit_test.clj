@@ -5,7 +5,8 @@
   (:import (com.codahale.metrics MetricRegistry)
            (com.puppetlabs.http.client.metrics Metrics)
            (org.apache.http.message BasicHttpRequest)
-           (clojure.lang ExceptionInfo)))
+           (clojure.lang ExceptionInfo)
+           (com.puppetlabs.http.client.impl.metrics TimerUtils)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -18,21 +19,21 @@
           url-method-id (add-metric-ns "with-url-and-method.http://localhost/foo.GET.full-response")]
       (testing "metric id timers are not created for a request without a metric id"
         (let [metric-registry (MetricRegistry.)]
-          (Metrics/startFullResponseTimers metric-registry
+          (TimerUtils/startFullResponseTimers metric-registry
                                            (BasicHttpRequest. "GET" "http://localhost/foo")
                                            nil)
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are not created for a request with an empty metric id"
         (let [metric-registry (MetricRegistry.)]
-          (Metrics/startFullResponseTimers metric-registry
+          (TimerUtils/startFullResponseTimers metric-registry
                                            (BasicHttpRequest. "GET" "http://localhost/foo")
                                            (into-array String []))
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are created correctly for a request with a metric id"
         (let [metric-registry (MetricRegistry.)]
-          (Metrics/startFullResponseTimers metric-registry
-                                           (BasicHttpRequest. "GET" "http://localhost/foo")
-                                           (into-array ["foo" "bar" "baz"]))
+          (TimerUtils/startFullResponseTimers metric-registry
+                                              (BasicHttpRequest. "GET" "http://localhost/foo")
+                                              (into-array ["foo" "bar" "baz"]))
           (is (= (set (list url-id url-method-id
                             (add-metric-ns "with-metric-id.foo.full-response")
                             (add-metric-ns "with-metric-id.foo.bar.full-response")
@@ -40,20 +41,20 @@
                  (set (keys (.getTimers metric-registry)))))))
       (testing "url timers should strip off username, password, query string, and fragment"
         (let [metric-registry (MetricRegistry.)]
-          (Metrics/startFullResponseTimers
+          (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one")
            nil)
-          (Metrics/startFullResponseTimers
+          (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz#x%2cyz")
            nil)
-          (Metrics/startFullResponseTimers
+          (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest.
             "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one#x%2cyz")
            nil)
-          (Metrics/startFullResponseTimers
+          (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest.
             "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?#x%2cyz")
@@ -66,7 +67,7 @@
                  (set (keys (.getTimers metric-registry))))))))))
 
 (defn start-and-stop-timers! [registry req id]
-  (doseq [timer (Metrics/startFullResponseTimers
+  (doseq [timer (TimerUtils/startFullResponseTimers
                  registry
                  req
                  id)]

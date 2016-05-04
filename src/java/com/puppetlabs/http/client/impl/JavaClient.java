@@ -3,6 +3,7 @@ package com.puppetlabs.http.client.impl;
 import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.*;
 
+import com.puppetlabs.http.client.impl.metrics.TimerUtils;
 import com.puppetlabs.http.client.metrics.Metrics;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Consts;
@@ -311,7 +312,7 @@ public class JavaClient {
 
         TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
                 new TimedFutureCallback<>(streamingCompleteCallback,
-                        Metrics.startFullResponseTimers(metricRegistry, request, metricId));
+                        TimerUtils.startFullResponseTimers(metricRegistry, request, metricId));
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
@@ -355,7 +356,7 @@ public class JavaClient {
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
                     new TimedFutureCallback<>(futureCallback,
-                            Metrics.startFullResponseTimers(registry, request, metricId));
+                            TimerUtils.startFullResponseTimers(registry, request, metricId));
             client.execute(request, timedFutureCallback);
         }
     }
