@@ -36,6 +36,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
+(schema/defn ^:always-validate url->metric-url :- schema/Str
+  [url :- schema/Str]
+ (Metrics/urlToMetricUrl url))
+
 (schema/defn ^:always-validate get-client-metrics
   :- (schema/maybe common/AllMetrics)
   "Returns the http client-specific metrics from the metric registry."

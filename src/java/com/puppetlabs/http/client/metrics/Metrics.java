@@ -1,13 +1,8 @@
 package com.puppetlabs.http.client.metrics;
 
-import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.impl.metrics.ClientMetricFilter;
-import org.apache.http.HttpRequest;
-import org.apache.http.RequestLine;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,7 +20,12 @@ public class Metrics {
     public static final String FULL_RESPONSE_STRING = "full-response";
     public enum MetricType { FULL_RESPONSE; }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
+    public static String urlToMetricUrl(String uriString) throws URISyntaxException {
+        final URI uri = new URI(uriString);
+        final URI convertedUri = new URI(uri.getScheme(), null, uri.getHost(),
+                uri.getPort(), uri.getPath(), null, null);
+        return convertedUri.toString();
+    }
 
     public static ArrayList<ClientTimer> getClientTimerArray(Map<String, Timer> timers){
         ArrayList<ClientTimer> timerArray = new ArrayList<>();

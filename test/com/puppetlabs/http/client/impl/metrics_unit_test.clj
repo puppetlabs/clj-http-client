@@ -6,7 +6,8 @@
            (com.puppetlabs.http.client.metrics Metrics)
            (org.apache.http.message BasicHttpRequest)
            (clojure.lang ExceptionInfo)
-           (com.puppetlabs.http.client.impl.metrics TimerUtils)))
+           (com.puppetlabs.http.client.impl.metrics TimerUtils)
+           (java.net URISyntaxException)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -61,10 +62,20 @@
            nil)
           (is (= (set (list
                        (add-metric-ns
-                        "with-url.http://localhost:1234/foo%2cbar/baz.full-response")
+                        "with-url.http://localhost:1234/foo,bar/baz.full-response")
                        (add-metric-ns
-                        "with-url-and-method.http://localhost:1234/foo%2cbar/baz.GET.full-response")))
+                        "with-url-and-method.http://localhost:1234/foo,bar/baz.GET.full-response")))
                  (set (keys (.getTimers metric-registry))))))))))
+
+(deftest url->metric-url-test
+  (testing "url->metric-url strips username, password, query params, and path fragment off of url"
+    (let [url "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one"]
+      (is (= "http://localhost:1234/foo,bar/baz"
+             (Metrics/urlToMetricUrl url)
+             (metrics/url->metric-url url)))))
+  (testing "url->metric-url throws error if non-url passed in"
+    (is (thrown? URISyntaxException (Metrics/urlToMetricUrl "abc def")))
+    (is (thrown? URISyntaxException (metrics/url->metric-url "abc def")))))
 
 (defn start-and-stop-timers! [registry req id]
   (doseq [timer (TimerUtils/startFullResponseTimers

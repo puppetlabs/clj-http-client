@@ -64,12 +64,7 @@ public class TimerUtils {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
         try {
             final RequestLine requestLine = request.getRequestLine();
-            final URI uri = new URI(requestLine.getUri());
-
-            // if the port is not specified, `getPort()` returns -1
-            final String port = uri.getPort() == -1 ? "" : ":" + uri.getPort();
-            final String strippedUrl = uri.getScheme() + "://" + uri.getHost()
-                    + port + uri.getRawPath();
+            final String strippedUrl = Metrics.urlToMetricUrl(requestLine.getUri());
             final String method = requestLine.getMethod();
 
             final String urlName = MetricRegistry.name(Metrics.METRIC_NAMESPACE, Metrics.URL_NAMESPACE,
