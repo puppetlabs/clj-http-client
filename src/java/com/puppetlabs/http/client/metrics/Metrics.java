@@ -109,9 +109,13 @@ public class Metrics {
                 String method = timer instanceof UrlAndMethodClientTimer ? ((UrlAndMethodClientTimer)(timer)).getMethod() : null;
                 List<String> metricId = timer instanceof MetricIdClientTimer ? ((MetricIdClientTimer)(timer)).getMetricId() : null;
 
-                ClientMetricData data = new ClientMetricData(metricName, count, meanMillis,
-                        aggregate, url, method, metricId);
-                metricsData.add(data);
+                if (metricId != null) {
+                    metricsData.add(new MetricIdClientMetricData(metricName, count, meanMillis, aggregate, metricId));
+                } else if (method != null) {
+                    metricsData.add(new UrlAndMethodClientMetricData(metricName, count, meanMillis, aggregate, url, method));
+                } else {
+                    metricsData.add(new UrlClientMetricData(metricName, count, meanMillis, aggregate, url));
+                }
             }
             return metricsData;
         } else {
