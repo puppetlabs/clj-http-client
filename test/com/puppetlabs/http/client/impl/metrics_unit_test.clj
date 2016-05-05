@@ -217,6 +217,9 @@
                     "  as values if no requests have been made yet")
         (let [empty-metrics (Metrics/getClientMetrics (MetricRegistry.))
               empty-metrics-data (Metrics/getClientMetricsData (MetricRegistry.))]
+          (is (= {:url [] :url-and-method [] :metric-id []}
+                 (metrics/get-client-metrics (MetricRegistry.))
+                 (metrics/get-client-metrics-data (MetricRegistry.))))
           (is (empty? (.getUrlTimers empty-metrics)))
           (is (empty? (.getUrlAndMethodTimers empty-metrics)))
           (is (empty? (.getMetricIdTimers empty-metrics)))
