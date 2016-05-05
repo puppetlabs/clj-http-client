@@ -45,9 +45,9 @@
   "Returns the http client-specific metrics from the metric registry."
   [metric-registry :- MetricRegistry]
   (let [metrics (Metrics/getClientMetrics metric-registry)]
-    {:url (get metrics "url")
-     :url-and-method (get metrics "url-and-method")
-     :metric-id (get metrics "metric-id")}))
+    {:url (.getUrlTimers metrics)
+     :url-and-method (.getUrlAndMethodTimers metrics)
+     :metric-id (.getMetricIdTimers metrics)}))
 
 (schema/defn ^:always-validate get-client-metrics-by-url
   :- common/Metrics
@@ -84,9 +84,9 @@
   in a map by category."
   [metric-registry :- MetricRegistry]
   (let [data (Metrics/getClientMetricsData metric-registry)]
-    {:url (map get-url-metric-data (get data "url"))
-     :url-and-method (map get-url-and-method-metric-data (get data "url-and-method"))
-     :metric-id (map get-metric-id-metric-data (get data "metric-id"))}))
+    {:url (map get-url-metric-data (.getUrlData data))
+     :url-and-method (map get-url-and-method-metric-data (.getUrlAndMethodData data))
+     :metric-id (map get-metric-id-metric-data (.getMetricIdData data))}))
 
 (schema/defn ^:always-validate get-client-metrics-data-by-url
   :- [common/UrlMetricData]

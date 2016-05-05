@@ -8,7 +8,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -28,94 +27,101 @@ public class Metrics {
         return convertedUri.toString();
     }
 
-    public static List<ClientTimer> getClientTimerArray(Map<String, Timer> timers){
-        List<ClientTimer> timerArray = new ArrayList<>();
-        for (Map.Entry<String, Timer> entry : timers.entrySet()) {
-            ClientTimer timer = (ClientTimer)entry.getValue();
+    private static List<UrlClientTimer> getUrlClientTimerArray(MetricRegistry registry,
+                                                               ClientMetricFilter filter) {
+        List<UrlClientTimer> timerArray = new ArrayList<>();
+        for (Map.Entry<String, Timer> entry : registry.getTimers(filter).entrySet()) {
+            UrlClientTimer timer = (UrlClientTimer)entry.getValue();
             timerArray.add(timer);
         }
         return timerArray;
     }
 
-    public static Map<String, List<ClientTimer>> getClientMetrics(MetricRegistry metricRegistry){
+    private static List<UrlAndMethodClientTimer> getUrlAndMethodClientTimerArray(MetricRegistry registry,
+                                                                                 ClientMetricFilter filter) {
+        List<UrlAndMethodClientTimer> timerArray = new ArrayList<>();
+        for (Map.Entry<String, Timer> entry : registry.getTimers(filter).entrySet()) {
+            UrlAndMethodClientTimer timer = (UrlAndMethodClientTimer)entry.getValue();
+            timerArray.add(timer);
+        }
+        return timerArray;
+    }
+
+    private static List<MetricIdClientTimer> getMetricIdClientTimerArray(MetricRegistry registry,
+                                                                         ClientMetricFilter filter) {
+        List<MetricIdClientTimer> timerArray = new ArrayList<>();
+        for (Map.Entry<String, Timer> entry : registry.getTimers(filter).entrySet()) {
+            MetricIdClientTimer timer = (MetricIdClientTimer)entry.getValue();
+            timerArray.add(timer);
+        }
+        return timerArray;
+    }
+
+    public static ClientTimerContainer getClientMetrics(MetricRegistry metricRegistry){
         if (metricRegistry != null) {
-            Map<String, List<ClientTimer>> timers = new HashMap<>();
-            timers.put("url", getClientTimerArray(metricRegistry.getTimers(
-                    new ClientMetricFilter(URL_NAMESPACE, MetricType.FULL_RESPONSE))));
-            timers.put("url-and-method", getClientTimerArray(metricRegistry.getTimers(
-                    new ClientMetricFilter(URL_METHOD_NAMESPACE, MetricType.FULL_RESPONSE))));
-            timers.put("metric-id", getClientTimerArray(metricRegistry.getTimers(
-                    new ClientMetricFilter(ID_NAMESPACE, MetricType.FULL_RESPONSE))));
-            return timers;
+            return new ClientTimerContainer(
+                    getUrlClientTimerArray(metricRegistry, new ClientMetricFilter(URL_NAMESPACE,
+                            MetricType.FULL_RESPONSE)), getUrlAndMethodClientTimerArray(metricRegistry,
+                                    new ClientMetricFilter(URL_METHOD_NAMESPACE,
+                                            MetricType.FULL_RESPONSE)), getMetricIdClientTimerArray(metricRegistry,
+                            new ClientMetricFilter(ID_NAMESPACE,
+                                    MetricType.FULL_RESPONSE))
+            );
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
-    public static List<ClientTimer> getClientMetricsByUrl(MetricRegistry metricRegistry,
+    public static List<UrlClientTimer> getClientMetricsByUrl(MetricRegistry metricRegistry,
                                                                final String url){
         if (metricRegistry != null) {
-            Map<String, Timer> timers = metricRegistry.getTimers(
+            return getUrlClientTimerArray(metricRegistry,
                     new ClientMetricFilter(url, null, null, MetricType.FULL_RESPONSE));
-            return getClientTimerArray(timers);
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
-    public static List<ClientTimer> getClientMetricsByUrlAndMethod(MetricRegistry metricRegistry,
+    public static List<UrlAndMethodClientTimer> getClientMetricsByUrlAndMethod(MetricRegistry metricRegistry,
                                                                         final String url,
                                                                         final String method){
         if (metricRegistry != null) {
-            Map<String, Timer> timers = metricRegistry.getTimers(
+            return getUrlAndMethodClientTimerArray(metricRegistry,
                     new ClientMetricFilter(url, method, null, MetricType.FULL_RESPONSE));
-            return getClientTimerArray(timers);
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
-    public static List<ClientTimer> getClientMetricsByMetricId(MetricRegistry metricRegistry,
+    public static List<MetricIdClientTimer> getClientMetricsByMetricId(MetricRegistry metricRegistry,
                                                                     final String[] metricId){
         if (metricRegistry != null) {
             if (metricId.length == 0) {
-                Map<String, Timer> timers = metricRegistry.getTimers(
+                return getMetricIdClientTimerArray(metricRegistry,
                         new ClientMetricFilter(ID_NAMESPACE, MetricType.FULL_RESPONSE));
-                return getClientTimerArray(timers);
             } else {
-                Map<String, Timer> timers = metricRegistry.getTimers(
+                return getMetricIdClientTimerArray(metricRegistry,
                         new ClientMetricFilter(null, null,
                                 new ArrayList<String>(Arrays.asList(metricId)),
                                 MetricType.FULL_RESPONSE));
-                return getClientTimerArray(timers);
             }
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
-    public static List<ClientMetricData> computeClientMetricsData(List<ClientTimer> timers){
+    private static List<UrlClientMetricData> computeUrlClientMetricsData(List<UrlClientTimer> timers) {
         if (timers != null) {
-            List<ClientMetricData> metricsData = new ArrayList<>();
-            for (ClientTimer timer: timers) {
+            List<UrlClientMetricData> metricsData = new ArrayList<>();
+            for (UrlClientTimer timer: timers) {
                 Double mean = timer.getSnapshot().getMean();
                 Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
                 Long count = timer.getCount();
                 Long aggregate = count * meanMillis;
                 String metricName = timer.getMetricName();
-                // TODO: create subclasses of ClientMetricData to prevent null values from being necessary,
-                // refactor into methods with types in signatures to get rid of instanceof stuff.
-                String url = timer instanceof UrlClientTimer ? ((UrlClientTimer)(timer)).getUrl() : null;
-                String method = timer instanceof UrlAndMethodClientTimer ? ((UrlAndMethodClientTimer)(timer)).getMethod() : null;
-                List<String> metricId = timer instanceof MetricIdClientTimer ? ((MetricIdClientTimer)(timer)).getMetricId() : null;
+                String url = timer.getUrl();
 
-                if (metricId != null) {
-                    metricsData.add(new MetricIdClientMetricData(metricName, count, meanMillis, aggregate, metricId));
-                } else if (method != null) {
-                    metricsData.add(new UrlAndMethodClientMetricData(metricName, count, meanMillis, aggregate, url, method));
-                } else {
-                    metricsData.add(new UrlClientMetricData(metricName, count, meanMillis, aggregate, url));
-                }
+                metricsData.add(new UrlClientMetricData(metricName, count, meanMillis, aggregate, url));
             }
             return metricsData;
         } else {
@@ -123,35 +129,71 @@ public class Metrics {
         }
     }
 
-    public static Map<String, List<ClientMetricData>> getClientMetricsData(MetricRegistry metricRegistry){
+    private static List<UrlAndMethodClientMetricData> computeUrlAndMethodClientMetricsData(List<UrlAndMethodClientTimer> timers) {
+        if (timers != null) {
+            List<UrlAndMethodClientMetricData> metricsData = new ArrayList<>();
+            for (UrlAndMethodClientTimer timer: timers) {
+                Double mean = timer.getSnapshot().getMean();
+                Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
+                Long count = timer.getCount();
+                Long aggregate = count * meanMillis;
+                String metricName = timer.getMetricName();
+                String url = timer.getUrl();
+                String method = timer.getMethod();
+
+                metricsData.add(new UrlAndMethodClientMetricData(metricName, count, meanMillis, aggregate, url, method));
+            }
+            return metricsData;
+        } else {
+            return null;
+        }
+    }
+
+    private static List<MetricIdClientMetricData> computeMetricIdClientMetricsData(List<MetricIdClientTimer> timers) {
+        if (timers != null) {
+            List<MetricIdClientMetricData> metricsData = new ArrayList<>();
+            for (MetricIdClientTimer timer: timers) {
+                Double mean = timer.getSnapshot().getMean();
+                Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
+                Long count = timer.getCount();
+                Long aggregate = count * meanMillis;
+                String metricName = timer.getMetricName();
+                List<String> metricId = timer.getMetricId();
+
+                metricsData.add(new MetricIdClientMetricData(metricName, count, meanMillis, aggregate, metricId));
+            }
+            return metricsData;
+        } else {
+            return null;
+        }
+    }
+
+    public static ClientMetricDataContainer getClientMetricsData(MetricRegistry metricRegistry){
         if ( metricRegistry != null ) {
-            Map<String, List<ClientTimer>> timers = getClientMetrics(metricRegistry);
-            Map<String, List<ClientMetricData>> data = new HashMap<>();
-            data.put("url", computeClientMetricsData(timers.get("url")));
-            data.put("url-and-method", computeClientMetricsData(timers.get("url-and-method")));
-            data.put("metric-id", computeClientMetricsData(timers.get("metric-id")));
-            return data;
+            ClientTimerContainer timers = getClientMetrics(metricRegistry);
+            return new ClientMetricDataContainer(computeUrlClientMetricsData(timers.getUrlTimers()), computeUrlAndMethodClientMetricsData(timers.getUrlAndMethodTimers()), computeMetricIdClientMetricsData(timers.getMetricIdTimers())
+            );
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
     }
 
-    public static List<ClientMetricData> getClientMetricsDataByUrl(MetricRegistry metricRegistry,
+    public static List<UrlClientMetricData> getClientMetricsDataByUrl(MetricRegistry metricRegistry,
                                                                         String url){
-        List<ClientTimer> timers = getClientMetricsByUrl(metricRegistry, url);
-        return computeClientMetricsData(timers);
+        List<UrlClientTimer> timers = getClientMetricsByUrl(metricRegistry, url);
+        return computeUrlClientMetricsData(timers);
     }
 
-    public static List<ClientMetricData> getClientMetricsDataByUrlAndMethod(MetricRegistry metricRegistry,
+    public static List<UrlAndMethodClientMetricData> getClientMetricsDataByUrlAndMethod(MetricRegistry metricRegistry,
                                                                                  String url,
                                                                                  String method){
-        List<ClientTimer> timers = getClientMetricsByUrlAndMethod(metricRegistry, url, method);
-        return computeClientMetricsData(timers);
+        List<UrlAndMethodClientTimer> timers = getClientMetricsByUrlAndMethod(metricRegistry, url, method);
+        return computeUrlAndMethodClientMetricsData(timers);
     }
 
-    public static List<ClientMetricData> getClientMetricsDataByMetricId(MetricRegistry metricRegistry,
-                                                                             String[] metricId){
-        List<ClientTimer> timers = getClientMetricsByMetricId(metricRegistry, metricId);
-        return computeClientMetricsData(timers);
+    public static List<MetricIdClientMetricData> getClientMetricsDataByMetricId(MetricRegistry metricRegistry,
+                                                                                String[] metricId){
+        List<MetricIdClientTimer> timers = getClientMetricsByMetricId(metricRegistry, metricId);
+        return computeMetricIdClientMetricsData(timers);
     }
 }
