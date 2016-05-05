@@ -1,32 +1,28 @@
 package com.puppetlabs.http.client.metrics;
 
-public abstract class ClientMetricData {
-    private String metricName;
-    private Long count;
-    private Long mean;
-    private Long aggregate;
+import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
 
-    ClientMetricData(String metricName, Long count, Long mean, Long aggregate) {
-        this.metricName = metricName;
-        this.count = count;
-        this.mean = mean;
-        this.aggregate = aggregate;
+public abstract class ClientMetricData {
+    private final TimerMetricData timerMetricData;
+
+    ClientMetricData(TimerMetricData timerMetricData) {
+        this.timerMetricData = timerMetricData;
     }
 
     public String getMetricName() {
-        return metricName;
+        return timerMetricData.getMetricName();
     }
 
     public Long getCount() {
-        return count;
+        return timerMetricData.getCount();
     }
 
     public Long getMean() {
-        return mean;
+        return timerMetricData.getMeanMillis();
     }
 
     public Long getAggregate() {
-        return aggregate;
+        return timerMetricData.getAggregate();
     }
 }
 

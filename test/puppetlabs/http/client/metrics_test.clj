@@ -90,12 +90,12 @@
             (let [client-metric-registry (.getMetricRegistry client)
                   client-metrics (Metrics/getClientMetrics client-metric-registry)
                   client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                  url-metrics (get client-metrics "url")
-                  url-and-method-metrics (get client-metrics "url-and-method")
-                  metric-id-metrics (get client-metrics "metric-id")
-                  url-metrics-data (get client-metrics-data "url")
-                  url-and-method-metrics-data (get client-metrics-data "url-and-method")
-                  metric-id-metrics-data (get client-metrics-data "metric-id")
+                  url-metrics (.getUrlTimers client-metrics)
+                  url-and-method-metrics (.getUrlAndMethodTimers client-metrics)
+                  metric-id-metrics (.getMetricIdTimers client-metrics)
+                  url-metrics-data (.getUrlData client-metrics-data)
+                  url-and-method-metrics-data (.getUrlAndMethodData client-metrics-data)
+                  metric-id-metrics-data (.getMetricIdData client-metrics-data)
                   all-metrics (.getMetrics metric-registry)]
               (testing ".getMetricRegistry returns the associated MetricRegistry"
                 (is (instance? MetricRegistry client-metric-registry)))
@@ -276,12 +276,12 @@
             (let [client-metric-registry (.getMetricRegistry client)
                   client-metrics (Metrics/getClientMetrics client-metric-registry)
                   client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                  url-metrics (get client-metrics "url")
-                  url-and-method-metrics (get client-metrics "url-and-method")
-                  metric-id-metrics (get client-metrics "metric-id")
-                  url-metrics-data (get client-metrics-data "url")
-                  url-and-method-metrics-data (get client-metrics-data "url-and-method")
-                  metric-id-metrics-data (get client-metrics-data "metric-id")
+                  url-metrics (.getUrlTimers client-metrics)
+                  url-and-method-metrics (.getUrlAndMethodTimers client-metrics)
+                  metric-id-metrics (.getMetricIdTimers client-metrics)
+                  url-metrics-data (.getUrlData client-metrics-data)
+                  url-and-method-metrics-data (.getUrlAndMethodData client-metrics-data)
+                  metric-id-metrics-data (.getMetricIdData client-metrics-data)
                   all-metrics (.getMetrics metric-registry)]
               (testing ".getMetricRegistry returns the associated MetricRegistry"
                 (is (instance? MetricRegistry client-metric-registry)))
@@ -467,19 +467,19 @@
                     full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                                         metric-namespace url)]
                 (is (= [full-response-name]
-                       (map #(.getMetricName %) (get client-metrics "url"))
-                       (map #(.getMetricName %) (get client-metrics-data "url"))))
+                       (map #(.getMetricName %) (.getUrlTimers client-metrics))
+                       (map #(.getMetricName %) (.getUrlData client-metrics-data))))
                 (is (= [full-response-name-with-method]
-                       (map #(.getMetricName %) (get client-metrics "url-and-method"))
-                       (map #(.getMetricName %) (get client-metrics-data "url-and-method"))))
-                (is (= [] (get client-metrics "metric-id") (get client-metrics-data "metric-id")))
+                       (map #(.getMetricName %) (.getUrlAndMethodTimers client-metrics))
+                       (map #(.getMetricName %) (.getUrlAndMethodData client-metrics-data))))
+                (is (= [] (.getMetricIdTimers client-metrics) (.getMetricIdData client-metrics-data)))
                 (is (every? #(instance? ClientTimer %)
-                            (concat (get client-metrics "url")
-                                    (get client-metrics "url-and-method"))))
-                (let [full-response-data (first (get client-metrics-data "url"))]
+                            (concat (.getUrlTimers client-metrics)
+                                    (.getUrlAndMethodTimers client-metrics))))
+                (let [full-response-data (first (.getUrlData client-metrics-data))]
                   (is (every? #(instance? ClientMetricData %)
-                              (concat (get client-metrics-data "url")
-                                      (get client-metrics-data "url-and-method"))))
+                              (concat (.getUrlData client-metrics-data)
+                                      (.getUrlAndMethodData client-metrics-data))))
 
                   (is (= 1 (.getCount full-response-data)))
                   (is (= full-response-name (.getMetricName full-response-data)))
@@ -510,20 +510,20 @@
                       full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
                                                           metric-namespace url)]
                   (is (= [full-response-name]
-                         (map #(.getMetricName %) (get client-metrics "url"))
-                         (map #(.getMetricName %) (get client-metrics-data "url"))))
+                         (map #(.getMetricName %) (.getUrlTimers client-metrics))
+                         (map #(.getMetricName %) (.getUrlData client-metrics-data))))
                   (is (= [full-response-name-with-method]
-                         (map #(.getMetricName %) (get client-metrics "url-and-method"))
-                         (map #(.getMetricName %) (get client-metrics-data "url-and-method"))))
-                  (is (= [] (get client-metrics "metric-id")
-                         (get client-metrics-data "metric-id")))
+                         (map #(.getMetricName %) (.getUrlAndMethodTimers client-metrics))
+                         (map #(.getMetricName %) (.getUrlAndMethodData client-metrics-data))))
+                  (is (= [] (.getMetricIdTimers client-metrics)
+                         (.getMetricIdData client-metrics-data)))
                   (is (every? #(instance? ClientTimer %)
-                              (concat (get client-metrics "url")
-                                      (get client-metrics "url-and-method"))))
-                  (let [full-response-data (first (get client-metrics-data "url"))]
+                              (concat (.getUrlTimers client-metrics)
+                                      (.getUrlAndMethodTimers client-metrics))))
+                  (let [full-response-data (first (.getUrlData client-metrics-data))]
                     (is (every? #(instance? ClientMetricData %)
-                                (concat (get client-metrics-data "url")
-                                        (get client-metrics-data "url-and-method"))))
+                                (concat (.getUrlData client-metrics-data)
+                                        (.getUrlAndMethodData client-metrics-data))))
 
                     (is (= 1 (.getCount full-response-data)))
                     (is (= full-response-name (.getMetricName full-response-data)))

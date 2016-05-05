@@ -12,4 +12,9 @@ public class UrlAndMethodClientTimer extends UrlClientTimer {
     public String getMethod() {
         return method;
     }
+
+    @Override
+    public boolean isCategory(Metrics.MetricCategory category) {
+        return category.equals(Metrics.MetricCategory.URL_AND_METHOD);
+    }
 }

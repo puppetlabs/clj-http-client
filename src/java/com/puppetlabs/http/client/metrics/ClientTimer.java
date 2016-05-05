@@ -20,4 +20,6 @@ public abstract class ClientTimer  extends Timer {
     public Metrics.MetricType getMetricType() {
         return metricType;
     }
+
+    public abstract boolean isCategory(Metrics.MetricCategory category);
 }

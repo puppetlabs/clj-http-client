@@ -93,40 +93,37 @@
     (start-and-stop-timers! registry (BasicHttpRequest. "POST" url) (into-array ["foo" "bar"]))
     (start-and-stop-timers! registry (BasicHttpRequest. "GET" url2) (into-array ["foo" "abc"]))
     (testing "getClientMetrics without args returns all timers organized by category"
-      (is (= (set ["url" "url-and-method" "metric-id"])
-             (set (keys (Metrics/getClientMetrics registry)))
-             (set (keys (Metrics/getClientMetricsData registry)))))
       (is (= (set [:url :url-and-method :metric-id])
              (set (keys (metrics/get-client-metrics registry)))
              (set (keys (metrics/get-client-metrics-data registry)))))
       (is (= (set
               [(add-metric-ns "with-url.http://test.com/one.full-response")
                (add-metric-ns "with-url.http://test.com/one/two.full-response")])
-             (set (map #(.getMetricName %) (get (Metrics/getClientMetrics registry) "url")))
+             (set (map #(.getMetricName %) (.getUrlTimers (Metrics/getClientMetrics registry))))
              (set (map #(.getMetricName %) (:url (metrics/get-client-metrics registry))))
-             (set (map #(.getMetricName %) (get (Metrics/getClientMetricsData registry) "url")))
+             (set (map #(.getMetricName %) (.getUrlData (Metrics/getClientMetricsData registry))))
              (set (map :metric-name (:url (metrics/get-client-metrics-data registry))))))
       (is (= (set
               [(add-metric-ns "with-url-and-method.http://test.com/one.GET.full-response")
                (add-metric-ns "with-url-and-method.http://test.com/one.POST.full-response")
                (add-metric-ns "with-url-and-method.http://test.com/one/two.GET.full-response")])
              (set (map #(.getMetricName %)
-                       (get (Metrics/getClientMetrics registry) "url-and-method")))
+                       (.getUrlAndMethodTimers (Metrics/getClientMetrics registry))))
              (set (map #(.getMetricName %)
                        (:url-and-method (metrics/get-client-metrics registry))))
              (set (map #(.getMetricName %)
-                       (get (Metrics/getClientMetricsData registry) "url-and-method")))
+                       (.getUrlAndMethodData (Metrics/getClientMetricsData registry))))
              (set (map :metric-name
                        (:url-and-method (metrics/get-client-metrics-data registry))))))
       (is (= (set ["puppetlabs.http-client.experimental.with-metric-id.foo.full-response"
                    "puppetlabs.http-client.experimental.with-metric-id.foo.bar.full-response"
                    "puppetlabs.http-client.experimental.with-metric-id.foo.abc.full-response"])
              (set (map #(.getMetricName %)
-                       (get (Metrics/getClientMetrics registry) "metric-id")))
+                       (.getMetricIdTimers (Metrics/getClientMetrics registry))))
              (set (map #(.getMetricName %)
                        (:metric-id (metrics/get-client-metrics registry))))
              (set (map #(.getMetricName %)
-                       (get (Metrics/getClientMetricsData registry) "metric-id")))
+                       (.getMetricIdData (Metrics/getClientMetricsData registry))))
              (set (map :metric-name
                        (:metric-id (metrics/get-client-metrics-data registry)))))))
     (testing "getClientMetricsData with url returns the right thing"
@@ -216,36 +213,35 @@
         (is (thrown? ExceptionInfo (metrics/get-client-metrics-data nil)))
         (is (thrown? IllegalArgumentException (Metrics/getClientMetrics nil)))
         (is (thrown? IllegalArgumentException (Metrics/getClientMetricsData nil))))
-      (testing (str "getClientMetrics|Data returns map with empty arrays as values"
-                    " if no requests have been made yet")
-        (is (= {"url" [] "url-and-method" [] "metric-id" []}
-               (into {} (Metrics/getClientMetrics (MetricRegistry.)))
-               (into {} (Metrics/getClientMetricsData (MetricRegistry.)))))
-        (is (= {:url [] :url-and-method [] :metric-id []}
-               (metrics/get-client-metrics (MetricRegistry.))
-               (metrics/get-client-metrics-data (MetricRegistry.)))))
+      (testing (str "getClientMetrics|Data returns data structure with empty arrays"
+                    "  as values if no requests have been made yet")
+        (let [empty-metrics (Metrics/getClientMetrics (MetricRegistry.))
+              empty-metrics-data (Metrics/getClientMetricsData (MetricRegistry.))]
+          (is (empty? (.getUrlTimers empty-metrics)))
+          (is (empty? (.getUrlAndMethodTimers empty-metrics)))
+          (is (empty? (.getMetricIdTimers empty-metrics)))
+          (is (empty? (.getUrlData empty-metrics-data)))
+          (is (empty? (.getUrlAndMethodData empty-metrics-data)))
+          (is (empty? (.getMetricIdData empty-metrics-data)))))
       (testing "getClientMetrics returns correctly without metric-id on request"
         (let [registry (MetricRegistry.)
               url "http://test.com/one"]
           (start-and-stop-timers! registry (BasicHttpRequest. "GET" url) nil)
           (let [client-metrics (Metrics/getClientMetrics registry)
                 client-metrics-data (Metrics/getClientMetricsData registry)]
-            (is (= (set ["url" "url-and-method" "metric-id"])
-                   (set (keys client-metrics))
-                   (set (keys client-metrics-data))))
             (is (= (set [(add-metric-ns
                           "with-url.http://test.com/one.full-response")])
-                   (set (map #(.getMetricName %) (get client-metrics "url")))
-                   (set (map #(.getMetricName %) (get client-metrics-data "url")))))
+                   (set (map #(.getMetricName %) (.getUrlTimers client-metrics)))
+                   (set (map #(.getMetricName %) (.getUrlData client-metrics-data)))))
             (is (= (set [(add-metric-ns
                           "with-url-and-method.http://test.com/one.GET.full-response")])
                    (set (map #(.getMetricName %)
-                             (get client-metrics "url-and-method")))
+                             (.getUrlAndMethodTimers client-metrics)))
                    (set (map #(.getMetricName %)
-                             (get client-metrics-data "url-and-method")))))
+                             (.getUrlAndMethodData client-metrics-data)))))
             (is (= []
-                   (get client-metrics "metric-id")
-                   (get client-metrics-data "metric-id")))))))))
+                   (.getMetricIdTimers client-metrics)
+                   (.getMetricIdData client-metrics-data)))))))))
 
 (deftest empty-metric-id-filter-test
   (testing "a metric id filter with an empty array returns all metric id timers"

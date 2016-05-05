@@ -1,13 +1,15 @@
 package com.puppetlabs.http.client.metrics;
 
+import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
+
 import java.util.List;
 
 public class MetricIdClientMetricData extends ClientMetricData {
     private final List<String> metricId;
 
-    public MetricIdClientMetricData(String metricName, Long count, Long mean, Long aggregate,
+    public MetricIdClientMetricData(TimerMetricData timerMetricData,
                                     List<String> metricId) {
-        super(metricName, count, mean, aggregate);
+        super(timerMetricData);
         this.metricId = metricId;
     }
 
