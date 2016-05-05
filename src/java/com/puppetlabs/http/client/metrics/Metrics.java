@@ -3,6 +3,7 @@ package com.puppetlabs.http.client.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.impl.metrics.ClientMetricFilter;
+import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -114,14 +115,10 @@ public class Metrics {
         if (timers != null) {
             List<UrlClientMetricData> metricsData = new ArrayList<>();
             for (UrlClientTimer timer: timers) {
-                Double mean = timer.getSnapshot().getMean();
-                Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
-                Long count = timer.getCount();
-                Long aggregate = count * meanMillis;
-                String metricName = timer.getMetricName();
+                TimerMetricData timerMetricData = TimerMetricData.fromTimer(timer);
                 String url = timer.getUrl();
 
-                metricsData.add(new UrlClientMetricData(metricName, count, meanMillis, aggregate, url));
+                metricsData.add(new UrlClientMetricData(timerMetricData, url));
             }
             return metricsData;
         } else {
@@ -133,15 +130,11 @@ public class Metrics {
         if (timers != null) {
             List<UrlAndMethodClientMetricData> metricsData = new ArrayList<>();
             for (UrlAndMethodClientTimer timer: timers) {
-                Double mean = timer.getSnapshot().getMean();
-                Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
-                Long count = timer.getCount();
-                Long aggregate = count * meanMillis;
-                String metricName = timer.getMetricName();
+                TimerMetricData timerMetricData = TimerMetricData.fromTimer(timer);
                 String url = timer.getUrl();
                 String method = timer.getMethod();
 
-                metricsData.add(new UrlAndMethodClientMetricData(metricName, count, meanMillis, aggregate, url, method));
+                metricsData.add(new UrlAndMethodClientMetricData(timerMetricData, url, method));
             }
             return metricsData;
         } else {
@@ -153,14 +146,10 @@ public class Metrics {
         if (timers != null) {
             List<MetricIdClientMetricData> metricsData = new ArrayList<>();
             for (MetricIdClientTimer timer: timers) {
-                Double mean = timer.getSnapshot().getMean();
-                Long meanMillis = TimeUnit.NANOSECONDS.toMillis(mean.longValue());
-                Long count = timer.getCount();
-                Long aggregate = count * meanMillis;
-                String metricName = timer.getMetricName();
+                TimerMetricData timerMetricData = TimerMetricData.fromTimer(timer);
                 List<String> metricId = timer.getMetricId();
 
-                metricsData.add(new MetricIdClientMetricData(metricName, count, meanMillis, aggregate, metricId));
+                metricsData.add(new MetricIdClientMetricData(timerMetricData, metricId));
             }
             return metricsData;
         } else {

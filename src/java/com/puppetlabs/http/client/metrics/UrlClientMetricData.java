@@ -1,11 +1,13 @@
 package com.puppetlabs.http.client.metrics;
 
+import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
+
 public class UrlClientMetricData extends ClientMetricData {
     private final String url;
 
-    public UrlClientMetricData(String metricName, Long count, Long mean, Long aggregate,
+    public UrlClientMetricData(TimerMetricData timerMetricData,
                                String url) {
-        super(metricName, count, mean, aggregate);
+        super(timerMetricData);
         this.url = url;
     }
 
