@@ -15,12 +15,13 @@ import java.util.List;
 import java.util.Map;
 
 public class Metrics {
-    public static final String METRIC_NAMESPACE = "puppetlabs.http-client.experimental";
-    public static final String URL_NAMESPACE = "with-url";
-    public static final String URL_METHOD_NAMESPACE = "with-url-and-method";
-    public static final String ID_NAMESPACE = "with-metric-id";
-    public static final String FULL_RESPONSE_STRING = "full-response";
-    public enum MetricType { FULL_RESPONSE; }
+    public static final String NAMESPACE_PREFIX = "puppetlabs.http-client.experimental";
+    public static final String NAMESPACE_URL = "with-url";
+    public static final String NAMESPACE_URL_AND_METHOD = "with-url-and-method";
+    public static final String NAMESPACE_METRIC_ID = "with-metric-id";
+    public static final String NAMESPACE_FULL_RESPONSE = "full-response";
+    public enum MetricType { FULL_RESPONSE }
+    public enum MetricCategory { URL, URL_AND_METHOD, METRIC_ID }
 
     public static String urlToMetricUrl(String uriString) throws URISyntaxException {
         final URI uri = new URI(uriString);
@@ -63,11 +64,11 @@ public class Metrics {
         if (metricRegistry != null) {
             return new ClientTimerContainer(
                     getUrlClientTimerArray(metricRegistry,
-                            new CategoryClientTimerMetricFilter(URL_NAMESPACE)),
+                            new CategoryClientTimerMetricFilter(MetricCategory.URL)),
                     getUrlAndMethodClientTimerArray(metricRegistry,
-                            new CategoryClientTimerMetricFilter(URL_METHOD_NAMESPACE)),
+                            new CategoryClientTimerMetricFilter(MetricCategory.URL_AND_METHOD)),
                     getMetricIdClientTimerArray(metricRegistry,
-                            new CategoryClientTimerMetricFilter(ID_NAMESPACE)));
+                            new CategoryClientTimerMetricFilter(MetricCategory.METRIC_ID)));
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
@@ -99,7 +100,7 @@ public class Metrics {
         if (metricRegistry != null) {
             if (metricId.length == 0) {
                 return getMetricIdClientTimerArray(metricRegistry,
-                        new CategoryClientTimerMetricFilter(ID_NAMESPACE));
+                        new CategoryClientTimerMetricFilter(MetricCategory.METRIC_ID));
             } else {
                 return getMetricIdClientTimerArray(metricRegistry,
                         new ClientMetricFilter(null, null,

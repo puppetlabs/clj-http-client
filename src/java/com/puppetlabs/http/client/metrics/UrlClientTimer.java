@@ -13,7 +13,7 @@ public class UrlClientTimer extends ClientTimer {
     }
 
     @Override
-    public boolean isCategory(String category) {
-        return category.equals(Metrics.URL_NAMESPACE);
+    public boolean isCategory(Metrics.MetricCategory category) {
+        return category.equals(Metrics.MetricCategory.URL);
     }
 }

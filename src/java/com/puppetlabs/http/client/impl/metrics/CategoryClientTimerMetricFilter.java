@@ -5,9 +5,9 @@ import com.codahale.metrics.MetricFilter;
 import com.puppetlabs.http.client.metrics.*;
 
 public class CategoryClientTimerMetricFilter implements MetricFilter {
-    private final String category;
+    private final Metrics.MetricCategory category;
 
-    public CategoryClientTimerMetricFilter(String category) {
+    public CategoryClientTimerMetricFilter(Metrics.MetricCategory category) {
         this.category = category;
     }
 

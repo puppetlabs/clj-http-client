@@ -1,6 +1,5 @@
 package com.puppetlabs.http.client.metrics;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MetricIdClientTimer extends ClientTimer {
@@ -18,7 +17,7 @@ public class MetricIdClientTimer extends ClientTimer {
     }
 
     @Override
-    public boolean isCategory(String category) {
-        return category.equals(Metrics.ID_NAMESPACE);
+    public boolean isCategory(Metrics.MetricCategory category) {
+        return category.equals(Metrics.MetricCategory.METRIC_ID);
     }
 }

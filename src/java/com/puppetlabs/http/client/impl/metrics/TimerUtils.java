@@ -49,10 +49,10 @@ public class TimerUtils {
                 currentId.add(metricId[j]);
             }
             ArrayList<String> currentIdWithNamespace = new ArrayList<>();
-            currentIdWithNamespace.add(Metrics.ID_NAMESPACE);
+            currentIdWithNamespace.add(Metrics.NAMESPACE_METRIC_ID);
             currentIdWithNamespace.addAll(currentId);
-            currentIdWithNamespace.add(Metrics.FULL_RESPONSE_STRING);
-            String metric_name = MetricRegistry.name(Metrics.METRIC_NAMESPACE,
+            currentIdWithNamespace.add(Metrics.NAMESPACE_FULL_RESPONSE);
+            String metric_name = MetricRegistry.name(Metrics.NAMESPACE_PREFIX,
                     currentIdWithNamespace.toArray(new String[currentIdWithNamespace.size()]));
 
             ClientTimer timer = new MetricIdClientTimer(metric_name, currentId, Metrics.MetricType.FULL_RESPONSE);
@@ -69,10 +69,10 @@ public class TimerUtils {
             final String strippedUrl = Metrics.urlToMetricUrl(requestLine.getUri());
             final String method = requestLine.getMethod();
 
-            final String urlName = MetricRegistry.name(Metrics.METRIC_NAMESPACE, Metrics.URL_NAMESPACE,
-                    strippedUrl, Metrics.FULL_RESPONSE_STRING);
-            final String urlAndMethodName = MetricRegistry.name(Metrics.METRIC_NAMESPACE, Metrics.URL_METHOD_NAMESPACE,
-                    strippedUrl, method, Metrics.FULL_RESPONSE_STRING);
+            final String urlName = MetricRegistry.name(Metrics.NAMESPACE_PREFIX, Metrics.NAMESPACE_URL,
+                    strippedUrl, Metrics.NAMESPACE_FULL_RESPONSE);
+            final String urlAndMethodName = MetricRegistry.name(Metrics.NAMESPACE_PREFIX, Metrics.NAMESPACE_URL_AND_METHOD,
+                    strippedUrl, method, Metrics.NAMESPACE_FULL_RESPONSE);
 
             ClientTimer urlTimer = new UrlClientTimer(urlName, strippedUrl, Metrics.MetricType.FULL_RESPONSE);
             timerContexts.add(getOrAddTimer(registry, urlName, urlTimer).time());

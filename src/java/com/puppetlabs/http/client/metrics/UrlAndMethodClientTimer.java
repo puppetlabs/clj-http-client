@@ -14,7 +14,7 @@ public class UrlAndMethodClientTimer extends UrlClientTimer {
     }
 
     @Override
-    public boolean isCategory(String category) {
-        return category.equals(Metrics.URL_METHOD_NAMESPACE);
+    public boolean isCategory(Metrics.MetricCategory category) {
+        return category.equals(Metrics.MetricCategory.URL_AND_METHOD);
     }
 }

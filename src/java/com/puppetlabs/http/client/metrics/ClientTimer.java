@@ -21,5 +21,5 @@ public abstract class ClientTimer  extends Timer {
         return metricType;
     }
 
-    public abstract boolean isCategory(String category);
+    public abstract boolean isCategory(Metrics.MetricCategory category);
 }
