@@ -4,8 +4,10 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.puppetlabs.http.client.impl.metrics.CategoryClientTimerMetricFilter;
-import com.puppetlabs.http.client.impl.metrics.ClientMetricFilter;
+import com.puppetlabs.http.client.impl.metrics.MetricIdClientTimerFilter;
 import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
+import com.puppetlabs.http.client.impl.metrics.UrlAndMethodClientTimerFilter;
+import com.puppetlabs.http.client.impl.metrics.UrlClientTimerFilter;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -78,7 +80,7 @@ public class Metrics {
                                                                final String url){
         if (metricRegistry != null) {
             return getUrlClientTimerArray(metricRegistry,
-                    new ClientMetricFilter(url, null, null, MetricType.FULL_RESPONSE));
+                    new UrlClientTimerFilter(url));
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
@@ -89,7 +91,7 @@ public class Metrics {
                                                                         final String method){
         if (metricRegistry != null) {
             return getUrlAndMethodClientTimerArray(metricRegistry,
-                    new ClientMetricFilter(url, method, null, MetricType.FULL_RESPONSE));
+                    new UrlAndMethodClientTimerFilter(url, method));
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
@@ -103,9 +105,7 @@ public class Metrics {
                         new CategoryClientTimerMetricFilter(MetricCategory.METRIC_ID));
             } else {
                 return getMetricIdClientTimerArray(metricRegistry,
-                        new ClientMetricFilter(null, null,
-                                new ArrayList<String>(Arrays.asList(metricId)),
-                                MetricType.FULL_RESPONSE));
+                        new MetricIdClientTimerFilter(new ArrayList<String>(Arrays.asList(metricId))));
             }
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
