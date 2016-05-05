@@ -11,4 +11,9 @@ public class UrlClientTimer extends ClientTimer {
     public String getUrl() {
         return url;
     }
+
+    @Override
+    public boolean isCategory(String category) {
+        return category.equals(Metrics.URL_NAMESPACE);
+    }
 }

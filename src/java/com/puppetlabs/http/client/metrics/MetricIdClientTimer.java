@@ -16,4 +16,9 @@ public class MetricIdClientTimer extends ClientTimer {
     public List<String> getMetricId() {
         return metricId;
     }
+
+    @Override
+    public boolean isCategory(String category) {
+        return category.equals(Metrics.ID_NAMESPACE);
+    }
 }

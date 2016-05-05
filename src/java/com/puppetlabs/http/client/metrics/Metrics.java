@@ -1,7 +1,9 @@
 package com.puppetlabs.http.client.metrics;
 
+import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.puppetlabs.http.client.impl.metrics.CategoryClientTimerMetricFilter;
 import com.puppetlabs.http.client.impl.metrics.ClientMetricFilter;
 import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
 
@@ -11,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class Metrics {
     public static final String METRIC_NAMESPACE = "puppetlabs.http-client.experimental";
@@ -29,7 +30,7 @@ public class Metrics {
     }
 
     private static List<UrlClientTimer> getUrlClientTimerArray(MetricRegistry registry,
-                                                               ClientMetricFilter filter) {
+                                                               MetricFilter filter) {
         List<UrlClientTimer> timerArray = new ArrayList<>();
         for (Map.Entry<String, Timer> entry : registry.getTimers(filter).entrySet()) {
             UrlClientTimer timer = (UrlClientTimer)entry.getValue();
@@ -39,7 +40,7 @@ public class Metrics {
     }
 
     private static List<UrlAndMethodClientTimer> getUrlAndMethodClientTimerArray(MetricRegistry registry,
-                                                                                 ClientMetricFilter filter) {
+                                                                                 MetricFilter filter) {
         List<UrlAndMethodClientTimer> timerArray = new ArrayList<>();
         for (Map.Entry<String, Timer> entry : registry.getTimers(filter).entrySet()) {
             UrlAndMethodClientTimer timer = (UrlAndMethodClientTimer)entry.getValue();
@@ -49,7 +50,7 @@ public class Metrics {
     }
 
     private static List<MetricIdClientTimer> getMetricIdClientTimerArray(MetricRegistry registry,
-                                                                         ClientMetricFilter filter) {
+                                                                         MetricFilter filter) {
         List<MetricIdClientTimer> timerArray = new ArrayList<>();
         for (Map.Entry<String, Timer> entry : registry.getTimers(filter).entrySet()) {
             MetricIdClientTimer timer = (MetricIdClientTimer)entry.getValue();
@@ -61,13 +62,12 @@ public class Metrics {
     public static ClientTimerContainer getClientMetrics(MetricRegistry metricRegistry){
         if (metricRegistry != null) {
             return new ClientTimerContainer(
-                    getUrlClientTimerArray(metricRegistry, new ClientMetricFilter(URL_NAMESPACE,
-                            MetricType.FULL_RESPONSE)), getUrlAndMethodClientTimerArray(metricRegistry,
-                                    new ClientMetricFilter(URL_METHOD_NAMESPACE,
-                                            MetricType.FULL_RESPONSE)), getMetricIdClientTimerArray(metricRegistry,
-                            new ClientMetricFilter(ID_NAMESPACE,
-                                    MetricType.FULL_RESPONSE))
-            );
+                    getUrlClientTimerArray(metricRegistry,
+                            new CategoryClientTimerMetricFilter(URL_NAMESPACE)),
+                    getUrlAndMethodClientTimerArray(metricRegistry,
+                            new CategoryClientTimerMetricFilter(URL_METHOD_NAMESPACE)),
+                    getMetricIdClientTimerArray(metricRegistry,
+                            new CategoryClientTimerMetricFilter(ID_NAMESPACE)));
         } else {
             throw new IllegalArgumentException("Metric registry must not be null");
         }
@@ -99,7 +99,7 @@ public class Metrics {
         if (metricRegistry != null) {
             if (metricId.length == 0) {
                 return getMetricIdClientTimerArray(metricRegistry,
-                        new ClientMetricFilter(ID_NAMESPACE, MetricType.FULL_RESPONSE));
+                        new CategoryClientTimerMetricFilter(ID_NAMESPACE));
             } else {
                 return getMetricIdClientTimerArray(metricRegistry,
                         new ClientMetricFilter(null, null,
