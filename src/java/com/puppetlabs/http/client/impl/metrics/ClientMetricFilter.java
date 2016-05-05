@@ -33,44 +33,70 @@ public class ClientMetricFilter implements MetricFilter{
         this.metricType = metricType;
     }
 
-    private boolean isMatch(ClientTimer metric) {
+    private boolean isMatch(UrlClientTimer metric) {
         if ( metric.getMetricType().equals(metricType) ) {
             if ( category != null ) {
                 switch (category) {
-                    // TODO: we should be able to break this up into multiple methods that accept the more
-                    // concrete types in their signatures
                     case Metrics.ID_NAMESPACE:
-                        return metric instanceof MetricIdClientTimer;
+                        return false;
                     case Metrics.URL_METHOD_NAMESPACE:
-                        return metric instanceof UrlAndMethodClientTimer;
+                        return false;
                     case Metrics.URL_NAMESPACE:
-                        return (metric instanceof UrlClientTimer) &&
-                                !(metric instanceof UrlAndMethodClientTimer);
+                        return true;
                 }
             } else {
                 if ( method != null ) {
-                    // TODO: we should be able to break this up into multiple methods that accept the more
-                    if (metric instanceof UrlAndMethodClientTimer) {
-                        UrlAndMethodClientTimer urlAndMethodClientTimer = (UrlAndMethodClientTimer) metric;
-                        return url.equals(urlAndMethodClientTimer.getUrl()) && method.equals(urlAndMethodClientTimer.getMethod());
-                    } else {
-                        return false;
-                    }
+                    return false;
                 } else if ( url != null ) {
-                    if ((metric instanceof UrlClientTimer) &&
-                        !(metric instanceof UrlAndMethodClientTimer)) {
-                        UrlClientTimer urlClientTimer = (UrlClientTimer) metric;
-                        return url.equals(urlClientTimer.getUrl());
-                    } else {
-                        return false;
-                    }
+                    return url.equals(metric.getUrl());
                 } else {
-                    if (metric instanceof MetricIdClientTimer) {
-                        MetricIdClientTimer metricIdClientTimer = (MetricIdClientTimer) metric;
-                        return metricId.equals(metricIdClientTimer.getMetricId());
-                    } else {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isMatch(UrlAndMethodClientTimer metric) {
+        if ( metric.getMetricType().equals(metricType) ) {
+            if ( category != null ) {
+                switch (category) {
+                    case Metrics.ID_NAMESPACE:
                         return false;
-                    }
+                    case Metrics.URL_METHOD_NAMESPACE:
+                        return true;
+                    case Metrics.URL_NAMESPACE:
+                        return false;
+                }
+            } else {
+                if ( method != null ) {
+                    return url.equals(metric.getUrl()) && method.equals(metric.getMethod());
+                } else {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isMatch(MetricIdClientTimer metric) {
+        if ( metric.getMetricType().equals(metricType) ) {
+            if ( category != null ) {
+                switch (category) {
+                    case Metrics.ID_NAMESPACE:
+                        return true;
+                    case Metrics.URL_METHOD_NAMESPACE:
+                        return false;
+                    case Metrics.URL_NAMESPACE:
+                        return false;
+                }
+            } else {
+                if ( method != null ) {
+                    return false;
+                } else if ( url != null ) {
+                    return false;
+                } else {
+                    return metricId.equals(metric.getMetricId());
                 }
             }
         }
@@ -78,8 +104,12 @@ public class ClientMetricFilter implements MetricFilter{
     }
 
     public boolean matches(String s, Metric metric) {
-        if ( metric instanceof ClientTimer ){
-            return isMatch((ClientTimer) metric);
+        if (metric instanceof UrlAndMethodClientTimer) {
+            return isMatch((UrlAndMethodClientTimer) metric);
+        } else if (metric instanceof UrlClientTimer) {
+            return isMatch((UrlClientTimer) metric);
+        } else if (metric instanceof MetricIdClientTimer) {
+            return isMatch((MetricIdClientTimer) metric);
         } else {
             return false;
         }
