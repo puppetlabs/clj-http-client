@@ -1,9 +1,7 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.SslUtils;
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.PersistentSyncHttpClient;
-import com.puppetlabs.http.client.impl.CoercedClientOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,8 +84,8 @@ public class Sync {
      * @return A persistent synchronous HTTP client
      */
     public static SyncHttpClient createClient(ClientOptions clientOptions) {
-        return new PersistentSyncHttpClient(
-                JavaClient.createClient(clientOptions));
+        return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions),
+                clientOptions.getMetricRegistry());
     }
 
     /**

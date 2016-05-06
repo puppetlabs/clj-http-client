@@ -15,11 +15,13 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
 
                  [org.apache.httpcomponents/httpasyncclient "4.1.1"]
+                 [org.apache.commons/commons-lang3 "3.4"]
                  [prismatic/schema "1.0.4"]
                  [org.slf4j/slf4j-api "1.7.13"]
                  [commons-io "2.4"]
+                 [io.dropwizard.metrics/metrics-core "3.1.2"]
 
-                 [puppetlabs/ssl-utils "0.8.1"]] 
+                 [puppetlabs/ssl-utils "0.8.1"]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]

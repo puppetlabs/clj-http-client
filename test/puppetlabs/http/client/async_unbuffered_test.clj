@@ -14,12 +14,12 @@
 
 (use-fixtures :once schema-test/validate-schemas)
 
-(defn- generate-data
+(defn generate-data
   "Generate data of approximately the requested size, which is moderately compressible"
   [data-size]
   (apply str "xxxx" (repeatedly (/ data-size 35) #(UUID/randomUUID))))
 
-(defn- successful-handler
+(defn successful-handler
   "A Ring handler that asynchronously sends some data, waits for confirmation the data has been received then sends
   some more data"
   [data send-more-data]
@@ -39,7 +39,7 @@
       {:status 200
        :body instream})))
 
-(defn- blocking-handler
+(defn blocking-handler
   "A Ring handler that sends some data but then never closes the socket"
   [data]
   (fn [_]
@@ -61,7 +61,7 @@
    (let [data (generate-data (* 32 1024 1024))
          opts {:as :unbuffered-stream :decompress-body decompress-body?}]
 
-     (testing " - check data can be streamed successfully success"
+     (testing " - check data can be streamed successfully"
        (let [send-more-data (promise)]
          (testwebserver/with-test-webserver-and-config
           (successful-handler data send-more-data) port {:shutdown-timeout-seconds 1}
@@ -190,9 +190,9 @@
                                    (.setSocketTimeoutMilliseconds 20000)
                                    (.setConnectTimeoutMilliseconds 100)
                                    (Async/createClient))]
-              (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                    _ (.setAs request-options ResponseBodyType/UNBUFFERED_STREAM)
-                    _ (.setDecompressBody request-options decompress-body?)
+              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                      (.setDecompressBody decompress-body?))
                     response (-> client (.get request-options) .deref)
                     status (.getStatus response)
                     body (.getBody response)]
@@ -212,9 +212,9 @@
                                    (.setSocketTimeoutMilliseconds 200)
                                    (.setConnectTimeoutMilliseconds 100)
                                    (Async/createClient))]
-              (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                    _ (.setAs request-options ResponseBodyType/UNBUFFERED_STREAM)
-                    _ (.setDecompressBody request-options decompress-body?)
+              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                      (.setDecompressBody decompress-body?))
                     response (-> client (.get request-options) .deref)
                     body (.getBody response)
                     error (.getError response)]
@@ -229,9 +229,9 @@
         (with-open [client (-> (ClientOptions.)
                                (.setConnectTimeoutMilliseconds 100)
                                (Async/createClient))]
-          (let [request-options (RequestOptions. (str "http://localhost:" 12345 "/bad"))
-                _ (.setAs request-options ResponseBodyType/UNBUFFERED_STREAM)
-                _ (.setDecompressBody request-options decompress-body?)
+          (let [request-options (doto (RequestOptions. (str "http://localhost:" 12345 "/bad"))
+                                  (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                  (.setDecompressBody decompress-body?))
                 response (-> client (.get request-options) .deref)
                 error (.getError response)]
             (is error)
@@ -250,16 +250,16 @@
   [data response-body-type decompress-body?]
   (testlogging/with-test-logging
 
-    (testing " - check data can be streamed successfully success"
+    (testing " - check data can be streamed successfully"
       (testwebserver/with-test-webserver-and-config
         (successful-handler data nil) port {:shutdown-timeout-seconds 1}
         (with-open [client (-> (ClientOptions.)
                                (.setSocketTimeoutMilliseconds 20000)
                                (.setConnectTimeoutMilliseconds 100)
                                (Async/createClient))]
-          (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                _ (.setAs request-options response-body-type)
-                _ (.setDecompressBody request-options decompress-body?)
+          (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                  (.setAs response-body-type)
+                                  (.setDecompressBody decompress-body?))
                 response (-> client (.get request-options) .deref)
                 status (.getStatus response)
                 body (.getBody response)]
@@ -278,9 +278,9 @@
                                  (.setSocketTimeoutMilliseconds 200)
                                  (.setConnectTimeoutMilliseconds 100)
                                  (Async/createClient))]
-            (let [request-options (RequestOptions. (str "http://localhost:" port "/hello"))
-                  _ (.setAs request-options response-body-type)
-                  _ (.setDecompressBody request-options decompress-body?)
+            (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                    (.setAs response-body-type)
+                                    (.setDecompressBody decompress-body?))
                   response (-> client (.get request-options) .deref)
                   error (.getError response)]
               (is (instance? SocketTimeoutException error)))))
@@ -292,9 +292,9 @@
       (with-open [client (-> (ClientOptions.)
                              (.setConnectTimeoutMilliseconds 100)
                              (Async/createClient))]
-        (let [request-options (RequestOptions. (str "http://localhost:" 12345 "/bad"))
-              _ (.setAs request-options response-body-type)
-              _ (.setDecompressBody request-options decompress-body?)
+        (let [request-options (doto (RequestOptions. (str "http://localhost:" 12345 "/bad"))
+                                (.setAs response-body-type)
+                                (.setDecompressBody decompress-body?))
               response (-> client (.get request-options) .deref)
               error (.getError response)]
           (is error)
@@ -318,7 +318,7 @@
 
 (deftest java-existing-streaming-with-small-payload-with-decompression
   (testing "java :stream with 1K payload and decompression"
-    (java-blocking-streaming (generate-data 1024) ResponseBodyType/STREAM false)))
+    (java-blocking-streaming (generate-data 1024) ResponseBodyType/STREAM true)))
 
 (deftest java-existing-streaming-with-large-payload-without-decompression
   (testing "java :stream with 32M payload and no decompression"
