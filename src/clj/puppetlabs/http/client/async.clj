@@ -150,8 +150,11 @@
         automatically decompressed if it contains a recognized 'content-encoding'
         header.  defaults to `true`.
    * :as - used to control the data type of the response body.  Supported values
-       are `:text` and `:stream`, which will return a `String` or an
-       `InputStream`, respectively.  Defaults to `:stream`.
+       are `:text`, `:stream` and `:unbuffered-stream`. `:text` will return a `String`,
+       `:stream` and `:unbuffered-stream` will return an `InputStream`. Note that
+       `:stream` holds the full response in memory (i.e. a `ByteArrayInputStream`).
+       Use `:unbufferred-stream` for large response bodies or to consume less memory.
+       Defaults to `:stream`.
    * :query-params - used to set the query parameters of an http request
    * :metric-id - array of strings or keywords, used to set the metrics to be
        timed for the request."
