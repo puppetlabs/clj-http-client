@@ -11,7 +11,8 @@
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.async :as async]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [ring.middleware.cookies :refer [wrap-cookies]]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -30,6 +31,27 @@
   [[:WebserverService add-ring-handler]]
   (init [this context]
         (add-ring-handler app "/hello")
+        context))
+
+(defn cookie-handler
+  [_]
+  {:status 200
+   :body "cookie has been set"
+   :cookies {"session_id" {:value "session-id-hash"}}})
+
+(defn check-cookie-handler
+  [req]
+  (if (empty? (get req :cookies))
+    {:status 400
+     :body "cookie has not been set"}
+    {:status 200
+     :body "cookie has been set"}))
+
+(tk/defservice test-cookie-service
+  [[:WebserverService add-ring-handler]]
+  (init [this context]
+        (add-ring-handler (wrap-cookies cookie-handler) "/cookietest")
+        (add-ring-handler (wrap-cookies check-cookie-handler) "/cookiecheck")
         context))
 
 (deftest persistent-async-client-test
@@ -125,6 +147,32 @@
           (is (thrown? IllegalStateException
                        (common/get client
                                    "http://localhost:10000/hello/")))))))))
+
+(deftest java-api-cookie-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-cookie-service]
+      {:webserver {:port 10000}}
+      (let [client (Async/createClient (ClientOptions.))]
+        (testing "Set a cookie using Java API"
+          (let [response (.get client (RequestOptions. (URI. "http://localhost:10000/cookietest")))]
+            (is (= 200 (.getStatus (.deref response))))))
+        (testing "Check if cookie still exists"
+          (let [response (.get client (RequestOptions. (URI. "http://localhost:10000/cookiecheck")))]
+            (is (= 200 (.getStatus (.deref response))))))))))
+
+(deftest clj-api-cookie-test
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config app
+      [jetty9/jetty9-service test-cookie-service]
+      {:webserver {:port 10000}}
+      (let [client (async/create-client {})]
+        (testing "Set a cookie using Clojure API"
+          (let [response (common/get client "http://localhost:10000/cookietest")]
+            (is (= 200 (:status @response)))))
+        (testing "Check if cookie still exists"
+          (let [response (common/get client "http://localhost:10000/cookiecheck")]
+            (is (= 200 (:status @response)))))))))
 
 (deftest request-with-client-test
   (testlogging/with-test-logging
