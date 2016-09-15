@@ -58,10 +58,9 @@ and a metric
 `puppetlabs.http-client.experimental.with-url-and-method.http://foobar.com.GET.full-response`.
 
 It is also possible to give a request a `metric-id`. The `metric-id` is an
-array of strings (Java) or keywords (Clojure).  For each element in the array,
-a metric name will be created, appending to the previous elements. `metric-id`
-metrics have `with-metric-id` after the metric prefix, followed by the
-metric-id.
+array of strings.  For each element in the array, a metric name will be
+created, appending to the previous elements. `metric-id` metrics have
+`with-metric-id` after the metric prefix, followed by the metric-id.
 
 So, for example, for a metric-id `["foo", "bar", "baz"]`, the metrics
 `puppetlabs.http-client.experimental.with-metric-id.foo.full-response`,
@@ -225,13 +224,18 @@ get the `MetricRegistry` from it.
 In addition to the `url` and `url-and-method` metrics, it is possible to set a
 `metric-id` for a request that will create additional metrics.
 
-For the Clojure API, a `metric-id` is a vector of keywords.
+For the Clojure API, a `metric-id` is a vector of keywords or strings. Either
+is supported by the API, however, if special characters are needed, use
+strings.  Note than even when specified as a vector of keywords in the request
+option, the metric-id will be returned as a vector of strings in the metrics
+data.
 
 To set a `metric-id` for a request, include it as an option in the request
 options map.
 
 ```clojure
-(common/get client "https://foobar.com" {:metric-id [:foo :bar :baz])
+(common/get client "https://foobar.com" {:metric-id [:foo :bar :baz]})
+(common/get client "https://foobar.com" {:metric-id ["f/o/o"]})
 ```
 
 ### Filtering metrics
@@ -276,7 +280,7 @@ To get metric-id metrics and metrics data, use the
 `get-client-metrics-by-metric-id` and `get-client-metrics-data-by-metric-id`
 functions in the `metrics` namespace.
 
-Both of these take as arguments the `MetricRegistry` and a metric-id - as an
-vector of keywords. If no metric-id is provided, will return all metric-id
-metrics.  If no metrics are registered for that metric-id, returns an empty
-list.
+Both of these take as arguments the `MetricRegistry` and a metric-id - as a
+vector of keywords or strings (if special characters are needed, use strings).
+If no metric-id is provided, will return all metric-id metrics.  If no metrics
+are registered for that metric-id, returns an empty list.
