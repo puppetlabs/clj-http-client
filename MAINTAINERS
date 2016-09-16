@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "file_format": "This MAINTAINERS file format is described at http://pup.pt/maintainers",
+  "issues": "https://tickets.puppetlabs.com/browse/TK",
+  "people": [
+    {
+      "github": "rlinehan",
+      "email": "ruth@puppet.com",
+      "name": "Ruth Linehan"
+    },
+    {
+      "github": "scottyw",
+      "email": "scott.walker@puppet.com",
+      "name": "Scott Walker"
+    },
+    {
+      "github": "camlow325",
+      "email": "jeremy.barlow@puppet.com",
+      "name": "Jeremy Barlow"
+    },
+    {
+      "github": "cprice404",
+      "email": "chris@puppet.com",
+      "name": "Chris Price"
+    }
+  ]
+}
