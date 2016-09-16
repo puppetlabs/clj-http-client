@@ -3,9 +3,11 @@
 Both the Java client and the Clojure client have [Dropwizard
 Metrics](http://metrics.dropwizard.io/3.1.0/) support - they both accept as an
 option a `MetricRegistry` to which they will register http metrics for each
-request, as well as metrics for an metric-ids specified in the request options.
+request, as well as metrics for an metric-ids specified in the request
+options. This support is experimental - names of metrics and the exact API may
+change.
 
-For using metrics with either the Java client and the Clojure client you must
+For using metrics with either the Java client or the Clojure client you must
 already have created a Dropwizard `MetricRegistry`.
 
 - [Metrics prefix](#metrics-prefix)
@@ -213,6 +215,20 @@ of the options map:
 
 (the same works with the `sync` client).
 
+In [Trapperkeeper](https://github.com/puppetlabs/trapperkeeper) applications,
+creating and managing a `MetricRegistry` can be done easily with
+[trapperkeeper-metrics](https://github.com/puppetlabs/trapperkeeper-metrics):
+
+```clojure
+(defservice my-trapperkeeper-service
+  MyService
+  [[:MetricsService get-metrics-registry]]
+  (init [this context]
+    (let [registry (get-metrics-registry)
+          client (async/create-client {:metric-registry registry})]
+      ...)))
+```
+
 Any client that is created with a `MetricRegistry` will automatically have
 `url` and `url-and-method` metrics registered.
 
@@ -245,13 +261,74 @@ To get all `Timer` objects registered for a `MetricRegistry`, use the
 `MetricRegistry` as an argument and returns a map with three keys: `:url`
 `:url-and-method`, and `:metric-id`. Under each of these keys is a sequence of
 `Timer` objects of the corresponding type. If there are no timers of a certain
-type, the sequence will be empty.
+type, the sequence will be empty. The output of this function conforms to the
+`common/AllTimers` schema.
+
+Example:
+
+```clojure
+(common/get client "http://test.com" {:metric-id [:foo :bar :baz]})
+...
+(metrics/get-client-metrics metric-registry)
+=>
+{:url [#object[com.puppetlabs.http.client.metrics.UrlClientTimer
+               0x66cf1f05
+               "com.puppetlabs.http.client.metrics.UrlClientTimer@66cf1f05"]]
+ :url-and-method [#object[com.puppetlabs.http.client.metrics.UrlAndMethodClientTimer
+                          0x6fe5444c
+                          "com.puppetlabs.http.client.metrics.UrlAndMethodClientTimer@6fe5444c"]]
+ :metric-id [#object[com.puppetlabs.http.client.metrics.MetricIdClientTimer
+                     0x690c10c5
+                     "com.puppetlabs.http.client.metrics.MetricIdClientTimer@690c10c5"]
+             #object[com.puppetlabs.http.client.metrics.MetricIdClientTimer
+                     0xb7aca2e
+                     "com.puppetlabs.http.client.metrics.MetricIdClientTimer@b7aca2e"]
+             #object[com.puppetlabs.http.client.metrics.MetricIdClientTimer
+                     0x4ef82829
+                     "com.puppetlabs.http.client.metrics.MetricIdClientTimer@4ef82829"]]}
+```
 
 To get metric data for all `Timer`s registered on a `MetricRegistry`, use the
-`get-client-metrics-data` function. This takes the `MetricRegistry` and
-returns a map with `:url`, `:url-and-method`, and `:metric-id` as keys. Under
-each of these keys is a sequence of maps, each map containing metrics data
-(see [Getting back metrics](#Getting-back-metrics) above.
+`get-client-metrics-data` function. This takes the `MetricRegistry` and returns
+a map with `:url`, `:url-and-method`, and `:metric-id` as keys. Under each of
+these keys is a sequence of maps, each map containing metrics data (see
+[Getting back metrics](#Getting-back-metrics) above, conforming to the
+`common/AllMetricsData` schema.
+
+Example:
+
+```clojure
+(common/get client "http://test.com" {:metric-id [:foo :bar :baz]})
+...
+(metrics/get-client-metrics-data metric-registry)
+=>
+{:url ({:count 1
+        :mean 553
+        :aggregate 553
+        :metric-name "puppetlabs.http-client.experimental.with-url.http://test.com.full-response"
+        :url "http://test.com"})
+ :url-and-method ({:count 1
+                   :mean 554
+                   :aggregate 554
+                   :metric-name "puppetlabs.http-client.experimental.with-url-and-method.http://test.com.GET.full-response"
+                   :url "http://test.com"
+                   :method "GET"})
+ :metric-id ({:count 1
+              :mean 554
+              :aggregate 554
+              :metric-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.baz.full-response"
+              :metric-id ["foo" "bar" "baz"]}
+             {:count 1
+              :mean 554
+              :aggregate 554
+              :metric-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.full-response"
+              :metric-id ["foo" "bar"]}
+             {:count 1
+              :mean 554
+              :aggregate 554
+              :metric-name "puppetlabs.http-client.experimental.with-metric-id.foo.full-response"
+              :metric-id ["foo"]})}
+```
 
 #### Filtering by URL
 
@@ -261,6 +338,23 @@ function and `get-client-metrics-data-by-url` in the `metrics` namespace.
 Both of these take as arguments the `MetricRegistry` and a string url. If no
 url is provided, return all url metrics/metrics data in a sequence. If no
 metrics are registered for that url, return an empty sequence.
+
+Example:
+
+```clojure
+(common/get client "http://test.com" {:metric-id [:foo :bar :baz]})
+...
+(metrics/get-client-metrics-data-by-url metric-registry "http://test.com")
+=>
+({:count 1
+  :mean 553
+  :aggregate 553
+  :metric-name "puppetlabs.http-client.experimental.with-url.http://test.com.full-response"
+  :url "http://test.com"})
+
+(metrics/get-client-metrics-data-by-url metric-registry "http://not-a-matching-url.com")
+=> ()
+```
 
 #### Filtering by URL and method
 
@@ -274,6 +368,26 @@ keyword HTTP method. If no url and method is provided, return all url
 metrics/metrics data in a sequence. If no metrics are registered for that url
 and method, return an empty sequence.
 
+Example:
+
+```clojure
+(common/get client "http://test.com" {:metric-id [:foo :bar :baz]})
+...
+(metrics/get-client-metrics-data-by-url-and-method metric-registry "http://test.com" :get)
+=>
+({:count 1
+  :mean 554
+  :aggregate 554
+  :metric-name "puppetlabs.http-client.experimental.with-url-and-method.http://test.com.GET.full-response"
+  :url "http://test.com"
+  :method "GET"})
+
+  :method "GET"})
+
+(metrics/get-client-metrics-data-by-url-and-method metric-registry "http://test.com" :post)
+=> ()
+```
+
 #### Filtering by metric-id
 
 To get metric-id metrics and metrics data, use the
@@ -284,3 +398,29 @@ Both of these take as arguments the `MetricRegistry` and a metric-id - as a
 vector of keywords or strings (if special characters are needed, use strings).
 If no metric-id is provided, will return all metric-id metrics.  If no metrics
 are registered for that metric-id, returns an empty list.
+
+Example:
+
+```clojure
+(common/get client "http://test.com" {:metric-id [:foo :bar :baz]})
+...
+(metrics/get-client-metrics-data-by-metric-id metric-registry [:foo])
+=>
+({:count 1
+  :mean 554
+  :aggregate 554
+  :metric-name "puppetlabs.http-client.experimental.with-metric-id.foo.full-response"
+  :metric-id ["foo"]})
+
+(metrics/get-client-metrics-data-by-metric-id metric-registry [:foo :bar])
+=>
+({:count 1
+  :mean 554
+  :aggregate 554
+  :metric-name "puppetlabs.http-client.experimental.with-metric-id.foo.bar.full-response"
+  :metric-id ["foo" "bar"]})
+
+(metrics/get-client-metrics-data-by-metric-id metric-registry [:foo :nope])
+=> ()
+```
+

@@ -94,7 +94,7 @@ which is a map containing options for the HTTP request. These options are as fol
  * `:unbuffered-stream` which is a variant of `:stream` that will buffer as little data as possible
 * `:query-params`: optional; used to set the query parameters of an http request. This should be
   a map, where each key and each value is a String.
-* `:metric-id`: optional; a vector of keywords. A metric will be created for
+* `:metric-id`: optional; a vector of keywords or strings. A metric will be created for
   each element in the vector, with each appending to the previous.
 
 For example, say you want to make a GET request with
