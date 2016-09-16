@@ -13,14 +13,14 @@ already have created a Dropwizard `MetricRegistry`.
 - [Metrics prefix](#metrics-prefix)
 - [Types of metrics](#types-of-metrics)
 - [Getting back metrics](#getting-back-metrics)
-- [Java API](#java-api)
+- [Clojure API](#clojure-api)
   - [Creating a client with metrics](#creating-a-client-with-metrics)
   - [Setting a metric-id](#setting-a-metric-id)
   - [Filtering metrics](#filtering-metrics)
     - [Filtering by URL](#filtering-by-url)
     - [Filtering by URL and method](#filtering-by-url-and-method)
     - [Filtering by metric-id](#filtering-by-metric-id)
-- [Clojure API](#clojure-api)
+- [Java API](#java-api)
   - [Creating a client with metrics](#creating-a-client-with-metrics-1)
   - [Setting a metric-id](#setting-a-metric-id-1)
   - [Filtering metrics](#filtering-metrics-1)
@@ -100,108 +100,6 @@ information.
 Both APIs have functions for returning all metrics/metric data, for returning
 all metrics/metrics data from a specific category, and for filtering
 metrics/metrics data within a category.
-
-## Java API
-
-### Creating a client with metrics
-To use metrics with the Java client, call `setMetricRegistry()` on the
-`ClientOptions` before supplying them to create the client.
-
-```java
-MetricRegistry registry = new MetricRegistry();
-ClientOptions options = new ClientOptions();
-AsyncHttpClient client = Async.createClient(options);
-```
-
-(the same works with the `SyncHttpClient`).
-
-Any client that is created with a `MetricRegistry` will automatically have
-`url` and `url-and-method` metrics registered.
-
-`getMetricRegistry()` can be called on a client to get the `MetricRegistry`
-from it.
-
-### Setting a metric-id
-
-In addition to the `url` and `url-and-method` metrics, it is possible to set a
-`metric-id` for a request that will create additional metrics.
-
-A `metric-id` is an array of strings.
-
-To set a `metric-id` for a request, use the `.setMetricId` method on the
-`RequestOptions` class.
-
-```java
-RequestOptions options = new RequestOptions("https://foobar.com");
-options.setMetricId(["foo", "bar", "baz"]);
-client.get(options);
-```
-
-`getMetricId()` can be called on `RequestOptions` to get back the `metric-id`.
-
-### Filtering metrics
-
-To get all `Timer` objects registered for a `MetricRegistry`, use the
-`getClientMetrics()` method in the `Metrics` class. This takes the
-`MetricRegistry` as an argument and returns a `ClientTimerContainer` object.
-
-The `ClientTimerContainer` object has three fields - `urlTimers`,
-`urlAndMethodTimers`, and `metricIdTimers`. The list of `URLClientTimers` can
-be retrieved from the `ClientTimerContainer` with the `getUrlTimers()` method.
-A list of `URlAndMethodClientTimers` can be retrieved with the
-`getUrlAndMethod()` method. A list of `MetricIdClientTimer`s can be retrieved
-with the `getMetricIdTimers()` method.
-
-To get all `MetricData` objects, representing data for each `Metric`
-registered for a `MetricRegistry`, use the `getClientMetricsData()` methods in
-the `Metric` class. This takes the `MetricRegistry` as an argument and returns
-a `ClientMetricDataContainer` object. This object has a field for each type of
-metric data - `urlData`, `urlAndMethodData`, and `metricIdData`. Each field
-has an associated getter returning a list of the appropriate data object -
-`UrlClientMetricData`, `UrlAndMethodClientMetricData`, and
-`MetricIdClientMetricData`.
-
-#### Filtering by URL
-
-To get URL metrics and metrics data, use the `getClientMetricsByUrl()` and
-`getClientMetricsDataByUrl()` methods in the `Metric` class.
-
-Both of these take as arguments the `MetricRegistry` and a string url. If no
-url is provided, return all url metrics. If no metrics are registered for that
-url, return an empty list.
-
-`getClientMetricsByUrl()` returns a list of `UrlClientTimer` objects.
-`getClientMetricsDataByUrl` returns a list of `UrlClientMetricData` objects.
-
-#### Filtering by URL and method
-
-To get URL and method metrics and metrics data, use the
-`getClientMetricsByUrlAndMethod()` and `getClientMetricsDataByUrlAndMethod()`
-methods in the `Metric` class.
-
-Both of these take as arguments the `MetricRegistry`, a string url, and a
-string HTTP method. If no url or method is provided, will return all
-url-and-method metrics. If no metrics are registered for that url and method,
-returns an empty list.
-
-`getClientMetricsByUrlAndMethod()` returns a list of `UrlAndMethodClientTimer`
-objects. `getClientMetricsDataByUrlAndMethod` returns a list of
-`UrlAndMethodClientMetricData` objects.
-
-#### Filtering by metric-id
-
-To get metric-id metrics and metrics data, use the
-`getClientMetricsByMetricId()` and `getClientMetricsDataByMetricId()` methods
-in the `Metric` class.
-
-Both of these take as arguments the `MetricRegistry` and a metric-id - as an
-array of strings. If no metric-id is provided, will return all metric-id
-metrics. If no metrics are registered for that metric-id, returns an empty
-list.
-
-`getClientMetricsByMetricId()` returns a list of `MetricIdClientTimer`
-objects. `getClientMetricsDataByMetricId()` returns a list of
-`MetricIdClientMetricData` objects.
 
 ## Clojure API
 
@@ -424,3 +322,104 @@ Example:
 => ()
 ```
 
+## Java API
+
+### Creating a client with metrics
+To use metrics with the Java client, call `setMetricRegistry()` on the
+`ClientOptions` before supplying them to create the client.
+
+```java
+MetricRegistry registry = new MetricRegistry();
+ClientOptions options = new ClientOptions();
+AsyncHttpClient client = Async.createClient(options);
+```
+
+(the same works with the `SyncHttpClient`).
+
+Any client that is created with a `MetricRegistry` will automatically have
+`url` and `url-and-method` metrics registered.
+
+`getMetricRegistry()` can be called on a client to get the `MetricRegistry`
+from it.
+
+### Setting a metric-id
+
+In addition to the `url` and `url-and-method` metrics, it is possible to set a
+`metric-id` for a request that will create additional metrics.
+
+A `metric-id` is an array of strings.
+
+To set a `metric-id` for a request, use the `.setMetricId` method on the
+`RequestOptions` class.
+
+```java
+RequestOptions options = new RequestOptions("https://foobar.com");
+options.setMetricId(["foo", "bar", "baz"]);
+client.get(options);
+```
+
+`getMetricId()` can be called on `RequestOptions` to get back the `metric-id`.
+
+### Filtering metrics
+
+To get all `Timer` objects registered for a `MetricRegistry`, use the
+`getClientMetrics()` method in the `Metrics` class. This takes the
+`MetricRegistry` as an argument and returns a `ClientTimerContainer` object.
+
+The `ClientTimerContainer` object has three fields - `urlTimers`,
+`urlAndMethodTimers`, and `metricIdTimers`. The list of `URLClientTimers` can
+be retrieved from the `ClientTimerContainer` with the `getUrlTimers()` method.
+A list of `URlAndMethodClientTimers` can be retrieved with the
+`getUrlAndMethod()` method. A list of `MetricIdClientTimer`s can be retrieved
+with the `getMetricIdTimers()` method.
+
+To get all `MetricData` objects, representing data for each `Metric`
+registered for a `MetricRegistry`, use the `getClientMetricsData()` methods in
+the `Metric` class. This takes the `MetricRegistry` as an argument and returns
+a `ClientMetricDataContainer` object. This object has a field for each type of
+metric data - `urlData`, `urlAndMethodData`, and `metricIdData`. Each field
+has an associated getter returning a list of the appropriate data object -
+`UrlClientMetricData`, `UrlAndMethodClientMetricData`, and
+`MetricIdClientMetricData`.
+
+#### Filtering by URL
+
+To get URL metrics and metrics data, use the `getClientMetricsByUrl()` and
+`getClientMetricsDataByUrl()` methods in the `Metric` class.
+
+Both of these take as arguments the `MetricRegistry` and a string url. If no
+url is provided, return all url metrics. If no metrics are registered for that
+url, return an empty list.
+
+`getClientMetricsByUrl()` returns a list of `UrlClientTimer` objects.
+`getClientMetricsDataByUrl` returns a list of `UrlClientMetricData` objects.
+
+#### Filtering by URL and method
+
+To get URL and method metrics and metrics data, use the
+`getClientMetricsByUrlAndMethod()` and `getClientMetricsDataByUrlAndMethod()`
+methods in the `Metric` class.
+
+Both of these take as arguments the `MetricRegistry`, a string url, and a
+string HTTP method. If no url or method is provided, will return all
+url-and-method metrics. If no metrics are registered for that url and method,
+returns an empty list.
+
+`getClientMetricsByUrlAndMethod()` returns a list of `UrlAndMethodClientTimer`
+objects. `getClientMetricsDataByUrlAndMethod` returns a list of
+`UrlAndMethodClientMetricData` objects.
+
+#### Filtering by metric-id
+
+To get metric-id metrics and metrics data, use the
+`getClientMetricsByMetricId()` and `getClientMetricsDataByMetricId()` methods
+in the `Metric` class.
+
+Both of these take as arguments the `MetricRegistry` and a metric-id - as an
+array of strings. If no metric-id is provided, will return all metric-id
+metrics. If no metrics are registered for that metric-id, returns an empty
+list.
+
+`getClientMetricsByMetricId()` returns a list of `MetricIdClientTimer`
+objects. `getClientMetricsDataByMetricId()` returns a list of
+`MetricIdClientMetricData` objects.
