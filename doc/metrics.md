@@ -3,7 +3,7 @@
 Both the Java client and the Clojure client have [Dropwizard
 Metrics](http://metrics.dropwizard.io/3.1.0/) support - they both accept as an
 option a `MetricRegistry` to which they will register http metrics for each
-request, as well as metrics for an metric-ids specified in the request
+request, as well as metrics for any metric-ids specified in the request
 options. This support is experimental - names of metrics and the exact API may
 change.
 
