@@ -34,6 +34,10 @@ The following are the base set of options supported by the `create-client` funct
 * `:cipher-suites`: an array used to set the cipher suites that the client could
   select from when talking to the server. Defaults to the complete
   set of suites supported by the underlying language runtime.
+* `:metric-registry`: a Dropwizard `MetricRegistry` to register http metrics
+  to. If provided, metrics will automatically be registered for all requests
+  made by the client. See the [metrics documentation](./metrics.md) for more
+  info.
 
 ### SSL Options
 
@@ -90,6 +94,8 @@ which is a map containing options for the HTTP request. These options are as fol
  * `:unbuffered-stream` which is a variant of `:stream` that will buffer as little data as possible
 * `:query-params`: optional; used to set the query parameters of an http request. This should be
   a map, where each key and each value is a String.
+* `:metric-id`: optional; a vector of keywords or strings. A metric will be created for
+  each element in the vector, with each appending to the previous.
 
 For example, say you want to make a GET request with
 query parameter `abc` with value `def` to the URL `http://localhost:8080/test`. If you wanted to use a
