@@ -14,7 +14,7 @@
 
   :dependencies [[org.clojure/clojure "1.7.0"]
 
-                 [org.apache.httpcomponents/httpasyncclient "4.1.1"]
+                 [org.apache.httpcomponents/httpasyncclient "4.1.2"]
                  [org.apache.commons/commons-lang3 "3.4"]
                  [prismatic/schema "1.0.4"]
                  [org.slf4j/slf4j-api "1.7.13"]
