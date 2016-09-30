@@ -14,11 +14,14 @@ import java.net.URISyntaxException;
 public class PersistentAsyncHttpClient implements AsyncHttpClient {
     private CloseableHttpAsyncClient client;
     private MetricRegistry metricRegistry;
+    private String metricNamespace;
 
     public PersistentAsyncHttpClient(CloseableHttpAsyncClient client,
-                                     MetricRegistry metricRegistry) {
+                                     MetricRegistry metricRegistry,
+                                     String metricNamespace) {
         this.client = client;
         this.metricRegistry = metricRegistry;
+        this.metricNamespace = metricNamespace;
     }
 
     public void close() throws IOException {
@@ -29,11 +32,15 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         return metricRegistry;
     }
 
+    public String getMetricNamespace() {
+        return metricNamespace;
+    }
+
     private Promise<Response> request(RequestOptions requestOptions, HttpMethod method) {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
         JavaClient.requestWithClient(requestOptions, method, null,
-                client, responseDelivery, metricRegistry);
+                client, responseDelivery, metricRegistry, metricNamespace);
         return promise;
     }
 

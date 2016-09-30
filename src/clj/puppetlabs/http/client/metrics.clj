@@ -2,7 +2,7 @@
   (:require [schema.core :as schema]
             [puppetlabs.http.client.common :as common])
   (:import (com.puppetlabs.http.client.metrics Metrics$MetricType Metrics
-                                            ClientMetricData)
+                                               ClientMetricData)
            (com.codahale.metrics MetricRegistry)))
 
 (schema/defn get-base-metric-data :- common/BaseMetricData
@@ -32,6 +32,10 @@
 (defn uppercase-method
   [method]
   (clojure.string/upper-case (name method)))
+
+(defn build-metric-namespace
+  [metric-prefix server-id]
+  (Metrics/buildMetricNamespace metric-prefix server-id))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public

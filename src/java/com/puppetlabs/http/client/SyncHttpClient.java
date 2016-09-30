@@ -19,6 +19,11 @@ public interface SyncHttpClient extends Closeable {
     public MetricRegistry getMetricRegistry();
 
     /**
+     * @return the String metricNamespace for this Client
+     */
+    public String getMetricNamespace();
+
+    /**
      * Makes a configurable HTTP request
      * @param requestOptions the options to configure the request
      * @param method the type of the HTTP request

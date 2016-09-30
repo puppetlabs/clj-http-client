@@ -41,7 +41,8 @@ public class TimerUtils {
     }
 
     private static ArrayList<Timer.Context> startFullResponseMetricIdTimers(MetricRegistry registry,
-                                                                            String[] metricId) {
+                                                                            String[] metricId,
+                                                                            String metricPrefix) {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
         for (int i = 0; i < metricId.length; i++) {
             ArrayList<String> currentId = new ArrayList<>();
@@ -52,7 +53,7 @@ public class TimerUtils {
             currentIdWithNamespace.add(Metrics.NAMESPACE_METRIC_ID);
             currentIdWithNamespace.addAll(currentId);
             currentIdWithNamespace.add(Metrics.NAMESPACE_FULL_RESPONSE);
-            String metric_name = MetricRegistry.name(Metrics.NAMESPACE_PREFIX,
+            String metric_name = MetricRegistry.name(metricPrefix,
                     currentIdWithNamespace.toArray(new String[currentIdWithNamespace.size()]));
 
             ClientTimer timer = new MetricIdClientTimer(metric_name, currentId, Metrics.MetricType.FULL_RESPONSE);
@@ -62,16 +63,17 @@ public class TimerUtils {
     }
 
     private static ArrayList<Timer.Context> startFullResponseUrlTimers(MetricRegistry registry,
-                                                                       HttpRequest request) {
+                                                                       HttpRequest request,
+                                                                       String metricPrefix) {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
         try {
             final RequestLine requestLine = request.getRequestLine();
             final String strippedUrl = Metrics.urlToMetricUrl(requestLine.getUri());
             final String method = requestLine.getMethod();
 
-            final String urlName = MetricRegistry.name(Metrics.NAMESPACE_PREFIX, Metrics.NAMESPACE_URL,
+            final String urlName = MetricRegistry.name(metricPrefix, Metrics.NAMESPACE_URL,
                     strippedUrl, Metrics.NAMESPACE_FULL_RESPONSE);
-            final String urlAndMethodName = MetricRegistry.name(Metrics.NAMESPACE_PREFIX, Metrics.NAMESPACE_URL_AND_METHOD,
+            final String urlAndMethodName = MetricRegistry.name(metricPrefix, Metrics.NAMESPACE_URL_AND_METHOD,
                     strippedUrl, method, Metrics.NAMESPACE_FULL_RESPONSE);
 
             ClientTimer urlTimer = new UrlClientTimer(urlName, strippedUrl, Metrics.MetricType.FULL_RESPONSE);
@@ -91,13 +93,14 @@ public class TimerUtils {
 
     public static ArrayList<Timer.Context> startFullResponseTimers(MetricRegistry clientRegistry,
                                                                    HttpRequest request,
-                                                                   String[] metricId) {
+                                                                   String[] metricId,
+                                                                   String metricNamespace) {
         if (clientRegistry != null) {
-            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry,request);
+            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry, request, metricNamespace);
             ArrayList<Timer.Context> allTimerContexts = new ArrayList<>(urlTimerContexts);
             if (metricId != null) {
                 ArrayList<Timer.Context> metricIdTimers =
-                        startFullResponseMetricIdTimers(clientRegistry, metricId);
+                        startFullResponseMetricIdTimers(clientRegistry, metricId, metricNamespace);
                 allTimerContexts.addAll(metricIdTimers);
             }
             return allTimerContexts;
@@ -106,4 +109,5 @@ public class TimerUtils {
             return null;
         }
     }
+
 }

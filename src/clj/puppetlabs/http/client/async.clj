@@ -16,7 +16,8 @@
            (org.apache.http.nio.client HttpAsyncClient)
            (com.codahale.metrics MetricRegistry))
   (:require [puppetlabs.http.client.common :as common]
-            [schema.core :as schema])
+            [schema.core :as schema]
+            [puppetlabs.http.client.metrics :as metrics])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,7 +26,8 @@
 (schema/defn ^:always-validate create-default-client :- HttpAsyncClient
   [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
            follow-redirects force-redirects connect-timeout-milliseconds
-           socket-timeout-milliseconds metric-registry]}:- common/ClientOptions]
+           socket-timeout-milliseconds metric-registry server-id
+           metric-prefix]}:- common/ClientOptions]
   (let [client-options (ClientOptions.)]
     (cond-> client-options
             (some? ssl-context) (.setSslContext ssl-context)
@@ -40,7 +42,9 @@
             (.setConnectTimeoutMilliseconds connect-timeout-milliseconds)
             (some? socket-timeout-milliseconds)
             (.setSocketTimeoutMilliseconds socket-timeout-milliseconds)
-            (some? metric-registry) (.setMetricRegistry metric-registry))
+            (some? metric-registry) (.setMetricRegistry metric-registry)
+            (some? server-id) (.setServerId server-id)
+            (some? metric-prefix) (.setMetricPrefix metric-prefix))
     (JavaClient/createClient client-options)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -161,11 +165,12 @@
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient]
-    (request-with-client opts callback client nil))
+    (request-with-client opts callback client nil nil))
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient
-    metric-registry :- (schema/maybe MetricRegistry)]
+    metric-registry :- (schema/maybe MetricRegistry)
+    metric-namespace :- (schema/maybe schema/Str)]
    (let [result (promise)
          defaults {:headers {}
                    :body nil
@@ -176,7 +181,8 @@
          java-method (clojure-method->java opts)
          response-delivery-delegate (get-response-delivery-delegate opts result)]
      (JavaClient/requestWithClient java-request-options java-method callback
-                                   client response-delivery-delegate metric-registry)
+                                   client response-delivery-delegate metric-registry
+                                   metric-namespace)
      result)))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
@@ -223,7 +229,8 @@
    * :ssl-ca-cert - path to a PEM file containing the CA cert"
   [opts :- common/ClientOptions]
   (let [client (create-default-client opts)
-        metric-registry (:metric-registry opts)]
+        metric-registry (:metric-registry opts)
+        metric-namespace (metrics/build-metric-namespace (:metric-prefix opts) (:server-id opts))]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
       (get [this url opts] (common/make-request this url :get opts))
@@ -244,6 +251,8 @@
       (make-request [this url method] (common/make-request this url method {}))
       (make-request [_ url method opts] (request-with-client
                                          (assoc opts :method method :url url)
-                                         nil client metric-registry))
+                                         nil client metric-registry
+                                         metric-namespace))
       (close [_] (.close client))
-      (get-client-metric-registry [_] metric-registry))))
+      (get-client-metric-registry [_] metric-registry)
+      (get-client-metric-namespace [_] metric-namespace))))

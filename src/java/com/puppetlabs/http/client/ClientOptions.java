@@ -27,6 +27,8 @@ public class ClientOptions {
     private int connectTimeoutMilliseconds = -1;
     private int socketTimeoutMilliseconds = -1;
     private MetricRegistry metricRegistry;
+    private String metricPrefix;
+    private String serverId;
 
     /**
      * Constructor for the ClientOptions class. When this constructor is called,
@@ -181,6 +183,24 @@ public class ClientOptions {
 
     public ClientOptions setMetricRegistry(MetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
+        return this;
+    }
+
+    public String getMetricPrefix() {
+        return metricPrefix;
+    }
+
+    public ClientOptions setMetricPrefix(String metricPrefix) {
+        this.metricPrefix = metricPrefix;
+        return this;
+    }
+
+    public String getServerId() {
+        return serverId;
+    }
+
+    public ClientOptions setServerId(String serverId) {
+        this.serverId = serverId;
         return this;
     }
 }
