@@ -1,5 +1,5 @@
-(def ks-version "1.2.0")
-(def tk-version "1.1.1")
+(def ks-version "1.3.0")
+(def tk-version "1.5.1")
 (def tk-jetty-version "1.5.0")
 
 (defproject puppetlabs/http-client "0.5.1-SNAPSHOT"
@@ -17,7 +17,7 @@
                  [org.apache.httpcomponents/httpasyncclient "4.1.2"]
                  [org.apache.commons/commons-lang3 "3.4"]
                  [prismatic/schema "1.0.4"]
-                 [org.slf4j/slf4j-api "1.7.13"]
+                 [org.slf4j/slf4j-api "1.7.20"]
                  [commons-io "2.4"]
                  [io.dropwizard.metrics/metrics-core "3.1.2"]
 
