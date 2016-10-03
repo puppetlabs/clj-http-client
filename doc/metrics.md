@@ -10,7 +10,7 @@ change.
 For using metrics with either the Java client or the Clojure client you must
 already have created a Dropwizard `MetricRegistry`.
 
-- [Metrics prefix](#metrics-prefix)
+- [Metric namespace](#metric-namespace)
 - [Types of metrics](#types-of-metrics)
 - [Getting back metrics](#getting-back-metrics)
 - [Clojure API](#clojure-api)
@@ -29,9 +29,26 @@ already have created a Dropwizard `MetricRegistry`.
     - [Filtering by metric-id](#filtering-by-metric-id-1)
 
 
-## Metrics prefix
+## Metric namespace
 
-All http metrics are prefixed with `puppetlabs.http-client.experimental`.
+By default, http metrics are prefixed with the namespace
+`puppetlabs.http-client.experimental`. This namespace can be customized with two
+client options, `server-id` and `metric-prefix`.
+
+When `server-id` is set, the metric namespace becomes
+`puppetlabs.<server-id>.http-client.experimental`.
+
+When `metric-prefix` is set, the metric namespace becomes
+`<metric-prefix>.http-client.experimental`.
+
+If both `server-id` and `metric-prefix` are set, `metric-prefix` wins out and
+a warning message is logged.
+
+For a Clojure client, the `get-client-metric-namespace` protocol method can
+be used to get back the metric namespace set for the client.
+
+For a Java client, the `getMetricNamespace` method can be used to get back the
+configured metric namespace.
 
 ## Types of metrics
 
