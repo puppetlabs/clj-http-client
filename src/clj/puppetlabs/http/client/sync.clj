@@ -4,7 +4,8 @@
 (ns puppetlabs.http.client.sync
   (:require [puppetlabs.http.client.async :as async]
             [schema.core :as schema]
-            [puppetlabs.http.client.common :as common])
+            [puppetlabs.http.client.common :as common]
+            [puppetlabs.http.client.metrics :as metrics])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -24,10 +25,10 @@
 
 (defn request-with-client
   ([req client]
-   (request-with-client req client nil))
-  ([req client metric-registry]
+   (request-with-client req client nil nil))
+  ([req client metric-registry metric-namespace]
    (let [{:keys [error] :as resp} @(async/request-with-client
-                                    req nil client metric-registry)]
+                                    req nil client metric-registry metric-namespace)]
      (if error
        (throw error)
        resp))))
@@ -37,12 +38,13 @@
 (defn request
   [req]
   (with-open [client (async/create-default-client (extract-client-opts req))]
-    (request-with-client (extract-request-opts req) client nil)))
+    (request-with-client (extract-request-opts req) client)))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)
   [opts :- common/ClientOptions]
   (let [client (async/create-default-client opts)
-        metric-registry (:metric-registry opts)]
+        metric-registry (:metric-registry opts)
+        metric-namespace (metrics/build-metric-namespace (:metric-prefix opts) (:server-id opts))]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
       (get [this url opts] (common/make-request this url :get opts))
@@ -63,9 +65,10 @@
       (make-request [this url method] (common/make-request this url method {}))
       (make-request [_ url method opts] (request-with-client
                                          (assoc opts :method method :url url)
-                                         client metric-registry))
+                                         client metric-registry metric-namespace))
       (close [_] (.close client))
-      (get-client-metric-registry [_] metric-registry))))
+      (get-client-metric-registry [_] metric-registry)
+      (get-client-metric-namespace [_] metric-namespace))))
 
 (defn get
   "Issue a synchronous HTTP GET request. This will raise an exception if an

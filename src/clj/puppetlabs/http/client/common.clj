@@ -23,7 +23,8 @@
   (patch [this url] [this url opts])
   (make-request [this url method] [this url method opts])
   (close [this])
-  (get-client-metric-registry [this]))
+  (get-client-metric-registry [this])
+  (get-client-metric-namespace [this]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -113,7 +114,9 @@
    (ok :follow-redirects) schema/Bool
    (ok :connect-timeout-milliseconds) schema/Int
    (ok :socket-timeout-milliseconds) schema/Int
-   (ok :metric-registry) MetricRegistry})
+   (ok :metric-registry) MetricRegistry
+   (ok :server-id) schema/Str
+   (ok :metric-prefix) schema/Str})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after

@@ -1,10 +1,8 @@
 package com.puppetlabs.http.client;
 
-import com.puppetlabs.http.client.impl.SslUtils;
 import com.puppetlabs.http.client.impl.JavaClient;
 import com.puppetlabs.http.client.impl.PersistentAsyncHttpClient;
-import com.puppetlabs.http.client.impl.CoercedClientOptions;
-import com.codahale.metrics.MetricRegistry;
+import com.puppetlabs.http.client.metrics.Metrics;
 
 /**
  * This class allows you to create an AsyncHttpClient for use in making
@@ -21,7 +19,9 @@ public class Async {
      * @return an AsyncHttpClient that can be used to make requests
      */
     public static AsyncHttpClient createClient(ClientOptions clientOptions) {
+        final String metricNamespace = Metrics.buildMetricNamespace(clientOptions.getMetricPrefix(),
+                clientOptions.getServerId());
         return new PersistentAsyncHttpClient(JavaClient.createClient(clientOptions),
-                clientOptions.getMetricRegistry());
+                clientOptions.getMetricRegistry(),metricNamespace);
     }
 }

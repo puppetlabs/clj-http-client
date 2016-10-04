@@ -17,12 +17,15 @@ import java.net.URISyntaxException;
 public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
     private MetricRegistry metricRegistry;
+    private String metricNamespace;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
     public PersistentSyncHttpClient(CloseableHttpAsyncClient client,
-                                    MetricRegistry metricRegistry) {
+                                    MetricRegistry metricRegistry,
+                                    String metricNamespace) {
         this.client = client;
         this.metricRegistry = metricRegistry;
+        this.metricNamespace = metricNamespace;
     }
 
     private static void logAndRethrow(String msg, Throwable t) {
@@ -34,11 +37,15 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         return metricRegistry;
     }
 
+    public String getMetricNamespace() {
+        return metricNamespace;
+    }
+
     public Response request(RequestOptions requestOptions, HttpMethod method) {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
         JavaClient.requestWithClient(requestOptions, method, null, client,
-                responseDelivery, metricRegistry);
+                responseDelivery, metricRegistry, metricNamespace);
         Response response = null;
         try {
             response = promise.deref();

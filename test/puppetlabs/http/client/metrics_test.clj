@@ -613,3 +613,127 @@
          (catch TimeoutException e
            ;; Expected whenever a server-side failure is generated
            ))))))
+
+(deftest metric-namespace-test
+  (let [metric-prefix "my-metric-prefix"
+        server-id "my-server"
+        metric-name-with-prefix
+        (format "%s.http-client.experimental.with-url.%s.full-response" metric-prefix hello-url)
+        metric-name-with-server-id
+        (format "puppetlabs.%s.http-client.experimental.with-url.%s.full-response"
+                server-id hello-url)
+        get-metric-name (fn [metric-registry]
+                          (.getMetricName (first (Metrics/getClientMetricsDataByUrl
+                                                  metric-registry hello-url))))]
+    (testlogging/with-test-logging
+     (testutils/with-app-with-config
+      app
+      [jetty9/jetty9-service test-metric-web-service]
+      {:webserver {:port 10000}}
+      (testing "custom metric namespace works for java async client"
+        (testing "metric prefix works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-metric-prefix (Async/createClient
+                                                   (doto (ClientOptions.)
+                                                     (.setMetricRegistry metric-registry)
+                                                     (.setMetricPrefix metric-prefix)))]
+              (is (= (format "%s.http-client.experimental" metric-prefix)
+                     (.getMetricNamespace client-with-metric-prefix)))
+              (-> client-with-metric-prefix (.get (RequestOptions. hello-url)))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry))))))
+        (testing "server id works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (Async/createClient
+                                               (doto (ClientOptions.)
+                                                 (.setMetricRegistry metric-registry)
+                                                 (.setServerId server-id)))]
+              (-> client-with-server-id (.get (RequestOptions. hello-url)))
+              (is (= metric-name-with-server-id (get-metric-name metric-registry))))))
+        (testing "metric prefix overrides server id if both are set"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (Async/createClient
+                                               (doto (ClientOptions.)
+                                                 (.setMetricRegistry metric-registry)
+                                                 (.setMetricPrefix metric-prefix)
+                                                 (.setServerId server-id)))]
+              (-> client-with-server-id (.get (RequestOptions. hello-url)))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry)))
+              (is (logged? #"Metric prefix and server id both set.*" :warn))))))
+      (testing "custom metric namespace works for clojure async client"
+        (testing "metric prefix works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-metric-prefix (async/create-client
+                                                   {:metric-registry metric-registry
+                                                    :metric-prefix metric-prefix})]
+              (is (= (format "%s.http-client.experimental" metric-prefix)
+                     (common/get-client-metric-namespace client-with-metric-prefix)))
+              (-> client-with-metric-prefix (common/get hello-url))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry))))))
+        (testing "server id works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (async/create-client
+                                                   {:metric-registry metric-registry
+                                                    :server-id server-id})]
+              (-> client-with-server-id (common/get hello-url))
+              (is (= metric-name-with-server-id (get-metric-name metric-registry))))))
+        (testing "metric prefix overrides server id if both are set"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (async/create-client
+                                               {:metric-registry metric-registry
+                                                :metric-prefix metric-prefix
+                                                :server-id server-id})]
+              (-> client-with-server-id (common/get hello-url))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry)))))))
+      (testing "custom metric namespace works for Java sync client"
+        (testing "metric prefix works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-metric-prefix (Sync/createClient
+                                                   (doto (ClientOptions.)
+                                                     (.setMetricRegistry metric-registry)
+                                                     (.setMetricPrefix metric-prefix)))]
+              (is (= (format "%s.http-client.experimental" metric-prefix)
+                     (.getMetricNamespace client-with-metric-prefix)))
+              (-> client-with-metric-prefix (.get (RequestOptions. hello-url)))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry))))))
+        (testing "server id works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (Sync/createClient
+                                               (doto (ClientOptions.)
+                                                 (.setMetricRegistry metric-registry)
+                                                 (.setServerId server-id)))]
+              (-> client-with-server-id (.get (RequestOptions. hello-url)))
+              (is (= metric-name-with-server-id (get-metric-name metric-registry))))))
+        (testing "metric prefix overrides server id if both are set"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (Sync/createClient
+                                               (doto (ClientOptions.)
+                                                 (.setMetricRegistry metric-registry)
+                                                 (.setMetricPrefix metric-prefix)
+                                                 (.setServerId server-id)))]
+              (-> client-with-server-id (.get (RequestOptions. hello-url)))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry)))))))
+      (testing "custom metric namespace works for clojure sync client"
+        (testing "metric prefix works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-metric-prefix (sync/create-client
+                                                   {:metric-registry metric-registry
+                                                    :metric-prefix metric-prefix})]
+              (is (= (format "%s.http-client.experimental" metric-prefix)
+                     (common/get-client-metric-namespace client-with-metric-prefix)))
+              (-> client-with-metric-prefix (common/get hello-url))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry))))))
+        (testing "server id works"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (sync/create-client
+                                                   {:metric-registry metric-registry
+                                                    :server-id server-id})]
+              (-> client-with-server-id (common/get hello-url))
+              (is (= metric-name-with-server-id (get-metric-name metric-registry))))))
+        (testing "metric prefix overrides server id if both are set"
+          (let [metric-registry (MetricRegistry.)]
+            (with-open [client-with-server-id (sync/create-client
+                                               {:metric-registry metric-registry
+                                                :metric-prefix metric-prefix
+                                                :server-id server-id})]
+              (-> client-with-server-id (common/get hello-url))
+              (is (= metric-name-with-prefix (get-metric-name metric-registry)))))))))))

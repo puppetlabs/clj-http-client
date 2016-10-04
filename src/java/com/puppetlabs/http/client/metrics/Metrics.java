@@ -8,6 +8,8 @@ import com.puppetlabs.http.client.impl.metrics.MetricIdClientTimerFilter;
 import com.puppetlabs.http.client.impl.metrics.TimerMetricData;
 import com.puppetlabs.http.client.impl.metrics.UrlAndMethodClientTimerFilter;
 import com.puppetlabs.http.client.impl.metrics.UrlClientTimerFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -17,11 +19,31 @@ import java.util.List;
 import java.util.Map;
 
 public class Metrics {
-    public static final String NAMESPACE_PREFIX = "puppetlabs.http-client.experimental";
+    public static final String PUPPETLABS_NAMESPACE_PREFIX = "puppetlabs";
+    public static final String HTTP_CLIENT_NAMESPACE_PREFIX = "http-client.experimental";
+    public static final String DEFAULT_NAMESPACE_PREFIX = PUPPETLABS_NAMESPACE_PREFIX +
+            "." + HTTP_CLIENT_NAMESPACE_PREFIX;
     public static final String NAMESPACE_URL = "with-url";
     public static final String NAMESPACE_URL_AND_METHOD = "with-url-and-method";
     public static final String NAMESPACE_METRIC_ID = "with-metric-id";
     public static final String NAMESPACE_FULL_RESPONSE = "full-response";
+    private static final Logger LOGGER = LoggerFactory.getLogger(Metrics.class);
+
+    public static String buildMetricNamespace(String metricPrefix, String serverId) {
+        if (metricPrefix != null) {
+            if (serverId != null) {
+                Metrics.LOGGER.warn("Metric prefix and server id both set. Using metric prefix '"
+                        + metricPrefix + "' for metric namespace.");
+            }
+            return metricPrefix + "." + HTTP_CLIENT_NAMESPACE_PREFIX;
+        } else if (serverId != null) {
+            return PUPPETLABS_NAMESPACE_PREFIX + "." + serverId + "."
+                    + HTTP_CLIENT_NAMESPACE_PREFIX;
+        } else {
+            return DEFAULT_NAMESPACE_PREFIX;
+        }
+    }
+
     public enum MetricType { FULL_RESPONSE }
     public enum MetricCategory { URL, URL_AND_METHOD, METRIC_ID }
 

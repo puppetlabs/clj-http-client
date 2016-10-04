@@ -20,6 +20,11 @@ public interface AsyncHttpClient extends Closeable{
     public MetricRegistry getMetricRegistry();
 
     /**
+     * @return the String metricNamespace for this Client
+     */
+    public String getMetricNamespace();
+
+    /**
      * Performs a GET request
      * @param url the URL against which to make the GET request
      * @return a Promise with the contents of the response
