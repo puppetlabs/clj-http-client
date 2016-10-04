@@ -42,7 +42,9 @@ The following are the base set of options supported by the `create-client` funct
   from. If specified, used in the namespace for metrics:
   `puppetlabs.<server-id>.http-client.experimental`.
 * `:metric-prefix`: a string for the prefix for metrics. If specified, metric
-  namespace is `<metric-prefix>.http-client.experimental`.
+  namespace is `<metric-prefix>.http-client.experimental`. If both
+  `metric-prefix` and `server-id` are specified, `metric-prefix` takes
+  precendence.
 
 ### SSL Options
 

@@ -47,8 +47,6 @@ public class Metrics {
     public enum MetricType { FULL_RESPONSE }
     public enum MetricCategory { URL, URL_AND_METHOD, METRIC_ID }
 
-
-
     public static String urlToMetricUrl(String uriString) throws URISyntaxException {
         final URI uri = new URI(uriString);
         final URI convertedUri = new URI(uri.getScheme(), null, uri.getHost(),
