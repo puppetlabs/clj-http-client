@@ -1,3 +1,15 @@
+## 0.6.0
+ This is a feature and maintenance release
+
+* [TK-179](https://tickets.puppetlabs.com/browse/TK-179) Refactor to eliminate Clojure/Java duplication
+* [TK-316](https://tickets.puppetlabs.com/browse/TK-316) Add support for metrics
+* [TK-317](https://tickets.puppetlabs.com/browse/TK-317) Add ability to pass a metrics-id
+* [TK-354](https://tickets.puppetlabs.com/browse/TK-354) Add [documentation on metrics](./doc/metrics.md)
+* [TK-308](https://tickets.puppetlabs.com/browse/TK-308) Bump Apache HttpAsyncClient library to 4.1.2
+* [TK-402](https://tickets.puppetlabs.com/browse/TK-402) Allow metric namespace to be configurable
+* Bump Trapperkeeper and Kitchensink dependencies from 1.1.1 to 1.5.1 (TK) and
+  1.2.0 to 1.3.0 (KS).
+
 ## 0.5.0
  This is a feature release.
 
