@@ -2,7 +2,7 @@
 (def tk-version "1.5.1")
 (def tk-jetty-version "1.5.0")
 
-(defproject puppetlabs/http-client "0.6.0"
+(defproject puppetlabs/http-client "0.6.1-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
