@@ -21,7 +21,8 @@
                  [commons-io "2.4"]
                  [io.dropwizard.metrics/metrics-core "3.1.2"]
 
-                 [puppetlabs/ssl-utils "0.8.1"]]
+                 [puppetlabs/ssl-utils "0.8.1"]
+                 [puppetlabs/i18n "0.4.3"]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
