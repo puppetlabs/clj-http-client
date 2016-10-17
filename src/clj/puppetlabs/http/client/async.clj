@@ -17,7 +17,8 @@
            (com.codahale.metrics MetricRegistry))
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema]
-            [puppetlabs.http.client.metrics :as metrics])
+            [puppetlabs.http.client.metrics :as metrics]
+            [puppetlabs.i18n.core :refer [trs]])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -98,7 +99,7 @@
     :post HttpMethod/POST
     :put HttpMethod/PUT
     :trace HttpMethod/TRACE
-    (throw (IllegalArgumentException. (format "Unsupported request method: %s" (:method opts))))))
+    (throw (IllegalArgumentException. (trs "Unsupported request method: {0}" (:method opts))))))
 
 (defn- parse-url
   [{:keys [url query-params]}]

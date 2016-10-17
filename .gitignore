@@ -2,3 +2,5 @@ target
 pom.xml
 .nrepl-port
 /.lein*
+/resources/locales.clj
+/resources/**/Messages*.class

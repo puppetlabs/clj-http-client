@@ -21,7 +21,8 @@
                  [commons-io "2.4"]
                  [io.dropwizard.metrics/metrics-core "3.1.2"]
 
-                 [puppetlabs/ssl-utils "0.8.1"]]
+                 [puppetlabs/ssl-utils "0.8.1"]
+                 [puppetlabs/i18n "0.4.3"]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -51,4 +52,5 @@
   :lein-release {:scm :git
                  :deploy-via :lein-deploy}
 
-  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]])
+  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]
+            [puppetlabs/i18n "0.4.3"]])
