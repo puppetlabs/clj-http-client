@@ -1,9 +1,11 @@
 (ns puppetlabs.http.client.async-plaintext-test
   (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net URI SocketTimeoutException ServerSocket))
+           (java.net URI SocketTimeoutException ServerSocket)
+           (java.util Locale))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
+            [puppetlabs.i18n.core :as i18n]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
@@ -26,6 +28,11 @@
   {:headers {"content-type" ""}
    :status 200
    :body "Hello, World!"})
+
+(defn app-with-language-header-echo
+  [{{:strs [accept-language]} :headers}]
+  {:status 200
+   :body (str accept-language)})
 
 (tk/defservice test-web-service
   [[:WebserverService add-ring-handler]]
@@ -433,3 +440,15 @@
              (with-open [client (async/create-client {})]
                (let [response @(common/get client url {:as :text})]
                  (is (= 200 (:status response)))))))))))
+
+(deftest accept-language-async
+  (testing "client passes on the user-locale in Accept-Language header"
+    (testlogging/with-test-logging
+      (testwebserver/with-test-webserver app-with-language-header-echo port
+        (i18n/with-user-locale (Locale. "es" "ES")
+          (let [url (str "http://localhost:" port "/hello")]
+            (testing "clojure persistent async client"
+              (with-open [client (async/create-client {})]
+                (let [response @(common/get client url {:as :text})]
+                  (is (= 200 (:status response)))
+                  (is (= "es-ES" (:body response))))))))))))
