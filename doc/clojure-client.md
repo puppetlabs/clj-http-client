@@ -88,7 +88,9 @@ Each request function takes one argument, `url`, which is the URL against which 
 your HTTP request. Each request function also has a two-arity version with an extra parameter, `options`,
 which is a map containing options for the HTTP request. These options are as follows:
 
-* `:headers`: optional; a map of headers
+* `:headers`: optional; a map of headers. By default an 'accept-language' header
+  with a value of `puppetlabs.core.i18n/user-locale` will be added to the
+  request.
 * `:body`: optional; may be a String or any type supported by clojure's reader
 * `:decompress-body`: optional; if `true`, an 'accept-encoding' header with a value of
   'gzip, deflate' will be added to the request, and the response will be
