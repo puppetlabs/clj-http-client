@@ -1,3 +1,11 @@
+## 0.7.0
+ This is a feature release
+ 
+* [SERVER-1556](https://tickets.puppetlabs.com/browse/SERVER-1556) Add
+  puppetlabs/clj-i18n support to clj-http-client.
+* Pass the global i18n locale binding in the "accept-language" header of Clojure
+  client requests.
+
 ## 0.6.0
  This is a feature and maintenance release
 
