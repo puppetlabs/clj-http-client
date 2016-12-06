@@ -14,11 +14,13 @@
            (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient)
-           (com.codahale.metrics MetricRegistry))
+           (com.codahale.metrics MetricRegistry)
+           (java.util Locale))
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema]
             [puppetlabs.http.client.metrics :as metrics]
-            [puppetlabs.i18n.core :refer [trs]])
+            [puppetlabs.i18n.core :as i18n :refer [trs]]
+            [clojure.string :as str])
   (:refer-clojure :exclude (get)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -173,11 +175,17 @@
     metric-registry :- (schema/maybe MetricRegistry)
     metric-namespace :- (schema/maybe schema/Str)]
    (let [result (promise)
-         defaults {:headers {}
-                   :body nil
+         defaults {:body nil
                    :decompress-body true
                    :as :stream}
-         opts (merge defaults opts)
+         ^Locale locale (i18n/user-locale)
+         ;; lower-case the header names so that we don't end up with
+         ;; Accept-Language *AND* accept-language in the headers
+         headers (into {"accept-language" (.toLanguageTag locale)}
+                       (for [[header value] (:headers opts)]
+                         [(str/lower-case header) value]))
+         opts (-> (merge defaults opts)
+                  (assoc :headers headers))
          java-request-options (clojure-options->java opts)
          java-method (clojure-method->java opts)
          response-delivery-delegate (get-response-delivery-delegate opts result)]
