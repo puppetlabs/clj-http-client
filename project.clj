@@ -1,6 +1,7 @@
 (def ks-version "1.3.0")
 (def tk-version "1.5.1")
 (def tk-jetty-version "1.5.0")
+(def i18n-version "0.4.3")
 
 (defproject puppetlabs/http-client "0.6.1-SNAPSHOT"
   :description "HTTP client wrapper"
@@ -22,7 +23,7 @@
                  [io.dropwizard.metrics/metrics-core "3.1.2"]
 
                  [puppetlabs/ssl-utils "0.8.1"]
-                 [puppetlabs/i18n "0.4.3"]]
+                 [puppetlabs/i18n ~i18n-version]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -53,4 +54,4 @@
                  :deploy-via :lein-deploy}
 
   :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]
-            [puppetlabs/i18n "0.4.3"]])
+            [puppetlabs/i18n ~i18n-version]])
