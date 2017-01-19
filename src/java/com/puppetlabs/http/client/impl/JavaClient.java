@@ -2,6 +2,7 @@ package com.puppetlabs.http.client.impl;
 
 import com.codahale.metrics.MetricRegistry;
 import com.puppetlabs.http.client.ClientOptions;
+import com.puppetlabs.http.client.CompressType;
 import com.puppetlabs.http.client.HttpClientException;
 import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.RequestOptions;
@@ -45,6 +46,8 @@ import org.apache.http.nio.client.methods.HttpAsyncMethods;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.protocol.HttpContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -52,6 +55,8 @@ import javax.net.ssl.X509TrustManager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.UnsupportedCharsetException;
@@ -61,10 +66,19 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 public class JavaClient {
 
     private static final String PROTOCOL = "TLS";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JavaClient.class);
+
+    // Buffer size to use in streams for request gzip compression.  This is
+    // somewhat arbitrary but went with the same value as the Apache HTTP
+    // async client uses for chunking input streams for requests:
+    // https://github.com/apache/httpcore/blob/4.4.5/httpcore-nio/src/main/java/org/apache/http/nio/entity/EntityAsyncContentProducer.java#L58
+    private static int GZIP_BUFFER_SIZE = 4096;
 
     private static Header[] prepareHeaders(RequestOptions options,
                                            ContentType contentType) {
@@ -79,6 +93,10 @@ public class JavaClient {
         if (options.getDecompressBody() &&
                 (! result.containsKey("accept-encoding"))) {
             result.put("accept-encoding", new BasicHeader("Accept-Encoding", "gzip, deflate"));
+        }
+        if (options.getCompressRequestBody() == CompressType.GZIP &&
+                (! result.containsKey("content-encoding"))) {
+            result.put("content-encoding", new BasicHeader("Content-Encoding", "gzip"));
         }
 
         if (contentType != null) {
@@ -123,6 +141,11 @@ public class JavaClient {
         return contentType;
     }
 
+    private static void throwUnsupportedBodyException(Object body) {
+        throw new HttpClientException("Unsupported body type for request: " +
+                body.getClass() + ". Only InputStream and String are supported.");
+    }
+
     private static CoercedRequestOptions coerceRequestOptions(RequestOptions options, HttpMethod method) {
         URI uri = options.getUri();
 
@@ -135,27 +158,59 @@ public class JavaClient {
         Header[] headers = prepareHeaders(options, contentType);
 
         HttpEntity body = null;
+        GZIPOutputStream gzipOutputStream = null;
+        Object bodyFromOptions = options.getBody();
+        byte[] bytesToGzip = null;
 
-        if (options.getBody() instanceof String) {
-            String originalBody = (String) options.getBody();
-            if (contentType != null) {
-                body = new NStringEntity(originalBody, contentType);
-            }
-            else {
+        if ((bodyFromOptions instanceof String) ||
+                (bodyFromOptions instanceof InputStream)) {
+            // See comments in the requestWithClient() method about why the
+            // request body is routed through a GZIPOutputStream,
+            // PipedOutputStream, and PipedInputStream in order to achieve
+            // gzip compression.
+            if (options.getCompressRequestBody() == CompressType.GZIP) {
+                PipedInputStream pis = new PipedInputStream(GZIP_BUFFER_SIZE);
+                PipedOutputStream pos = new PipedOutputStream();
                 try {
-                    body = new NStringEntity(originalBody);
-                }
-                catch (UnsupportedEncodingException e) {
+                    pos.connect(pis);
+                    gzipOutputStream = new GZIPOutputStream(pos,
+                            GZIP_BUFFER_SIZE);
+                    body = new InputStreamEntity(pis);
+                } catch (IOException ioe) {
                     throw new HttpClientException(
-                            "Unable to create request body", e);
+                            "Error setting up gzip stream for request", ioe);
                 }
+                if (bodyFromOptions instanceof String) {
+                    String bodyAsString = (String) bodyFromOptions;
+                    if (contentType != null) {
+                        bytesToGzip = bodyAsString.getBytes(contentType.getCharset());
+                    } else {
+                        bytesToGzip = bodyAsString.getBytes();
+                    }
+                }
+            } else if (bodyFromOptions instanceof String) {
+                String originalBody = (String) bodyFromOptions;
+                if (contentType != null) {
+                    body = new NStringEntity(originalBody, contentType);
+                }
+                else {
+                    try {
+                        body = new NStringEntity(originalBody);
+                    }
+                    catch (UnsupportedEncodingException e) {
+                        throw new HttpClientException(
+                                "Unable to create request body", e);
+                    }
+                }
+            } else {
+                body = new InputStreamEntity((InputStream) bodyFromOptions);
             }
-
-        } else if (options.getBody() instanceof InputStream) {
-            body = new InputStreamEntity((InputStream)options.getBody());
+        } else if (bodyFromOptions != null) {
+            throwUnsupportedBodyException(bodyFromOptions);
         }
 
-        return new CoercedRequestOptions(uri, method, headers, body);
+        return new CoercedRequestOptions(uri,
+                method, headers, body, gzipOutputStream, bytesToGzip);
     }
 
     public static CoercedClientOptions coerceClientOptions(ClientOptions options) {
@@ -320,6 +375,46 @@ public class JavaClient {
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
+    private static void gzipRequestPayload(
+            GZIPOutputStream gzipOutputStream,
+            byte[] bytesToGzip,
+            Object requestBody) {
+        try {
+            if (bytesToGzip != null) {
+                gzipOutputStream.write(bytesToGzip);
+            } else {
+                if (requestBody instanceof InputStream) {
+                    InputStream requestInputStream = (InputStream) requestBody;
+                    byte[] byteBuffer = new byte[GZIP_BUFFER_SIZE];
+                    IOUtils.copyLarge(requestInputStream,
+                            gzipOutputStream, byteBuffer);
+                } else {
+                    throwUnsupportedBodyException(requestBody);
+                }
+            }
+        // IOExceptions may be thrown either during the IOUtils.copyLarge()
+        // call above or during the close() call to the GZIPOutputStream below.
+        // The GZIPOutputStream object is backed by a PipedOutputStream object
+        // which is connected to a PipedInputStream object.  Most likely, any
+        // IOExceptions thrown up to this level would be due to the underlying
+        // PipedInputStream being closed prematurely.  In those cases, the
+        // Apache HTTP Async library should detect the failure while processing
+        // the request and deliver an appropriate "failure" callback as the
+        // result for the request.  The IOExceptions are caught and not rethrown
+        // here so that the client can still receive the "failure" callback from
+        // the Apache HTTP Async library later on.  The exceptions are still
+        // logged here at a debug level for troubleshooting purposes.
+        } catch (IOException ioe) {
+            LOGGER.debug("Error writing gzip request body", ioe);
+        } finally {
+            try {
+                gzipOutputStream.close();
+            } catch (IOException ioe) {
+                LOGGER.debug("Error closing gzip request stream", ioe);
+            }
+        }
+    }
+
     public static void requestWithClient(final RequestOptions requestOptions,
                                          final HttpMethod method,
                                          final IResponseCallback callback,
@@ -363,6 +458,48 @@ public class JavaClient {
                     new TimedFutureCallback<>(futureCallback,
                             TimerUtils.startFullResponseTimers(registry, request, metricId, metricNamespace));
             client.execute(request, timedFutureCallback);
+        }
+
+        // The approach used for gzip-compressing the request payload is far from
+        // ideal here.  The approach involves reading the bytes from the supplied
+        // request body, redirecting those through a JDK GZIPOutputStream object
+        // to compress them, and then piping those back into in InputStream that
+        // the Apache Async HTTP layer reads from in order to get the bytes
+        // to transmit in the HTTP request.  The JDK apparently has no built-in
+        // functionality for gzip-compressing a source byte array or InputStream
+        // back into a separate InputStream that the Apache Async HTTP layer
+        // could use.
+        //
+        // A better approach would probably be to do something like one of the
+        // approaches discussed in http://stackoverflow.com/questions/11036280/compress-an-inputstream-with-gzip.
+        // For example, the InputStream given to the Apache Async HTTP layer
+        // could be wrapped with a FilterInputStream which gzip-compresses
+        // bytes on the fly as the Apache Async HTTP layer asks for them.  The
+        // approaches on that thread are pretty involved, though, and appear to
+        // have liberally copied content from the JDK source.  A clean-room
+        // implementation would probably be better but would also likely
+        // require a fair bit of testing to ensure that it produces good gzip
+        // content under varying read scenarios.
+        //
+        // The approach being used for now requires writing through the
+        // GZIPOutputStream and underlying PipedOutputStream from the thread on
+        // which the HTTP request is made.  The connected PipedInputStream is
+        // then read from a separate thread, one of the Apache HTTP Async IO
+        // worker threads -- hopefully avoiding the possibility of a deadlock
+        // in the process.
+        //
+        // For requests that provide an InputStream as a source argument, it
+        // would also probably be more performant to do the GZIPOutputStream
+        // writing from a separate thread and would give an AsyncHttpClient
+        // requestor the ability to do other work while the source InputStream
+        // is being read and compressed.  As a simplification for now, this
+        // implementation doesn't spin up a separate thread (or thread pool)
+        // for performing gzip compression.
+        GZIPOutputStream gzipOutputStream = coercedRequestOptions.getGzipOutputStream();
+        if (gzipOutputStream != null) {
+            gzipRequestPayload(gzipOutputStream,
+                    coercedRequestOptions.getBytesToGzip(),
+                    requestOptions.getBody());
         }
     }
 

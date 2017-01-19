@@ -31,7 +31,12 @@ public class Sync {
         Object body = simpleOptions.getBody();
         boolean decompressBody = simpleOptions.getDecompressBody();
         ResponseBodyType as = simpleOptions.getAs();
-        return new RequestOptions(uri, headers, body, decompressBody, as);
+        CompressType requestBodyDecompression =
+                simpleOptions.getCompressRequestBody();
+        RequestOptions requestOptions = new RequestOptions(
+                uri, headers, body, decompressBody, as);
+        requestOptions.setCompressRequestBody(requestBodyDecompression);
+        return requestOptions;
     }
 
     private static ClientOptions extractClientOptions(SimpleRequestOptions simpleOptions) {

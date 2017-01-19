@@ -21,7 +21,9 @@
 
 (schema/defn extract-request-opts :- common/RawUserRequestOptions
   [opts :- common/RawUserRequestClientOptions]
-  (select-keys opts [:url :method :headers :body :decompress-body :as :query-params]))
+  (select-keys opts [:url :method :headers :body
+                     :decompress-body :compress-request-body
+                     :as :query-params]))
 
 (defn request-with-client
   ([req client]

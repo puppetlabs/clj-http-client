@@ -42,6 +42,9 @@
 (def BodyType
   (schema/enum :text :stream :unbuffered-stream))
 
+(def CompressType
+  (schema/enum :gzip :none))
+
 (def MetricId [(schema/either schema/Str schema/Keyword)])
 
 (def RawUserRequestClientOptions
@@ -53,6 +56,7 @@
    (ok :headers)          Headers
    (ok :body)             Body
    (ok :decompress-body)  schema/Bool
+   (ok :compress-request-body) CompressType
    (ok :as)               BodyType
    (ok :query-params)     {schema/Str schema/Str}
    (ok :metric-id)        [schema/Str]
@@ -76,6 +80,7 @@
    (ok :headers)          Headers
    (ok :body)             Body
    (ok :decompress-body)  schema/Bool
+   (ok :compress-request-body) CompressType
    (ok :as)               BodyType
    (ok :query-params)     {schema/Str schema/Str}
    (ok :metric-id)        MetricId})
@@ -90,6 +95,7 @@
    :headers               Headers
    :body                  Body
    :decompress-body       schema/Bool
+   :compress-request-body CompressType
    :as                    BodyType
    (ok :query-params)     {schema/Str schema/Str}
    (ok :metric-id)        MetricId})
