@@ -1,29 +1,27 @@
-(def ks-version "1.3.0")
-(def tk-version "1.5.1")
-(def tk-jetty-version "1.5.0")
-(def i18n-version "0.4.3")
-
 (defproject puppetlabs/http-client "0.7.1-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
+
+  :min-lein-version "2.7.1"
+
+  :parent-project {:coords [puppetlabs/clj-parent "0.3.3"]
+                   :inherit  [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.
   ;; requires lein 2.2.0+.
   :pedantic? :abort
 
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure]
 
                  [org.apache.httpcomponents/httpasyncclient "4.1.2"]
-                 [org.apache.commons/commons-lang3 "3.4"]
-                 [prismatic/schema "1.0.4"]
-                 [org.slf4j/slf4j-api "1.7.20"]
-                 [commons-io "2.4"]
+                 [prismatic/schema]
+                 [commons-io]
                  [io.dropwizard.metrics/metrics-core "3.1.2"]
 
-                 [puppetlabs/ssl-utils "0.8.1"]
-                 [puppetlabs/i18n ~i18n-version]]
+                 [puppetlabs/ssl-utils]
+                 [puppetlabs/i18n]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -34,11 +32,12 @@
   ;; depend on this source jar using a :classifier in their :dependencies.
   :classifiers [["sources" :sources-jar]]
 
-  :profiles {:dev {:dependencies [[puppetlabs/kitchensink ~ks-version :classifier "test"]
-                                  [puppetlabs/trapperkeeper ~tk-version]
-                                  [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 ~tk-jetty-version :classifier "test"]]
+  :profiles {:dev {:dependencies [[puppetlabs/kitchensink nil :classifier "test"]
+                                  [puppetlabs/trapperkeeper]
+                                  [puppetlabs/trapperkeeper nil :classifier "test"]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 nil :classifier "test"]
+                                  [puppetlabs/ring-middleware]]
                    ;; TK-143, enable SSLv3 for unit tests that exercise SSLv3
                    :jvm-opts ["-Djava.security.properties=./dev-resources/java.security"]}
              :sources-jar {:java-source-paths ^:replace []
@@ -53,5 +52,5 @@
   :lein-release {:scm :git
                  :deploy-via :lein-deploy}
 
-  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]
-            [puppetlabs/i18n ~i18n-version]])
+  :plugins [[lein-parent "0.3.1"]
+            [puppetlabs/i18n "0.6.0"]])
