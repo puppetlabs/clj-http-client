@@ -386,8 +386,12 @@ public class JavaClient {
                 if (requestBody instanceof InputStream) {
                     InputStream requestInputStream = (InputStream) requestBody;
                     byte[] byteBuffer = new byte[GZIP_BUFFER_SIZE];
-                    IOUtils.copyLarge(requestInputStream,
-                            gzipOutputStream, byteBuffer);
+                    try {
+                        IOUtils.copyLarge(requestInputStream,
+                                gzipOutputStream, byteBuffer);
+                    } finally {
+                        requestInputStream.close();
+                    }
                 } else {
                     throwUnsupportedBodyException(requestBody);
                 }

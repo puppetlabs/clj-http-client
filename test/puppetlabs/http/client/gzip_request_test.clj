@@ -3,7 +3,7 @@
                                        SimpleRequestOptions
                                        ResponseBodyType
                                        CompressType)
-           (java.io ByteArrayInputStream)
+           (java.io ByteArrayInputStream FilterInputStream)
            (java.net URI)
            (java.util.zip GZIPInputStream))
   (:require [clojure.test :refer :all]
@@ -31,10 +31,14 @@
   (apply str (repeat 4000 "and�i�said�hey�yeah�yeah�whats�going�on")))
 
 (defn string->byte-array-input-stream
-  [source]
-  (-> source
-      (.getBytes)
-      (ByteArrayInputStream.)))
+  [source is-closed-atom]
+  (let [bis (-> source
+                (.getBytes)
+                (ByteArrayInputStream.))]
+    (proxy [FilterInputStream] [bis]
+      (close []
+        (reset! is-closed-atom true)
+        (proxy-super close)))))
 
 (defn post-gzip-clj-request
   [port body]
@@ -71,17 +75,23 @@
          (is (= "gzip" (:request-content-encoding response)))
          (is (= big-request-body (:request-body-decompressed response)))))
      (testing "short inputstream body is gzipped in request"
-       (let [response (post-gzip-clj-request
+       (let [is-closed (atom false)
+             response (post-gzip-clj-request
                        port
-                       (string->byte-array-input-stream short-request-body))]
+                       (string->byte-array-input-stream short-request-body
+                                                        is-closed))]
          (is (= "gzip" (:request-content-encoding response)))
-         (is (= short-request-body (:request-body-decompressed response)))))
+         (is (= short-request-body (:request-body-decompressed response)))
+         (is @is-closed "input stream was not closed after request")))
      (testing "big inputstream body is gzipped in request"
-       (let [response (post-gzip-clj-request
+       (let [is-closed (atom false)
+             response (post-gzip-clj-request
                        port
-                       (string->byte-array-input-stream big-request-body))]
+                       (string->byte-array-input-stream big-request-body
+                                                        is-closed))]
          (is (= "gzip" (:request-content-encoding response)))
-         (is (= big-request-body (:request-body-decompressed response))))))))
+         (is (= big-request-body (:request-body-decompressed response)))
+         (is @is-closed "input stream was not closed after request"))))))
 
 (deftest java-sync-client-gzip-requests
   (testing "for java sync client"
@@ -97,22 +107,32 @@
          (is (= "gzip" (:request-content-encoding response)))
          (is (= big-request-body (:request-body-decompressed response)))))
      (testing "short inputstream body is gzipped in request"
-       (let [response (post-gzip-java-request
+       (let [is-closed (atom false)
+             response (post-gzip-java-request
                        port
-                       (string->byte-array-input-stream short-request-body))]
+                       (string->byte-array-input-stream short-request-body
+                                                        is-closed))]
          (is (= "gzip" (:request-content-encoding response)))
-         (is (= short-request-body (:request-body-decompressed response)))))
+         (is (= short-request-body (:request-body-decompressed response)))
+         (is @is-closed "input stream was not closed after request")))
      (testing "big inputstream body is gzipped in request"
-       (let [response (post-gzip-java-request
+       (let [is-closed (atom false)
+             response (post-gzip-java-request
                        port
-                       (string->byte-array-input-stream big-request-body))]
+                       (string->byte-array-input-stream big-request-body
+                                                        is-closed))]
          (is (= "gzip" (:request-content-encoding response)))
-         (is (= big-request-body (:request-body-decompressed response))))))))
+         (is (= big-request-body (:request-body-decompressed response)))
+         (is @is-closed "input stream was not closed after request"))))))
 
 (deftest connect-exception-during-gzip-request-returns-failure
   (testing "connection exception during gzip request returns failure"
-    (is (connect-exception-thrown?
-         (http-client/post "http://localhost:65535"
-                           {:body short-request-body
-                            :compress-request-body :gzip
-                            :as :text})))))
+    (let [is-closed (atom false)]
+      (is (connect-exception-thrown?
+           (http-client/post "http://localhost:65535"
+                             {:body (string->byte-array-input-stream
+                                     short-request-body
+                                     is-closed)
+                              :compress-request-body :gzip
+                              :as :text})))
+      (is @is-closed "input stream was not closed after request"))))
