@@ -4,3 +4,4 @@ pom.xml
 /.lein*
 /resources/locales.clj
 /resources/**/Messages*.class
+/dev-resources/i18n/bin
