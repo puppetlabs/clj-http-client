@@ -12,6 +12,7 @@ public class RequestOptions {
     private URI uri;
     private Map<String, String> headers;
     private Object body;
+    private CompressType requestBodyCompression = CompressType.NONE;
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
     private String[] metricId;
@@ -81,6 +82,15 @@ public class RequestOptions {
     public boolean getDecompressBody() { return decompressBody; }
     public RequestOptions setDecompressBody(boolean decompressBody) {
         this.decompressBody = decompressBody;
+        return this;
+    }
+
+    public CompressType getCompressRequestBody() {
+        return requestBodyCompression;
+    }
+    public RequestOptions setCompressRequestBody(
+            CompressType requestBodyCompression) {
+        this.requestBodyCompression = requestBodyCompression;
         return this;
     }
 

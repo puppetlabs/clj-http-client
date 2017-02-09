@@ -32,7 +32,8 @@
   ;; depend on this source jar using a :classifier in their :dependencies.
   :classifiers [["sources" :sources-jar]]
 
-  :profiles {:dev {:dependencies [[puppetlabs/kitchensink nil :classifier "test"]
+  :profiles {:dev {:dependencies [[cheshire]
+                                  [puppetlabs/kitchensink nil :classifier "test"]
                                   [puppetlabs/trapperkeeper]
                                   [puppetlabs/trapperkeeper nil :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9]

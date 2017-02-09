@@ -92,6 +92,11 @@ which is a map containing options for the HTTP request. These options are as fol
   with a value of `puppetlabs.core.i18n/user-locale` will be added to the
   request.
 * `:body`: optional; may be a String or any type supported by clojure's reader
+* `:compress-request-body`: optional; used to control any additional compression
+  which the client can apply to the request body before it is sent to the target
+  server. Defaults to `:none`. Supported values are:
+  * `:gzip` which will compress the request body as gzip
+  * `:none` which will not apply any additional compression to the request body
 * `:decompress-body`: optional; if `true`, an 'accept-encoding' header with a value of
   'gzip, deflate' will be added to the request, and the response will be
    automatically decompressed if it contains a recognized 'content-encoding'

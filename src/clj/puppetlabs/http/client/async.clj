@@ -10,7 +10,7 @@
 ;; these methods.
 
 (ns puppetlabs.http.client.async
-  (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod)
+  (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod CompressType)
            (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
            (org.apache.http.client.utils URIBuilder)
            (org.apache.http.nio.client HttpAsyncClient)
@@ -119,6 +119,12 @@
     :text ResponseBodyType/TEXT
     ResponseBodyType/STREAM))
 
+(schema/defn clojure-compress-request-body-type->java :- CompressType
+  [opts :- common/RequestOptions]
+  (case (:compress-request-body opts)
+    :gzip CompressType/GZIP
+    CompressType/NONE))
+
 (defn parse-metric-id
   [opts]
   (when-let [metric-id (:metric-id opts)]
@@ -131,6 +137,7 @@
       (.setAs (clojure-response-body-type->java opts))
       (.setBody (:body opts))
       (.setDecompressBody (clojure.core/get opts :decompress-body true))
+      (.setCompressRequestBody (clojure-compress-request-body-type->java opts))
       (.setHeaders (:headers opts))
       (.setMetricId (parse-metric-id opts))))
 
@@ -177,6 +184,7 @@
    (let [result (promise)
          defaults {:body nil
                    :decompress-body true
+                   :compress-request-body :none
                    :as :stream}
          ^Locale locale (i18n/user-locale)
          ;; lower-case the header names so that we don't end up with

@@ -24,6 +24,7 @@ public class SimpleRequestOptions {
     private String[] sslCipherSuites;
     private boolean insecure = false;
     private Object body;
+    private CompressType requestBodyCompression = CompressType.NONE;
     private boolean decompressBody = true;
     private ResponseBodyType as = ResponseBodyType.STREAM;
     private boolean forceRedirects = false;
@@ -134,6 +135,15 @@ public class SimpleRequestOptions {
     public boolean getDecompressBody() { return decompressBody; }
     public SimpleRequestOptions setDecompressBody(boolean decompressBody) {
         this.decompressBody = decompressBody;
+        return this;
+    }
+
+    public CompressType getCompressRequestBody() {
+        return requestBodyCompression;
+    }
+    public SimpleRequestOptions setRequestBodyCompression(
+            CompressType requestBodyCompression) {
+        this.requestBodyCompression = requestBodyCompression;
         return this;
     }
 
