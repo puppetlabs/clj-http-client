@@ -1,4 +1,4 @@
-(defproject puppetlabs/http-client "0.8.0"
+(defproject puppetlabs/http-client "0.8.1-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
