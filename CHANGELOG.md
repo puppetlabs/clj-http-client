@@ -1,3 +1,9 @@
+## 0.8.0
+ This is a feature release
+* [PDB-2640](https://tickets.puppetlabs.com/browse/PDB-2640) Added a
+  `:compress-request-body` request option which allows for the request
+  body content to be gzip-compressed before forwarding it on to the server
+
 ## 0.7.0
  This is a feature release
  
