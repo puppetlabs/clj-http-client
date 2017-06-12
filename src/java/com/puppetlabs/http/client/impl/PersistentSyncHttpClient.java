@@ -18,14 +18,17 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
     private MetricRegistry metricRegistry;
     private String metricNamespace;
+    private Boolean useURLMetrics;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
     public PersistentSyncHttpClient(CloseableHttpAsyncClient client,
                                     MetricRegistry metricRegistry,
-                                    String metricNamespace) {
+                                    String metricNamespace,
+                                    Boolean useURLMetrics) {
         this.client = client;
         this.metricRegistry = metricRegistry;
         this.metricNamespace = metricNamespace;
+        this.useURLMetrics = useURLMetrics;
     }
 
     private static void logAndRethrow(String msg, Throwable t) {
@@ -45,7 +48,7 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
         JavaClient.requestWithClient(requestOptions, method, null, client,
-                responseDelivery, metricRegistry, metricNamespace);
+                responseDelivery, metricRegistry, metricNamespace, useURLMetrics);
         Response response = null;
         try {
             response = promise.deref();

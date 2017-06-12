@@ -23,21 +23,24 @@
           (TimerUtils/startFullResponseTimers metric-registry
                                            (BasicHttpRequest. "GET" "http://localhost/foo")
                                            nil
-                                           Metrics/DEFAULT_NAMESPACE_PREFIX)
+                                           Metrics/DEFAULT_NAMESPACE_PREFIX
+                                              true)
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are not created for a request with an empty metric id"
         (let [metric-registry (MetricRegistry.)]
           (TimerUtils/startFullResponseTimers metric-registry
                                            (BasicHttpRequest. "GET" "http://localhost/foo")
                                            (into-array String [])
-                                           Metrics/DEFAULT_NAMESPACE_PREFIX)
+                                           Metrics/DEFAULT_NAMESPACE_PREFIX
+                                              true)
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are created correctly for a request with a metric id"
         (let [metric-registry (MetricRegistry.)]
           (TimerUtils/startFullResponseTimers metric-registry
                                               (BasicHttpRequest. "GET" "http://localhost/foo")
                                               (into-array ["foo" "bar" "baz"])
-                                              Metrics/DEFAULT_NAMESPACE_PREFIX)
+                                              Metrics/DEFAULT_NAMESPACE_PREFIX
+                                              true)
           (is (= (set (list url-id url-method-id
                             (add-metric-ns "with-metric-id.foo.full-response")
                             (add-metric-ns "with-metric-id.foo.bar.full-response")
@@ -49,24 +52,28 @@
            metric-registry
            (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one")
            nil
-           Metrics/DEFAULT_NAMESPACE_PREFIX)
+           Metrics/DEFAULT_NAMESPACE_PREFIX
+           true)
           (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest. "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz#x%2cyz")
            nil
-           Metrics/DEFAULT_NAMESPACE_PREFIX)
+           Metrics/DEFAULT_NAMESPACE_PREFIX
+           true)
           (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest.
             "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?te%2cst=one#x%2cyz")
            nil
-           Metrics/DEFAULT_NAMESPACE_PREFIX)
+           Metrics/DEFAULT_NAMESPACE_PREFIX
+           true)
           (TimerUtils/startFullResponseTimers
            metric-registry
            (BasicHttpRequest.
             "GET" "http://user:pwd@localhost:1234/foo%2cbar/baz?#x%2cyz")
            nil
-           Metrics/DEFAULT_NAMESPACE_PREFIX)
+           Metrics/DEFAULT_NAMESPACE_PREFIX
+           true)
           (is (= (set (list
                        (add-metric-ns
                         "with-url.http://localhost:1234/foo,bar/baz.full-response")
@@ -89,7 +96,8 @@
                  registry
                  req
                  id
-                 Metrics/DEFAULT_NAMESPACE_PREFIX)]
+                 Metrics/DEFAULT_NAMESPACE_PREFIX
+                 true)]
     (.stop timer)))
 
 (deftest get-client-metrics-data-test

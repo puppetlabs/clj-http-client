@@ -29,6 +29,7 @@ public class ClientOptions {
     private MetricRegistry metricRegistry;
     private String metricPrefix;
     private String serverId;
+    private boolean useURLMetrics = true;
 
     /**
      * Constructor for the ClientOptions class. When this constructor is called,
@@ -201,6 +202,15 @@ public class ClientOptions {
 
     public ClientOptions setServerId(String serverId) {
         this.serverId = serverId;
+        return this;
+    }
+
+    public boolean isUseURLMetrics() {
+        return useURLMetrics;
+    }
+
+    public ClientOptions setUseURLMetrics(boolean useURLMetrics) {
+        this.useURLMetrics = useURLMetrics;
         return this;
     }
 }

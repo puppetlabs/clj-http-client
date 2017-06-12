@@ -22,6 +22,8 @@ public class Async {
         final String metricNamespace = Metrics.buildMetricNamespace(clientOptions.getMetricPrefix(),
                 clientOptions.getServerId());
         return new PersistentAsyncHttpClient(JavaClient.createClient(clientOptions),
-                clientOptions.getMetricRegistry(),metricNamespace);
+                clientOptions.getMetricRegistry(),
+                metricNamespace,
+                clientOptions.isUseURLMetrics());
     }
 }

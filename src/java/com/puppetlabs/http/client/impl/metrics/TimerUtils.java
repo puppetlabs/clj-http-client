@@ -64,29 +64,32 @@ public class TimerUtils {
 
     private static ArrayList<Timer.Context> startFullResponseUrlTimers(MetricRegistry registry,
                                                                        HttpRequest request,
-                                                                       String metricPrefix) {
+                                                                       String metricPrefix,
+                                                                       Boolean useUrlMetrics) {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
-        try {
-            final RequestLine requestLine = request.getRequestLine();
-            final String strippedUrl = Metrics.urlToMetricUrl(requestLine.getUri());
-            final String method = requestLine.getMethod();
+        if (useUrlMetrics) {
+            try {
+                final RequestLine requestLine = request.getRequestLine();
+                final String strippedUrl = Metrics.urlToMetricUrl(requestLine.getUri());
+                final String method = requestLine.getMethod();
 
-            final String urlName = MetricRegistry.name(metricPrefix, Metrics.NAMESPACE_URL,
-                    strippedUrl, Metrics.NAMESPACE_FULL_RESPONSE);
-            final String urlAndMethodName = MetricRegistry.name(metricPrefix, Metrics.NAMESPACE_URL_AND_METHOD,
-                    strippedUrl, method, Metrics.NAMESPACE_FULL_RESPONSE);
+                final String urlName = MetricRegistry.name(metricPrefix, Metrics.NAMESPACE_URL,
+                        strippedUrl, Metrics.NAMESPACE_FULL_RESPONSE);
+                final String urlAndMethodName = MetricRegistry.name(metricPrefix, Metrics.NAMESPACE_URL_AND_METHOD,
+                        strippedUrl, method, Metrics.NAMESPACE_FULL_RESPONSE);
 
-            ClientTimer urlTimer = new UrlClientTimer(urlName, strippedUrl, Metrics.MetricType.FULL_RESPONSE);
-            timerContexts.add(getOrAddTimer(registry, urlName, urlTimer).time());
+                ClientTimer urlTimer = new UrlClientTimer(urlName, strippedUrl, Metrics.MetricType.FULL_RESPONSE);
+                timerContexts.add(getOrAddTimer(registry, urlName, urlTimer).time());
 
-            ClientTimer urlMethodTimer = new UrlAndMethodClientTimer(urlAndMethodName, strippedUrl,
-                    method, Metrics.MetricType.FULL_RESPONSE);
-            timerContexts.add(getOrAddTimer(registry, urlAndMethodName, urlMethodTimer).time());
-        } catch (URISyntaxException e) {
-            // this shouldn't be possible
-            LOGGER.warn("Could not build URI out of the request URI. Will not create URI timers. " +
-                    "We recommend you read http://www.stilldrinking.com/programming-sucks. " +
-                    "'now all your snowflakes are urine and you can't even find the cat.'");
+                ClientTimer urlMethodTimer = new UrlAndMethodClientTimer(urlAndMethodName, strippedUrl,
+                        method, Metrics.MetricType.FULL_RESPONSE);
+                timerContexts.add(getOrAddTimer(registry, urlAndMethodName, urlMethodTimer).time());
+            } catch (URISyntaxException e) {
+                // this shouldn't be possible
+                LOGGER.warn("Could not build URI out of the request URI. Will not create URI timers. " +
+                        "We recommend you read http://www.stilldrinking.com/programming-sucks. " +
+                        "'now all your snowflakes are urine and you can't even find the cat.'");
+            }
         }
         return timerContexts;
     }
@@ -94,9 +97,10 @@ public class TimerUtils {
     public static ArrayList<Timer.Context> startFullResponseTimers(MetricRegistry clientRegistry,
                                                                    HttpRequest request,
                                                                    String[] metricId,
-                                                                   String metricNamespace) {
+                                                                   String metricNamespace,
+                                                                   Boolean useUrlMetrics) {
         if (clientRegistry != null) {
-            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry, request, metricNamespace);
+            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry, request, metricNamespace, useUrlMetrics);
             ArrayList<Timer.Context> allTimerContexts = new ArrayList<>(urlTimerContexts);
             if (metricId != null) {
                 ArrayList<Timer.Context> metricIdTimers =

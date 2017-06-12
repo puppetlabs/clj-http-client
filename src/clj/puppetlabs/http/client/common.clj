@@ -116,13 +116,14 @@
    (ok :cipher-suites) [schema/Str]})
 
 (def BaseClientOptions
-  {(ok :force-redirects)  schema/Bool
+  {(ok :force-redirects) schema/Bool
    (ok :follow-redirects) schema/Bool
    (ok :connect-timeout-milliseconds) schema/Int
    (ok :socket-timeout-milliseconds) schema/Int
    (ok :metric-registry) MetricRegistry
    (ok :server-id) schema/Str
-   (ok :metric-prefix) schema/Str})
+   (ok :metric-prefix) schema/Str
+   (ok :use-url-metrics) schema/Bool})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after

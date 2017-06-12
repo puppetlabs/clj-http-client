@@ -27,10 +27,10 @@
 
 (defn request-with-client
   ([req client]
-   (request-with-client req client nil nil))
-  ([req client metric-registry metric-namespace]
+   (request-with-client req client nil nil true))
+  ([req client metric-registry metric-namespace use-url-metrics]
    (let [{:keys [error] :as resp} @(async/request-with-client
-                                    req nil client metric-registry metric-namespace)]
+                                    req nil client metric-registry metric-namespace use-url-metrics)]
      (if error
        (throw error)
        resp))))
@@ -46,7 +46,8 @@
   [opts :- common/ClientOptions]
   (let [client (async/create-default-client opts)
         metric-registry (:metric-registry opts)
-        metric-namespace (metrics/build-metric-namespace (:metric-prefix opts) (:server-id opts))]
+        metric-namespace (metrics/build-metric-namespace (:metric-prefix opts) (:server-id opts))
+        use-url-metrics (clojure.core/get opts :use-url-metrics true)]
     (reify common/HTTPClient
       (get [this url] (common/get this url {}))
       (get [this url opts] (common/make-request this url :get opts))
@@ -67,7 +68,7 @@
       (make-request [this url method] (common/make-request this url method {}))
       (make-request [_ url method opts] (request-with-client
                                          (assoc opts :method method :url url)
-                                         client metric-registry metric-namespace))
+                                         client metric-registry metric-namespace use-url-metrics))
       (close [_] (.close client))
       (get-client-metric-registry [_] metric-registry)
       (get-client-metric-namespace [_] metric-namespace))))
