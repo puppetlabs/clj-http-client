@@ -71,17 +71,6 @@
       app
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
-      (with-open [client (Async/createClient (doto (ClientOptions.)
-                                               (.setMetricRegistry (MetricRegistry.))
-                                               (.setEnableURLMetrics false)))]
-        (let [request-opts (RequestOptions. hello-url)
-              response (-> client (.get request-opts) (.deref))]
-          (is (= 200 (.getStatus response)))
-          (let [client-metrics (-> client
-                                   (.getMetricRegistry)
-                                   (Metrics/getClientMetrics))]
-            (is (.isEmpty (.getUrlTimers client-metrics)))
-            (is (.isEmpty (.getUrlAndMethodTimers client-metrics))))))
       (let [metric-registry (MetricRegistry.)
             hello-request-opts (RequestOptions. hello-url)
             short-request-opts (RequestOptions. short-url)
@@ -180,15 +169,6 @@
       app
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
-      (with-open [client (async/create-client {:metric-registry (MetricRegistry.)
-                                               :enable-url-metrics? false})]
-        (let [response @(common/get client hello-url)]
-          (is (= 200 (:status response)))
-          (let [client-metrics (-> client
-                                   (common/get-client-metric-registry)
-                                   (metrics/get-client-metrics))]
-            (is (empty? (:url client-metrics)))
-            (is (empty? (:url-and-method client-metrics))))))
       (let [metric-registry (MetricRegistry.)]
         (with-open [client (async/create-client
                             {:metric-registry metric-registry})]
@@ -277,17 +257,6 @@
       app
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
-      (with-open [client (Sync/createClient (doto (ClientOptions.)
-                                              (.setMetricRegistry (MetricRegistry.))
-                                              (.setEnableURLMetrics false)))]
-        (let [request-opts (RequestOptions. hello-url)
-              response (-> client (.get request-opts))]
-          (is (= 200 (.getStatus response)))
-          (let [client-metrics (-> client
-                                   (.getMetricRegistry)
-                                   (Metrics/getClientMetrics))]
-            (is (.isEmpty (.getUrlTimers client-metrics)))
-            (is (.isEmpty (.getUrlAndMethodTimers client-metrics))))))
       (let [metric-registry (MetricRegistry.)
             hello-request-opts (RequestOptions. hello-url)
             short-request-opts (RequestOptions. short-url)
@@ -387,15 +356,6 @@
       app
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
-      (with-open [client (sync/create-client {:metric-registry (MetricRegistry.)
-                                              :enable-url-metrics? false})]
-        (let [response (common/get client hello-url)]
-          (is (= 200 (:status response)))
-          (let [client-metrics (-> client
-                                   (common/get-client-metric-registry)
-                                   (metrics/get-client-metrics))]
-            (is (empty? (:url client-metrics)))
-            (is (empty? (:url-and-method client-metrics))))))
       (let [metric-registry (MetricRegistry.)]
         (with-open [client (sync/create-client {:metric-registry metric-registry})]
           (common/get client hello-url) ; warm it up
@@ -777,3 +737,64 @@
                                                 :server-id server-id})]
               (-> client-with-server-id (common/get hello-url))
               (is (= metric-name-with-prefix (get-metric-name metric-registry)))))))))))
+
+(deftest toggleable-url-metrics
+  (testlogging/with-test-logging
+    (testutils/with-app-with-config
+     app
+     [jetty9/jetty9-service test-metric-web-service]
+     {:webserver {:port 10000}}
+     (testing "url-metrics can be disabled for clojure async client"
+       (with-open [client (async/create-client {:metric-registry (MetricRegistry.)
+                                                :enable-url-metrics? false})]
+         (let [response @(common/get client hello-url {:metric-id ["foo" "bar"]})]
+           (is (= 200 (:status response)))
+           (let [client-metrics (-> client
+                                    (common/get-client-metric-registry)
+                                    (metrics/get-client-metrics))
+                 metric-names (set (map #(.getMetricName %) (:metric-id client-metrics)))]
+             (is (empty? (:url client-metrics)))
+             (is (empty? (:url-and-method client-metrics)))
+             (is (= #{long-foo-name long-foo-bar-name} metric-names))))))
+     (testing "url-metrics can be disabled for java async client"
+       (with-open [client (Async/createClient (doto (ClientOptions.)
+                                              (.setMetricRegistry (MetricRegistry.))
+                                              (.setEnableURLMetrics false)))]
+         (let [request-opts (doto (RequestOptions. hello-url)
+                              (.setMetricId (into-array ["foo" "bar"])))
+               response (-> client (.get request-opts) (.deref))]
+           (is (= 200 (.getStatus response)))
+           (let [client-metrics (-> client
+                                    (.getMetricRegistry)
+                                    (Metrics/getClientMetrics))
+                 metric-names (set (map #(.getMetricName %) (.getMetricIdTimers client-metrics)))]
+             (is (.isEmpty (.getUrlTimers client-metrics)))
+             (is (.isEmpty (.getUrlAndMethodTimers client-metrics)))
+             (is (= #{long-foo-name long-foo-bar-name} metric-names))))))
+     (testing "url-metrics can be disabled for clojure sync client"
+       (with-open [client (sync/create-client {:metric-registry (MetricRegistry.)
+                                               :enable-url-metrics? false})]
+         (let [response (common/get client hello-url {:metric-id ["foo" "bar"]})]
+           (is (= 200 (:status response)))
+           (let [client-metrics (-> client
+                                    (common/get-client-metric-registry)
+                                    (metrics/get-client-metrics))
+                 metric-names (set (map #(.getMetricName %) (:metric-id client-metrics)))]
+             (is (empty? (:url client-metrics)))
+             (is (empty? (:url-and-method client-metrics)))
+             (is (= #{long-foo-name long-foo-bar-name} metric-names))))))
+     (testing "url-metrics can be disabled for java sync client"
+       (with-open [client (Sync/createClient (doto (ClientOptions.)
+                                               (.setMetricRegistry (MetricRegistry.))
+                                               (.setEnableURLMetrics false)))]
+         (let [request-opts (doto (RequestOptions. hello-url)
+                              (.setMetricId (into-array ["foo" "bar"])))
+               response (-> client (.get request-opts))]
+           (is (= 200 (.getStatus response)))
+           (let [client-metrics (-> client
+                                    (.getMetricRegistry)
+                                    (Metrics/getClientMetrics))
+                 metric-names (set (map #(.getMetricName %) (.getMetricIdTimers client-metrics)))]
+             (is (.isEmpty (.getUrlTimers client-metrics)))
+             (is (.isEmpty (.getUrlAndMethodTimers client-metrics)))
+             (is (= #{long-foo-name long-foo-bar-name} metric-names)))))))))
