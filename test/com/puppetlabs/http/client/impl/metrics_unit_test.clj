@@ -21,17 +21,17 @@
       (testing "metric id timers are not created for a request without a metric id"
         (let [metric-registry (MetricRegistry.)]
           (TimerUtils/startFullResponseTimers metric-registry
-                                           (BasicHttpRequest. "GET" "http://localhost/foo")
-                                           nil
-                                           Metrics/DEFAULT_NAMESPACE_PREFIX
+                                              (BasicHttpRequest. "GET" "http://localhost/foo")
+                                              nil
+                                              Metrics/DEFAULT_NAMESPACE_PREFIX
                                               true)
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are not created for a request with an empty metric id"
         (let [metric-registry (MetricRegistry.)]
           (TimerUtils/startFullResponseTimers metric-registry
-                                           (BasicHttpRequest. "GET" "http://localhost/foo")
-                                           (into-array String [])
-                                           Metrics/DEFAULT_NAMESPACE_PREFIX
+                                              (BasicHttpRequest. "GET" "http://localhost/foo")
+                                              (into-array String [])
+                                              Metrics/DEFAULT_NAMESPACE_PREFIX
                                               true)
           (is (= (set (list url-id url-method-id)) (set (keys (.getTimers metric-registry)))))))
       (testing "metric id timers are created correctly for a request with a metric id"

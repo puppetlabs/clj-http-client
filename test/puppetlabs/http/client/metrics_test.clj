@@ -388,7 +388,7 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (with-open [client (sync/create-client {:metric-registry (MetricRegistry.)
-                                               :use-url-metrics false})]
+                                              :use-url-metrics false})]
         (let [response (common/get client hello-url)]
           (is (= 200 (:status response)))
           (let [client-metrics (-> client
