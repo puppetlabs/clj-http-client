@@ -6,5 +6,12 @@ jdk:
 script: ./ext/travisci/test.sh
 notifications:
   email: false
+
+# Java needs to be able to resolve its hostname when doing integration style
+# tests, which it cannot do in certain cases with travis-ci.  If we need the
+# runtime/container to be able to resolve its own hostname we need to use
+# either the `hostname` or `hosts` "addon" for travis.  Since we don't care
+# what the hostname is, here we just give it a garbage name based on the name
+# of the project.
 addons:
   hostname: cljhttpclient
