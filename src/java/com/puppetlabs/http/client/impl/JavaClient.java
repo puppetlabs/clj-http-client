@@ -320,7 +320,7 @@ public class JavaClient {
                                             final MetricRegistry metricRegistry,
                                             final String[] metricId,
                                             final String metricNamespace,
-                                            final Boolean enableURLMetrics) {
+                                            final boolean enableURLMetrics) {
 
         /*
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
@@ -427,7 +427,7 @@ public class JavaClient {
                                          final ResponseDeliveryDelegate responseDeliveryDelegate,
                                          final MetricRegistry registry,
                                          final String metricNamespace,
-                                         final Boolean enableURLMetrics) {
+                                         final boolean enableURLMetrics) {
 
         final CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 

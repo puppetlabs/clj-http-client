@@ -18,13 +18,13 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
     private CloseableHttpAsyncClient client;
     private MetricRegistry metricRegistry;
     private String metricNamespace;
-    private Boolean enableURLMetrics;
+    private boolean enableURLMetrics;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersistentSyncHttpClient.class);
 
     public PersistentSyncHttpClient(CloseableHttpAsyncClient client,
                                     MetricRegistry metricRegistry,
                                     String metricNamespace,
-                                    Boolean enableURLMetrics) {
+                                    boolean enableURLMetrics) {
         this.client = client;
         this.metricRegistry = metricRegistry;
         this.metricNamespace = metricNamespace;
