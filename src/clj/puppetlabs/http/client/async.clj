@@ -176,13 +176,19 @@
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient]
-    (request-with-client opts callback client nil nil true))
+   (request-with-client opts callback client nil nil true))
+  ([opts :- common/RawUserRequestOptions
+    callback :- common/ResponseCallbackFn
+    client :- HttpAsyncClient
+    metric-registry :- (schema/maybe MetricRegistry)
+    metric-namespace :- (schema/maybe schema/Str)]
+   (request-with-client opts callback client metric-registry metric-namespace true))
   ([opts :- common/RawUserRequestOptions
     callback :- common/ResponseCallbackFn
     client :- HttpAsyncClient
     metric-registry :- (schema/maybe MetricRegistry)
     metric-namespace :- (schema/maybe schema/Str)
-    enable-url-metrics? :- (schema/maybe schema/Bool)]
+    enable-url-metrics? :- schema/Bool]
    (let [result (promise)
          defaults {:body nil
                    :decompress-body true
@@ -198,12 +204,11 @@
                   (assoc :headers headers))
          java-request-options (clojure-options->java opts)
          java-method (clojure-method->java opts)
-         response-delivery-delegate (get-response-delivery-delegate opts result)
-         url-metrics (if (nil? enable-url-metrics?) true enable-url-metrics?)]
+         response-delivery-delegate (get-response-delivery-delegate opts result)]
      (JavaClient/requestWithClient java-request-options java-method callback
                                    client response-delivery-delegate metric-registry
                                    metric-namespace
-                                   url-metrics)
+                                   enable-url-metrics?)
      result)))
 
 (schema/defn create-client :- (schema/protocol common/HTTPClient)

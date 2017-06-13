@@ -28,6 +28,8 @@
 (defn request-with-client
   ([req client]
    (request-with-client req client nil nil true))
+  ([req client metric-registry metric-namespace]
+   (request-with-client req client metric-registry metric-namespace true))
   ([req client metric-registry metric-namespace enable-url-metrics?]
    (let [{:keys [error] :as resp} @(async/request-with-client
                                     req nil client metric-registry metric-namespace enable-url-metrics?)]
