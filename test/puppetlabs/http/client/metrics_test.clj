@@ -73,7 +73,7 @@
       {:webserver {:port 10000}}
       (with-open [client (Async/createClient (doto (ClientOptions.)
                                                (.setMetricRegistry (MetricRegistry.))
-                                               (.setUseURLMetrics false)))]
+                                               (.setEnableURLMetrics false)))]
         (let [request-opts (RequestOptions. hello-url)
               response (-> client (.get request-opts) (.deref))]
           (is (= 200 (.getStatus response)))
@@ -181,7 +181,7 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (with-open [client (async/create-client {:metric-registry (MetricRegistry.)
-                                               :use-url-metrics false})]
+                                               :enable-url-metrics? false})]
         (let [response @(common/get client hello-url)]
           (is (= 200 (:status response)))
           (let [client-metrics (-> client
@@ -279,7 +279,7 @@
       {:webserver {:port 10000}}
       (with-open [client (Sync/createClient (doto (ClientOptions.)
                                               (.setMetricRegistry (MetricRegistry.))
-                                              (.setUseURLMetrics false)))]
+                                              (.setEnableURLMetrics false)))]
         (let [request-opts (RequestOptions. hello-url)
               response (-> client (.get request-opts))]
           (is (= 200 (.getStatus response)))
@@ -388,7 +388,7 @@
       [jetty9/jetty9-service test-metric-web-service]
       {:webserver {:port 10000}}
       (with-open [client (sync/create-client {:metric-registry (MetricRegistry.)
-                                              :use-url-metrics false})]
+                                              :enable-url-metrics? false})]
         (let [response (common/get client hello-url)]
           (is (= 200 (:status response)))
           (let [client-metrics (-> client

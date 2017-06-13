@@ -65,9 +65,9 @@ public class TimerUtils {
     private static ArrayList<Timer.Context> startFullResponseUrlTimers(MetricRegistry registry,
                                                                        HttpRequest request,
                                                                        String metricPrefix,
-                                                                       Boolean useUrlMetrics) {
+                                                                       Boolean enableURLMetrics) {
         ArrayList<Timer.Context> timerContexts = new ArrayList<>();
-        if (useUrlMetrics) {
+        if (enableURLMetrics) {
             try {
                 final RequestLine requestLine = request.getRequestLine();
                 final String strippedUrl = Metrics.urlToMetricUrl(requestLine.getUri());
@@ -98,9 +98,9 @@ public class TimerUtils {
                                                                    HttpRequest request,
                                                                    String[] metricId,
                                                                    String metricNamespace,
-                                                                   Boolean useUrlMetrics) {
+                                                                   Boolean enableURLMetrics) {
         if (clientRegistry != null) {
-            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry, request, metricNamespace, useUrlMetrics);
+            ArrayList<Timer.Context> urlTimerContexts = startFullResponseUrlTimers(clientRegistry, request, metricNamespace, enableURLMetrics);
             ArrayList<Timer.Context> allTimerContexts = new ArrayList<>(urlTimerContexts);
             if (metricId != null) {
                 ArrayList<Timer.Context> metricIdTimers =

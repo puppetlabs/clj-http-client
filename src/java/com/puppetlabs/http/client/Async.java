@@ -24,6 +24,6 @@ public class Async {
         return new PersistentAsyncHttpClient(JavaClient.createClient(clientOptions),
                 clientOptions.getMetricRegistry(),
                 metricNamespace,
-                clientOptions.isUseURLMetrics());
+                clientOptions.isEnableURLMetrics());
     }
 }

@@ -15,16 +15,16 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
     private CloseableHttpAsyncClient client;
     private MetricRegistry metricRegistry;
     private String metricNamespace;
-    private Boolean useURLMetrics;
+    private Boolean enableURLMetrics;
 
     public PersistentAsyncHttpClient(CloseableHttpAsyncClient client,
                                      MetricRegistry metricRegistry,
                                      String metricNamespace,
-                                     Boolean useURLMetrics) {
+                                     Boolean enableURLMetrics) {
         this.client = client;
         this.metricRegistry = metricRegistry;
         this.metricNamespace = metricNamespace;
-        this.useURLMetrics = useURLMetrics;
+        this.enableURLMetrics = enableURLMetrics;
     }
 
     public void close() throws IOException {
@@ -43,7 +43,7 @@ public class PersistentAsyncHttpClient implements AsyncHttpClient {
         final Promise<Response> promise = new Promise<>();
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
         JavaClient.requestWithClient(requestOptions, method, null,
-                client, responseDelivery, metricRegistry, metricNamespace, useURLMetrics);
+                client, responseDelivery, metricRegistry, metricNamespace, enableURLMetrics);
         return promise;
     }
 

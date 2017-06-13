@@ -93,7 +93,7 @@ public class Sync {
         final String metricNamespace = Metrics.buildMetricNamespace(clientOptions.getMetricPrefix(),
                 clientOptions.getServerId());
         return new PersistentSyncHttpClient(JavaClient.createClient(clientOptions),
-                clientOptions.getMetricRegistry(), metricNamespace, clientOptions.isUseURLMetrics());
+                clientOptions.getMetricRegistry(), metricNamespace, clientOptions.isEnableURLMetrics());
     }
 
     /**

@@ -320,7 +320,7 @@ public class JavaClient {
                                             final MetricRegistry metricRegistry,
                                             final String[] metricId,
                                             final String metricNamespace,
-                                            final Boolean useUrlMetrics) {
+                                            final Boolean enableURLMetrics) {
 
         /*
          * Create an Apache AsyncResponseConsumer that will return the response to us as soon as it is available,
@@ -372,7 +372,7 @@ public class JavaClient {
 
         TimedFutureCallback<HttpResponse> timedStreamingCompleteCallback =
                 new TimedFutureCallback<>(streamingCompleteCallback,
-                        TimerUtils.startFullResponseTimers(metricRegistry, request, metricId, metricNamespace, useUrlMetrics));
+                        TimerUtils.startFullResponseTimers(metricRegistry, request, metricId, metricNamespace, enableURLMetrics));
         client.execute(HttpAsyncMethods.create(request), consumer, timedStreamingCompleteCallback);
     }
 
@@ -427,7 +427,7 @@ public class JavaClient {
                                          final ResponseDeliveryDelegate responseDeliveryDelegate,
                                          final MetricRegistry registry,
                                          final String metricNamespace,
-                                         final Boolean useUrlMetrics) {
+                                         final Boolean enableURLMetrics) {
 
         final CoercedRequestOptions coercedRequestOptions = coerceRequestOptions(requestOptions, method);
 
@@ -458,11 +458,11 @@ public class JavaClient {
 
         final String[] metricId = requestOptions.getMetricId();
         if (requestOptions.getAs() == ResponseBodyType.UNBUFFERED_STREAM) {
-            executeWithConsumer(client, futureCallback, request, registry, metricId, metricNamespace, useUrlMetrics);
+            executeWithConsumer(client, futureCallback, request, registry, metricId, metricNamespace, enableURLMetrics);
         } else {
             TimedFutureCallback<HttpResponse> timedFutureCallback =
                     new TimedFutureCallback<>(futureCallback,
-                            TimerUtils.startFullResponseTimers(registry, request, metricId, metricNamespace, useUrlMetrics));
+                            TimerUtils.startFullResponseTimers(registry, request, metricId, metricNamespace, enableURLMetrics));
             client.execute(request, timedFutureCallback);
         }
 
