@@ -2,4 +2,4 @@
 
 set -e
 
-lein2 test :all
+lein test :all
