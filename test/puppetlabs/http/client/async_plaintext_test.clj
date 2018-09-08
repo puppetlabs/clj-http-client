@@ -425,8 +425,10 @@
                 (is (= "Hello, World!" (:body response)))))))))))
 
 (deftest empty-content-type-async
-  (testing "content-type parsing handles empty content-type"
+  (testing "content-type parsing handles invalid content-type"
     (testlogging/with-test-logging
+     ;; while the content-type is empty, the request actually gets sent
+     ;; as ";<character-set>", which is invalid
       (testwebserver/with-test-webserver app-with-empty-content-type port
          (let [url (str "http://localhost:" port "/hello")]
            (testing "java persistent async client"

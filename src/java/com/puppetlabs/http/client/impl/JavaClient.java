@@ -297,7 +297,11 @@ public class JavaClient {
             ContentType contentType = null;
             String contentTypeValue = headers.get("content-type");
             if (contentTypeValue != null && !contentTypeValue.isEmpty()) {
-                contentType = ContentType.parse(contentTypeValue);
+                try {
+                    contentType = ContentType.parse(contentTypeValue);
+                } catch (ParseException e) {
+                    LOGGER.error("Unable to parse response content-type", e);
+                }
             }
             if (requestOptions.getAs() == ResponseBodyType.TEXT) {
                 body = coerceBodyType((InputStream) body, requestOptions.getAs(), contentType);
