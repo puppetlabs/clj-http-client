@@ -123,7 +123,9 @@
    (ok :metric-registry) MetricRegistry
    (ok :server-id) schema/Str
    (ok :metric-prefix) schema/Str
-   (ok :enable-url-metrics?) schema/Bool})
+   (ok :enable-url-metrics?) schema/Bool
+   (ok :max-connections-total) schema/Int
+   (ok :max-connections-per-route) schema/Int})
 
 (def UserRequestOptions
   "A cleaned-up version of RawUserRequestClientOptions, which is formed after

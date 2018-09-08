@@ -516,6 +516,9 @@ public class JavaClient {
     public static CloseableHttpAsyncClient createClient(ClientOptions clientOptions) {
         CoercedClientOptions coercedOptions = coerceClientOptions(SslUtils.configureSsl(clientOptions));
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
+        clientBuilder.setMaxConnPerRoute(clientOptions.getMaxConnectionsPerRoute());
+        clientBuilder.setMaxConnTotal(clientOptions.getMaxConnectionsTotal());
+
         if (coercedOptions.getSslContext() != null) {
             clientBuilder.setSSLStrategy(
                     new SSLIOSessionStrategy(coercedOptions.getSslContext(),

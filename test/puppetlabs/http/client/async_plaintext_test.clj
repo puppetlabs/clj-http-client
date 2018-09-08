@@ -2,7 +2,8 @@
   (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions)
            (org.apache.http.impl.nio.client HttpAsyncClients)
            (java.net URI SocketTimeoutException ServerSocket)
-           (java.util Locale))
+           (java.util Locale)
+           (java.util.concurrent CountDownLatch TimeUnit))
   (:require [clojure.test :refer :all]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.i18n.core :as i18n]
@@ -454,3 +455,96 @@
                 (let [response @(common/get client url {:as :text})]
                   (is (= 200 (:status response)))
                   (is (= "es-ES" (:body response))))))))))))
+
+(deftest client-route-and-total-limits
+  (testing "client limits 2 requests per route by default"
+    (let [actual-count (atom 0)
+          countdown (CountDownLatch. 3)
+          fake-app (fn [_]
+                     (swap! actual-count inc)
+                     (.countDown countdown)
+                     (.await countdown)
+                     {:status 200
+                      :body "Hello, World!"})]
+      (testlogging/with-test-logging
+        (testwebserver/with-test-webserver fake-app port
+          (let [url (str "http://localhost:" port "/hello")]
+            (testing "clojure persistent async client"
+              (with-open [client (async/create-client {})]
+                (dotimes [n 10] (future (common/get client url {:as :text})))
+                (is (= false (.await countdown 5 TimeUnit/SECONDS)))
+                (is (= 2 @actual-count)))))))))
+
+  (testing "passing client route limit of 0 selects default behavior (a limit of 2)"
+    (let [actual-count (atom 0)
+          countdown (CountDownLatch. 3)
+          fake-app (fn [_]
+                     (swap! actual-count inc)
+                     (.countDown countdown)
+                     (.await countdown)
+                     {:status 200
+                      :body "Hello, World!"})]
+      (testlogging/with-test-logging
+       (testwebserver/with-test-webserver fake-app port
+         (let [url (str "http://localhost:" port "/hello")]
+           (testing "clojure persistent async client"
+             (with-open [client (async/create-client {:max-connections-per-route 0})]
+               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (is (= false (.await countdown 5 TimeUnit/SECONDS)))
+               (is (= 2 @actual-count)))))))))
+
+
+  (testing "client limits specified requests per route"
+    (let [actual-count (atom 0)
+          countdown (CountDownLatch. 4)
+          fake-app (fn [_]
+                     (swap! actual-count inc)
+                     (.countDown countdown)
+                     (.await countdown)
+                     {:status 200
+                      :body "Hello, World!"})]
+      (testlogging/with-test-logging
+       (testwebserver/with-test-webserver fake-app port
+         (let [url (str "http://localhost:" port "/hello")]
+           (testing "clojure persistent async client"
+             (with-open [client (async/create-client {:max-connections-per-route 3})]
+               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (is (= false (.await countdown 5 TimeUnit/SECONDS)))
+               (is (= 3 @actual-count)))))))))
+
+  (testing "client route limit of 11 does not limit requests per route when less than 11"
+    (let [actual-count (atom 0)
+          countdown (CountDownLatch. 10)
+          fake-app (fn [_]
+                     (swap! actual-count inc)
+                     (.countDown countdown)
+                     (.await countdown)
+                     {:status 200
+                      :body "Hello, World!"})]
+      (testlogging/with-test-logging
+       (testwebserver/with-test-webserver fake-app port
+         (let [url (str "http://localhost:" port "/hello")]
+           (testing "clojure persistent async client"
+             (with-open [client (async/create-client {:max-connections-per-route 11})]
+               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (is (= true (.await countdown 5 TimeUnit/SECONDS)))
+               (is (= 10 @actual-count)))))))))
+
+  (testing "overall limit applies"
+    (let [actual-count (atom 0)
+          countdown (CountDownLatch. 4)
+          fake-app (fn [_]
+                     (swap! actual-count inc)
+                     (.countDown countdown)
+                     (.await countdown)
+                     {:status 200
+                      :body "Hello, World!"})]
+      (testlogging/with-test-logging
+       (testwebserver/with-test-webserver fake-app port
+         (let [url (str "http://localhost:" port "/hello")]
+           (testing "clojure persistent async client"
+             (with-open [client (async/create-client {:max-connections-per-route 11
+                                                      :max-connections-total 3})]
+               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (is (= false (.await countdown 5 TimeUnit/SECONDS)))
+               (is (= 3 @actual-count))))))))))

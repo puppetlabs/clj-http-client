@@ -45,6 +45,13 @@ The following are the base set of options supported by the `create-client` funct
   namespace is `<metric-prefix>.http-client.experimental`. If both
   `metric-prefix` and `server-id` are specified, `metric-prefix` takes
   precendence.
+* `:max-connections-per-route`: an integer to specify the maximum number
+  of concurrent requests for a given route (host & port) for a given
+  persistant client instance.  Defaults to 2.  If 0 is specified, it acts
+  as the default.
+* `:max-connections-total`: an integer to specify the maximum number of
+  concurrent requests for a given persistant  client instance. Defaults
+  to 20. If 0 is specified, it acts as the default.
 
 ### SSL Options
 

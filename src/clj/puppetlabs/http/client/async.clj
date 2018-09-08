@@ -30,7 +30,9 @@
   [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
            follow-redirects force-redirects connect-timeout-milliseconds
            socket-timeout-milliseconds metric-registry server-id
-           metric-prefix enable-url-metrics?]}:- common/ClientOptions]
+           metric-prefix enable-url-metrics?
+           max-connections-total
+           max-connections-per-route]}:- common/ClientOptions]
   (let [client-options (ClientOptions.)]
     (cond-> client-options
             (some? ssl-context) (.setSslContext ssl-context)
@@ -48,7 +50,9 @@
             (some? metric-registry) (.setMetricRegistry metric-registry)
             (some? server-id) (.setServerId server-id)
             (some? metric-prefix) (.setMetricPrefix metric-prefix)
-            (some? enable-url-metrics?) (.setEnableURLMetrics enable-url-metrics?))
+            (some? enable-url-metrics?) (.setEnableURLMetrics enable-url-metrics?)
+            (some? max-connections-total) (.setMaxConnectionsTotal max-connections-total)
+            (some? max-connections-per-route) (.setMaxConnectionsPerRoute max-connections-per-route))
     (JavaClient/createClient client-options)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
