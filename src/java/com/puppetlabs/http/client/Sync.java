@@ -57,7 +57,10 @@ public class Sync {
         return new ClientOptions(sslContext, sslCert, sslKey, sslCaCert,
                 sslProtocols, sslCipherSuites, insecure,
                 forceRedirects, followRedirects, connectTimeoutMilliseconds,
-                socketTimeoutMilliseconds);
+                socketTimeoutMilliseconds,
+                // this option set is only used for one-shot requests, so at the point of being explicit,
+                // only allow at most one connection at a time.
+                1, 1);
     }
 
     private static Response request(SimpleRequestOptions simpleRequestOptions,

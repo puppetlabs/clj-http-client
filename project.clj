@@ -1,11 +1,11 @@
-(defproject puppetlabs/http-client "0.9.1-SNAPSHOT"
+(defproject puppetlabs/http-client "1.0.0-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
 
   :min-lein-version "2.7.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "0.6.1"]
+  :parent-project {:coords [puppetlabs/clj-parent "1.7.12"]
                    :inherit  [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -18,7 +18,7 @@
                  [org.apache.httpcomponents/httpasyncclient "4.1.2"]
                  [prismatic/schema]
                  [commons-io]
-                 [io.dropwizard.metrics/metrics-core "3.1.2"]
+                 [io.dropwizard.metrics/metrics-core]
 
                  [puppetlabs/ssl-utils]
                  [puppetlabs/i18n]]

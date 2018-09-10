@@ -17,7 +17,9 @@
                      :ssl-protocols :cipher-suites
                      :force-redirects :follow-redirects
                      :connect-timeout-milliseconds
-                     :socket-timeout-milliseconds]))
+                     :socket-timeout-milliseconds
+                     :max-connections-per-route
+                     :max-connections-total]))
 
 (schema/defn extract-request-opts :- common/RawUserRequestOptions
   [opts :- common/RawUserRequestClientOptions]

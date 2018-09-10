@@ -2,7 +2,7 @@
   (:import (com.puppetlabs.http.client Sync
                                        HttpClientException
                                        SimpleRequestOptions)
-           (javax.net.ssl SSLHandshakeException)
+           (javax.net.ssl SSLHandshakeException SSLException)
            (java.net URI)
            (org.apache.http ConnectionClosedException))
   (:require [clojure.test :refer :all]
@@ -122,6 +122,8 @@
          (or
            (and (instance? SSLHandshakeException cause#)
                 (re-find #"not supported by the client" (.getMessage cause#)))
+           (and (instance? SSLException cause#)
+                (re-find #"handshake_failure" (.getMessage cause#)))
            (instance? ConnectionClosedException cause#))))))
 
 (defn java-https-get-with-protocols
@@ -197,7 +199,7 @@
         (is (java-unsupported-protocol-exception?
               (java-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]))))
       (testing "clojure sync client"
-        (is (thrown? ConnectionClosedException
+        (is (thrown-with-msg? SSLException #"handshake_failure"
               (clj-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]))))))
   (testing "should connect to a server with overlapping cipher suites"
     (with-server-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]

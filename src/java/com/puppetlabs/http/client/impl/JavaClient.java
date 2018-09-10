@@ -297,7 +297,11 @@ public class JavaClient {
             ContentType contentType = null;
             String contentTypeValue = headers.get("content-type");
             if (contentTypeValue != null && !contentTypeValue.isEmpty()) {
-                contentType = ContentType.parse(contentTypeValue);
+                try {
+                    contentType = ContentType.parse(contentTypeValue);
+                } catch (ParseException e) {
+                    LOGGER.error("Unable to parse response content-type", e);
+                }
             }
             if (requestOptions.getAs() == ResponseBodyType.TEXT) {
                 body = coerceBodyType((InputStream) body, requestOptions.getAs(), contentType);
@@ -512,6 +516,9 @@ public class JavaClient {
     public static CloseableHttpAsyncClient createClient(ClientOptions clientOptions) {
         CoercedClientOptions coercedOptions = coerceClientOptions(SslUtils.configureSsl(clientOptions));
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
+        clientBuilder.setMaxConnPerRoute(clientOptions.getMaxConnectionsPerRoute());
+        clientBuilder.setMaxConnTotal(clientOptions.getMaxConnectionsTotal());
+
         if (coercedOptions.getSslContext() != null) {
             clientBuilder.setSSLStrategy(
                     new SSLIOSessionStrategy(coercedOptions.getSslContext(),

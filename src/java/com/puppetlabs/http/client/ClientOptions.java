@@ -31,6 +31,10 @@ public class ClientOptions {
     private String serverId;
     private boolean enableURLMetrics = true;
 
+    // defaults from apache connection manager
+    private int maxConnectionsTotal = 20;
+    private int maxConnectionsPerRoute = 2;
+
     /**
      * Constructor for the ClientOptions class. When this constructor is called,
      * insecure and forceRedirects will default to false, and followRedirects will default
@@ -65,6 +69,11 @@ public class ClientOptions {
      *                                    interpreted as an infinite timeout.
      *                                    A negative value is interpreted as
      *                                    undefined (system default).
+     * @param maxConnectionsPerRoute Maxiumum number of connections allowed for a given route for a client instance, where
+     *                               a route is a host / port combination.  The apache default is 2
+     * @param maxConnectionsTotal Maximum number of connections allowed for a given client instance. The apache default
+     *                            is 20.
+     *
      */
     public ClientOptions(SSLContext sslContext,
                          String sslCert,
@@ -76,7 +85,9 @@ public class ClientOptions {
                          boolean forceRedirects,
                          boolean followRedirects,
                          int connectTimeoutMilliseconds,
-                         int socketTimeoutMilliseconds) {
+                         int socketTimeoutMilliseconds,
+                         int maxConnectionsPerRoute,
+                         int maxConnectionsTotal) {
         this.sslContext = sslContext;
         this.sslCert = sslCert;
         this.sslKey = sslKey;
@@ -88,6 +99,8 @@ public class ClientOptions {
         this.followRedirects = followRedirects;
         this.connectTimeoutMilliseconds = connectTimeoutMilliseconds;
         this.socketTimeoutMilliseconds = socketTimeoutMilliseconds;
+        this.maxConnectionsPerRoute = maxConnectionsPerRoute;
+        this.maxConnectionsTotal = maxConnectionsTotal;
     }
 
     public SSLContext getSslContext() {
@@ -213,4 +226,17 @@ public class ClientOptions {
         this.enableURLMetrics = enableURLMetrics;
         return this;
     }
+
+    public int getMaxConnectionsTotal() {return this.maxConnectionsTotal; }
+    public ClientOptions setMaxConnectionsTotal(int maxConnectionsTotal) {
+        this.maxConnectionsTotal = maxConnectionsTotal;
+        return this;
+    }
+
+    public int getMaxConnectionsPerRoute() {return this.maxConnectionsPerRoute; }
+    public ClientOptions setMaxConnectionsPerRoute(int maxConnectionsPerRoute) {
+        this.maxConnectionsPerRoute = maxConnectionsPerRoute;
+        return this;
+    }
+
 }

@@ -358,25 +358,25 @@
                 content type and UTF-8 encoding uses UTF-8 encoding"
         (validate-java-request "foo�"
                                {"Content-Type" "text/plain; charset=utf-8"}
-                               "text/plain; charset=UTF-8"
+                               "text/plain;charset=utf-8"
                                "foo�"))
       (testing "java sync client: string body for post request with explicit
                 content type and ISO-8859-1 encoding uses ISO-8859-1 encoding"
         (validate-java-request "foo�"
                                {"Content-Type" "text/plain; charset=iso-8859-1"}
-                               "text/plain; charset=ISO-8859-1"
+                               "text/plain;charset=iso-8859-1"
                                "foo?"))
       (testing "java sync client: string body for post request with explicit
                 content type but without explicit encoding uses UTF-8 encoding"
         (validate-java-request "foo�"
                                {"Content-Type" "text/plain"}
-                               "text/plain; charset=UTF-8"
+                               "text/plain;charset=utf-8"
                                "foo�"))
       (testing "java sync client: string body for post request without explicit
                 content or encoding uses ISO-8859-1 encoding"
         (validate-java-request "foo�"
                                nil
-                               "text/plain; charset=ISO-8859-1"
+                               "text/plain;charset=iso-8859-1"
                                "foo?"))
       (testing "java sync client: input stream body for post request"
         (let [request-options (-> (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
@@ -391,25 +391,25 @@
                 content type and UTF-8 encoding uses UTF-8 encoding"
         (validate-clj-request "foo�"
                               {"content-type" "text/plain; charset=utf-8"}
-                              "text/plain; charset=UTF-8"
+                              "text/plain;charset=utf-8"
                               "foo�"))
       (testing "clojure sync client: string body for post request with explicit
                 content type and ISO-8859 encoding uses ISO-8859-1 encoding"
         (validate-clj-request "foo�"
                               {"content-type" "text/plain; charset=iso-8859-1"}
-                              "text/plain; charset=ISO-8859-1"
+                              "text/plain;charset=iso-8859-1"
                               "foo?"))
       (testing "clojure sync client: string body for post request with explicit
                 content type but without explicit encoding uses UTF-8 encoding"
         (validate-clj-request "foo�"
                               {"content-type" "text/plain"}
-                              "text/plain; charset=UTF-8"
+                              "text/plain;charset=utf-8"
                               "foo�"))
       (testing "clojure sync client: string body for post request without explicit
                 content type or encoding uses ISO-8859-1 encoding"
         (validate-clj-request "foo�"
                               {}
-                              "text/plain; charset=ISO-8859-1"
+                              "text/plain;charset=iso-8859-1"
                               "foo?"))
       (testing "clojure sync client: input stream body for post request"
         (let [response (sync/post "http://localhost:10000/hello/"
