@@ -1,12 +1,12 @@
-(defproject puppetlabs/http-client "1.0.1-SNAPSHOT"
+(defproject puppetlabs/http-client "1.1.0-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
 
-  :min-lein-version "2.7.1"
+  :min-lein-version "2.9.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "1.7.12"]
-                   :inherit  [:managed-dependencies]}
+  :parent-project {:coords [puppetlabs/clj-parent "4.0.0"]
+                   :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
   ;; dependencies. Also supports :warn to simply emit warnings.
@@ -33,14 +33,22 @@
   :classifiers [["sources" :sources-jar]]
 
   :profiles {:dev {:dependencies [[cheshire]
-                                  [puppetlabs/kitchensink nil :classifier "test"]
+                                  [puppetlabs/kitchensink :classifier "test"]
                                   [puppetlabs/trapperkeeper]
-                                  [puppetlabs/trapperkeeper nil :classifier "test"]
+                                  [puppetlabs/trapperkeeper :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 nil :classifier "test"]
-                                  [puppetlabs/ring-middleware]]
-                   ;; TK-143, enable SSLv3 for unit tests that exercise SSLv3
-                   :jvm-opts ["-Djava.security.properties=./dev-resources/java.security"]}
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 :classifier "test"]
+                                  [puppetlabs/ring-middleware]
+                                  [org.bouncycastle/bcpkix-jdk15on]]}
+             :fips {:dependencies [[cheshire]
+                                   [puppetlabs/kitchensink :classifier "test"]
+                                   [puppetlabs/trapperkeeper]
+                                   [puppetlabs/trapperkeeper :classifier "test"]
+                                   [puppetlabs/trapperkeeper-webserver-jetty9]
+                                   [puppetlabs/trapperkeeper-webserver-jetty9 :classifier "test"]
+                                   [puppetlabs/ring-middleware]
+                                   [org.bouncycastle/bcpkix-fips]
+                                   [org.bouncycastle/bc-fips]]}
              :sources-jar {:java-source-paths ^:replace []
                            :jar-exclusions ^:replace []
                            :source-paths ^:replace ["src/clj" "src/java"]}}
@@ -53,5 +61,8 @@
   :lein-release {:scm :git
                  :deploy-via :lein-deploy}
 
-  :plugins [[lein-parent "0.3.1"]
-            [puppetlabs/i18n "0.8.0"]])
+  :plugins [[lein-parent "0.3.7"]
+            [puppetlabs/i18n "0.8.0"]]
+
+  :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-releases__local/"]
+                 ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-snapshots__local/"]])
