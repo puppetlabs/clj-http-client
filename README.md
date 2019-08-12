@@ -1,6 +1,6 @@
 # puppetlabs/http-client
 
-[![Build Status](https://travis-ci.org/puppetlabs/clj-http-client.png?branch=master)](https://travis-ci.org/puppetlabs/clj-http-client)
+[![Build Status](https://travis-ci.com/puppetlabs/clj-http-client.png?branch=master)](https://travis-ci.com/puppetlabs/clj-http-client)
 
 This is a wrapper around the [Apache HttpAsyncClient
 library](http://hc.apache.org/httpcomponents-asyncclient-4.0.x/) providing

@@ -3,7 +3,7 @@
                                        HttpClientException
                                        SimpleRequestOptions)
            (javax.net.ssl SSLHandshakeException SSLException)
-           (java.net URI)
+           (java.net URI ConnectException)
            (org.apache.http ConnectionClosedException))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -11,7 +11,8 @@
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.http.client.sync :as sync]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test]
+            [clojure.tools.logging :as log]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -118,13 +119,14 @@
   `(try
      ~@body
      (catch HttpClientException e#
-       (let [cause# (.getCause e#)]
-         (or
-           (and (instance? SSLHandshakeException cause#)
-                (re-find #"not supported by the client" (.getMessage cause#)))
-           (and (instance? SSLException cause#)
-                (re-find #"handshake_failure" (.getMessage cause#)))
-           (instance? ConnectionClosedException cause#))))))
+       (let [cause# (.getCause e#)
+             message# (.getMessage cause#)]
+         (or (and (instance? SSLHandshakeException cause#)
+                  (re-find #"not supported by the client" message#))
+             (and (instance? SSLException cause#)
+                  (or (re-find #"handshake_failure" message#)
+                      (re-find #"internal_error" message#)))
+             (instance? ConnectionClosedException cause#))))))
 
 (defn java-https-get-with-protocols
   [client-protocols client-cipher-suites]
@@ -161,53 +163,11 @@
           (is (= 200 (:status response)))
           (is (= "Hello, World!" (slurp (:body response))))))))
 
-  (testing "should be able to connect to a server with non-default protocol if configured"
-    (with-server-with-protocols ["SSLv3"] nil
-      (testing "java sync client"
-        (let [response (java-https-get-with-protocols ["SSLv3"] nil)]
-          (is (= 200 (.getStatus response)))
-          (is (= "Hello, World!" (slurp (.getBody response))))))
-      (testing "clojure sync client"
-        (let [response (clj-https-get-with-protocols ["SSLv3"] nil)]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response))))))))
-
-  (testing "should not connect to an SSLv3 server by default"
-    (with-server-with-protocols ["SSLv3"] nil
-      (testing "java sync client"
-        (is (java-unsupported-protocol-exception?
-              (java-https-get-with-protocols nil nil))))
-      (testing "clojure sync client"
-        (is (thrown-with-msg?
-              SSLHandshakeException #"not supported by the client"
-              (clj-https-get-with-protocols nil nil))))))
-
   (testing "should not connect to a server when protocols don't overlap"
     (with-server-with-protocols ["TLSv1.1"] nil
       (testing "java sync client"
         (is (java-unsupported-protocol-exception?
               (java-https-get-with-protocols ["TLSv1.2"] nil))))
       (testing "clojure sync client"
-        (is (thrown-with-msg?
-              SSLHandshakeException #"not supported by the client"
-              (clj-https-get-with-protocols ["TLSv1.2"] nil)))))))
+        (is (thrown? SSLException (clj-https-get-with-protocols ["TLSv1.2"] nil)))))))
 
-(deftest sync-client-test-cipher-suites
-  (testing "should not connect to a server with no overlapping cipher suites"
-    (with-server-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_SHA"]
-      (testing "java sync client"
-        (is (java-unsupported-protocol-exception?
-              (java-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]))))
-      (testing "clojure sync client"
-        (is (thrown-with-msg? SSLException #"handshake_failure"
-              (clj-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]))))))
-  (testing "should connect to a server with overlapping cipher suites"
-    (with-server-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"]
-      (testing "java sync client"
-        (let [response (java-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"])]
-          (is (= 200 (.getStatus response)))
-          (is (= "Hello, World!" (slurp (.getBody response))))))
-      (testing "clojure sync client"
-        (let [response (clj-https-get-with-protocols ["SSLv3"] ["SSL_RSA_WITH_RC4_128_MD5"])]
-          (is (= 200 (:status response)))
-          (is (= "Hello, World!" (slurp (:body response)))))))))
