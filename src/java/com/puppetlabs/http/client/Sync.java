@@ -19,12 +19,6 @@ import java.util.Map;
 public class Sync {
     private static final Logger LOGGER = LoggerFactory.getLogger(Sync.class);
 
-
-    private static void logAndRethrow(String msg, Throwable t) {
-        LOGGER.error(msg, t);
-        throw new HttpClientException(msg, t);
-    }
-
     private static RequestOptions extractRequestOptions(SimpleRequestOptions simpleOptions) {
         URI uri = simpleOptions.getUri();
         Map<String, String> headers = simpleOptions.getHeaders();
@@ -68,7 +62,7 @@ public class Sync {
         // TODO: if we end up implementing an async version of the java API,
         // we should refactor this implementation so that it is based on the
         // async one, as Patrick has done in the clojure API.
-        Response response = null;
+        final Response response;
         final SyncHttpClient client = createClient(
                 extractClientOptions(simpleRequestOptions));
         try {
@@ -81,7 +75,7 @@ public class Sync {
                 client.close();
             }
             catch (IOException e) {
-                logAndRethrow("Error closing client", e);
+                LOGGER.error("Error closing client", e);
             }
         }
         return response;

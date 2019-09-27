@@ -1,8 +1,12 @@
 package com.puppetlabs.http.client;
 
+import com.puppetlabs.ssl_utils.SSLUtils;
+
 import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Map;
 
 /**
@@ -10,7 +14,7 @@ import java.util.Map;
  * making requests with the simple request functions contained in the Sync class.
  * It is a combination of the options from ClientOptions and RequestOptions.
  *
- * @see com.puppetlabs.http.client.ClientOptions#ClientOptions(javax.net.ssl.SSLContext, String, String, String, String[], String[], boolean, boolean, boolean)
+ * @see com.puppetlabs.http.client.ClientOptions#ClientOptions(javax.net.ssl.SSLContext, String, String, String, String[], String[], boolean, boolean, boolean, int, int, int, int)
  * @see com.puppetlabs.http.client.RequestOptions#RequestOptions(java.net.URI, java.util.Map, Object, boolean, ResponseBodyType)
  */
 public class SimpleRequestOptions {
@@ -32,7 +36,6 @@ public class SimpleRequestOptions {
     private int connectTimeoutMilliseconds = -1;
     private int socketTimeoutMilliseconds = -1;
 
-
     /**
      * Constructor for SimpleRequestOptions. When this constructor is used,
      * insecure and forceRedirects default to false, and followRedirects and decompressBody
@@ -40,7 +43,9 @@ public class SimpleRequestOptions {
      * @param url the URL against which to make the HTTP request
      * @throws URISyntaxException
      */
-    public SimpleRequestOptions (String url) throws URISyntaxException { this.uri = new URI(url); }
+    public SimpleRequestOptions (String url) throws URISyntaxException {
+        this.uri = new URI(url);
+    }
 
     /**
      * Constructor for SimpleRequestOptions. When this constructor is used,

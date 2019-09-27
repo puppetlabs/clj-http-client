@@ -31,11 +31,6 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         this.enableURLMetrics = enableURLMetrics;
     }
 
-    private static void logAndRethrow(String msg, Throwable t) {
-        LOGGER.error(msg, t);
-        throw new HttpClientException(msg, t);
-    }
-
     public MetricRegistry getMetricRegistry() {
         return metricRegistry;
     }
@@ -49,14 +44,16 @@ public class PersistentSyncHttpClient implements SyncHttpClient {
         final JavaResponseDeliveryDelegate responseDelivery = new JavaResponseDeliveryDelegate(promise);
         JavaClient.requestWithClient(requestOptions, method, null, client,
                 responseDelivery, metricRegistry, metricNamespace, enableURLMetrics);
-        Response response = null;
+        final Response response;
         try {
             response = promise.deref();
             if (response.getError() != null) {
-                logAndRethrow("Error executing http request", response.getError());
+                LOGGER.warn("Error executing http request", response.getError());
+                throw new HttpClientException("Error executing http request", response.getError());
             }
         } catch (InterruptedException e) {
-            logAndRethrow("Error while waiting for http response", e);
+            LOGGER.warn("Error while waiting for http response", e);
+            throw new HttpClientException("Error while waiting for http response", e);
         }
         return response;
     }
