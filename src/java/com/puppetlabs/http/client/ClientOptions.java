@@ -1,8 +1,13 @@
 package com.puppetlabs.http.client;
 
 import com.codahale.metrics.MetricRegistry;
+import com.puppetlabs.ssl_utils.SSLUtils;
 
 import javax.net.ssl.SSLContext;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+import java.security.Security;
 
 /**
  * This class is a wrapper around a number of options for use

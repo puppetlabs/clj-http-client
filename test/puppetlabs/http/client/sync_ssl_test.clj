@@ -4,7 +4,8 @@
                                        SimpleRequestOptions)
            (javax.net.ssl SSLHandshakeException SSLException)
            (java.net URI ConnectException)
-           (org.apache.http ConnectionClosedException))
+           (org.apache.http ConnectionClosedException)
+           (com.puppetlabs.ssl_utils SSLUtils))
   (:require [clojure.test :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
@@ -92,11 +93,21 @@
             ; fail if we don't get an exception
             (is (not true) "expected HttpClientException")
             (catch HttpClientException e
-              (is (instance? SSLHandshakeException (.getCause e)))))))
+              (if (SSLUtils/isFIPS)
+                ;; in FIPS, the BC provider throws a different exception here, specifically:
+                ;; javax.net.ssl.SSLException: org.bouncycastle.tls.TlsFatalAlert: certificate_unknown(46)
+                (is (instance? SSLException (.getCause e)))
+                (is (instance? SSLHandshakeException (.getCause e))))))))
       (testing "clojure sync client"
-        (is (thrown? SSLHandshakeException
-                     (sync/get "https://localhost:10081/hello/"
-                               {:ssl-ca-cert "./dev-resources/ssl/alternate-ca.pem"})))))))
+        (if (SSLUtils/isFIPS)
+          ;; in FIPS, the BC provider throws a different exception here, specifically:
+          ;; javax.net.ssl.SSLException: org.bouncycastle.tls.TlsFatalAlert: certificate_unknown(46)
+          (is (thrown? SSLException
+                       (sync/get "https://localhost:10081/hello/"
+                                 {:ssl-ca-cert "./dev-resources/ssl/alternate-ca.pem"})))
+          (is (thrown? SSLHandshakeException
+                       (sync/get "https://localhost:10081/hello/"
+                                 {:ssl-ca-cert "./dev-resources/ssl/alternate-ca.pem"}))) )))))
 
 (defmacro with-server-with-protocols
   [server-protocols server-cipher-suites & body]

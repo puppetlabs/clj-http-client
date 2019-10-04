@@ -9,6 +9,7 @@ import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.ResponseBodyType;
 import com.puppetlabs.http.client.impl.metrics.TimerUtils;
 
+import com.puppetlabs.ssl_utils.SSLUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Consts;
 import org.apache.http.Header;
@@ -34,6 +35,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.protocol.ResponseContentEncoding;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
@@ -62,6 +64,7 @@ import java.net.URI;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
@@ -214,23 +217,27 @@ public class JavaClient {
     }
 
     public static CoercedClientOptions coerceClientOptions(ClientOptions options) {
-        SSLContext sslContext = null;
+        final SSLContext sslContext;
         if (options.getSslContext() != null) {
             sslContext = options.getSslContext();
         } else if (options.getInsecure()) {
             sslContext = getInsecureSslContext();
+        } else {
+            sslContext = null;
         }
 
-        String[] sslProtocols = null;
+        final String[] sslProtocols;
         if (options.getSslProtocols() != null) {
             sslProtocols = options.getSslProtocols();
         } else {
             sslProtocols = ClientOptions.DEFAULT_SSL_PROTOCOLS;
         }
 
-        String[] sslCipherSuites = null;
+        final String[] sslCipherSuites;
         if (options.getSslCipherSuites() != null) {
             sslCipherSuites = options.getSslCipherSuites();
+        } else {
+            sslCipherSuites = null;
         }
 
         boolean forceRedirects = options.getForceRedirects();
@@ -245,10 +252,14 @@ public class JavaClient {
     }
 
     private static SSLContext getInsecureSslContext() {
-        SSLContext context = null;
+        final SSLContext context;
         try {
-            context = SSLContext.getInstance(PROTOCOL);
-        } catch (NoSuchAlgorithmException e) {
+            if (SSLUtils.isFIPS()) {
+                context = SSLContext.getInstance(SSLUtils.TLS_PROTOCOL, SSLUtils.BOUNCYCASTLE_JSSE_PROVIDER);
+            } else {
+                context = SSLContext.getInstance(PROTOCOL);
+            }
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
             throw new HttpClientException("Unable to construct HTTP context", e);
         }
         try {
@@ -519,12 +530,15 @@ public class JavaClient {
         clientBuilder.setMaxConnPerRoute(clientOptions.getMaxConnectionsPerRoute());
         clientBuilder.setMaxConnTotal(clientOptions.getMaxConnectionsTotal());
 
-        if (coercedOptions.getSslContext() != null) {
+        SSLContext context = coercedOptions.getSslContext();
+        if (context != null) {
+            // this requires an initialized SSLContext
+
             clientBuilder.setSSLStrategy(
-                    new SSLIOSessionStrategy(coercedOptions.getSslContext(),
+                    new SSLIOSessionStrategy(context,
                             coercedOptions.getSslProtocols(),
                             coercedOptions.getSslCipherSuites(),
-                            SSLIOSessionStrategy.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER));
+                            new DefaultHostnameVerifier()));
         }
         RedirectStrategy redirectStrategy;
         if (!coercedOptions.getFollowRedirects()) {

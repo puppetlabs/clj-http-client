@@ -5,7 +5,7 @@
 
   :min-lein-version "2.9.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "4.0.0"]
+  :parent-project {:coords [puppetlabs/clj-parent "4.2.3"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -15,13 +15,15 @@
 
   :dependencies [[org.clojure/clojure]
 
-                 [org.apache.httpcomponents/httpasyncclient "4.1.2"]
+                 [org.apache.httpcomponents/httpasyncclient]
                  [prismatic/schema]
                  [commons-io]
                  [io.dropwizard.metrics/metrics-core]
 
                  [puppetlabs/ssl-utils]
-                 [puppetlabs/i18n]]
+                 [puppetlabs/i18n]
+
+                 [org.slf4j/jul-to-slf4j]]
 
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
@@ -32,23 +34,35 @@
   ;; depend on this source jar using a :classifier in their :dependencies.
   :classifiers [["sources" :sources-jar]]
 
-  :profiles {:dev {:dependencies [[cheshire]
-                                  [puppetlabs/kitchensink :classifier "test"]
-                                  [puppetlabs/trapperkeeper]
-                                  [puppetlabs/trapperkeeper :classifier "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 :classifier "test"]
-                                  [puppetlabs/ring-middleware]
-                                  [org.bouncycastle/bcpkix-jdk15on]]}
-             :fips {:dependencies [[cheshire]
-                                   [puppetlabs/kitchensink :classifier "test"]
-                                   [puppetlabs/trapperkeeper]
-                                   [puppetlabs/trapperkeeper :classifier "test"]
-                                   [puppetlabs/trapperkeeper-webserver-jetty9]
-                                   [puppetlabs/trapperkeeper-webserver-jetty9 :classifier "test"]
-                                   [puppetlabs/ring-middleware]
-                                   [org.bouncycastle/bcpkix-fips]
-                                   [org.bouncycastle/bc-fips]]}
+  :profiles {:defaults {:dependencies [[cheshire]
+                                       [puppetlabs/kitchensink :classifier "test"]
+                                       [puppetlabs/trapperkeeper]
+                                       [puppetlabs/trapperkeeper :classifier "test"]
+                                       [puppetlabs/trapperkeeper-webserver-jetty9]
+                                       [puppetlabs/trapperkeeper-webserver-jetty9 :classifier "test"]
+                                       [puppetlabs/ring-middleware]]
+                        :resource-paths ["dev-resources"]
+                        :jvm-opts ["-Djava.util.logging.config.file=dev-resources/logging.properties"]}
+             :dev [:defaults
+                   {:dependencies [[org.bouncycastle/bcpkix-jdk15on]]}]
+             :fips [:defaults
+                    {:dependencies [[org.bouncycastle/bcpkix-fips]
+                                    [org.bouncycastle/bc-fips]
+                                    [org.bouncycastle/bctls-fips]]
+                     ;; this only ensures that we run with the proper profiles
+                     ;; during testing. This JVM opt will be set in the puppet module
+                     ;; that sets up the JVM classpaths during installation.
+                     :jvm-opts ~(let [version (System/getProperty "java.version")
+                                      [major minor _] (clojure.string/split version #"\.")
+                                      unsupported-ex (ex-info "Unsupported major Java version. Expects 8 or 11."
+                                                       {:major major
+                                                        :minor minor})]
+                                  (condp = (java.lang.Integer/parseInt major)
+                                    1 (if (= 8 (java.lang.Integer/parseInt minor))
+                                        ["-Djava.security.properties==dev-resources/jdk8-fips-security"]
+                                        (throw unsupported-ex))
+                                    11 ["-Djava.security.properties==dev-resources/jdk11-fips-security"]
+                                    (throw unsupported-ex)))}]
              :sources-jar {:java-source-paths ^:replace []
                            :jar-exclusions ^:replace []
                            :source-paths ^:replace ["src/clj" "src/java"]}}

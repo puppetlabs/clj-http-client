@@ -5,9 +5,15 @@ jobs:
     - stage: jdk8
       script: lein with-profile dev test
       jdk: openjdk8
-    - # same as previous stage
-      script: lein with-profile fips test
-      jdk: openjdk8
+    #- # same as previous stage
+    #  script: lein with-profile fips test
+    #  jdk: openjdk8
+    - stage: jdk11
+      script: lein with-profile dev test
+      jdk: openjdk11
+    #- # same as previous stage
+    #  script: lein with-profile fips test
+    #  jdk: openjdk11
 sudo: false
 # Java needs to be able to resolve its hostname when doing integration style
 # tests, which it cannot do in certain cases with travis-ci.  If we need the
