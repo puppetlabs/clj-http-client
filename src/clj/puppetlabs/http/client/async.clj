@@ -12,10 +12,14 @@
 (ns puppetlabs.http.client.async
   (:import (com.puppetlabs.http.client ClientOptions RequestOptions ResponseBodyType HttpMethod CompressType)
            (com.puppetlabs.http.client.impl JavaClient ResponseDeliveryDelegate)
+           (org.apache.http.impl.nio.client CloseableHttpAsyncClient)
            (org.apache.http.client.utils URIBuilder)
+           (org.apache.http.entity ContentType)
            (org.apache.http.nio.client HttpAsyncClient)
            (com.codahale.metrics MetricRegistry)
-           (java.util Locale))
+           (java.util Locale)
+           (java.net URI URL))
+
   (:require [puppetlabs.http.client.common :as common]
             [schema.core :as schema]
             [puppetlabs.http.client.metrics :as metrics]
@@ -26,7 +30,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private utility functions
 
-(schema/defn ^:always-validate create-default-client :- HttpAsyncClient
+(schema/defn ^:always-validate create-default-client :- CloseableHttpAsyncClient
   [{:keys [ssl-context ssl-ca-cert ssl-cert ssl-key ssl-protocols cipher-suites
            follow-redirects force-redirects connect-timeout-milliseconds
            socket-timeout-milliseconds metric-registry server-id
@@ -70,7 +74,7 @@
     response))
 
 (schema/defn java-content-type->clj :- common/ContentType
-  [java-content-type]
+  [java-content-type :- (schema/maybe ContentType)]
   (if java-content-type
     {:mime-type (.getMimeType java-content-type)
      :charset   (.getCharset java-content-type)}))
@@ -106,16 +110,25 @@
     :post HttpMethod/POST
     :put HttpMethod/PUT
     :trace HttpMethod/TRACE
-    (throw (IllegalArgumentException. (trs "Unsupported request method: {0}" (:method opts))))))
+    (throw (IllegalArgumentException. ^String (trs "Unsupported request method: {0}" (:method opts))))))
 
-(defn- parse-url
+(schema/defn url-uri-string->uri :- URI
+  [thing :- common/UrlOrUriOrString]
+  (cond
+    (= (type thing) URL) (.toURI thing)
+    (= (type thing) String) (-> (URIBuilder. ^String thing)
+                                (.build))
+    :default thing))
+
+(schema/defn  parse-url :- URI
   [{:keys [url query-params]}]
-  (if (nil? query-params)
-    url
-    (let [uri-builder (reduce #(.addParameter %1 (key %2) (val %2))
-                              (.clearParameters (URIBuilder. url))
-                              query-params)]
-      (.build uri-builder))))
+  (let [uri (url-uri-string->uri url)]
+    (if (nil? query-params)
+      uri
+      (let [uri-builder (reduce #(.addParameter %1 (key %2) (val %2))
+                                (.clearParameters (URIBuilder. ^URI uri))
+                                query-params)]
+        (.build uri-builder)))))
 
 (schema/defn clojure-response-body-type->java :- ResponseBodyType
   [opts :- common/RequestOptions]
@@ -137,7 +150,7 @@
 
 (schema/defn clojure-options->java :- RequestOptions
   [opts :- common/RequestOptions]
-  (-> (parse-url opts)
+  (-> ^URI (parse-url opts)
       RequestOptions.
       (.setAs (clojure-response-body-type->java opts))
       (.setBody (:body opts))

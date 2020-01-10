@@ -89,8 +89,8 @@
               ;; Consume the body to get the exception
               (is (thrown? SocketTimeoutException (slurp body))))))
          (catch TimeoutException e
-           ;; Expected whenever a server-side failure is generated
-           )))
+                ;; Expected whenever a server-side failure is generated
+                nil)))
 
      (testing " - check connection timeout is handled"
        (with-open [client (async/create-client {:connect-timeout-milliseconds 100})]
@@ -137,7 +137,8 @@
             (is (instance? SocketTimeoutException error)))))
        (catch TimeoutException e
          ;; Expected whenever a server-side failure is generated
-         )))
+         nil)))
+
 
    (testing " - check connection timeout is handled"
      (with-open [client (async/create-client {:connect-timeout-milliseconds 100})]
@@ -223,7 +224,8 @@
                 (is (thrown? SocketTimeoutException (slurp body))))))
           (catch TimeoutException e
             ;; Expected whenever a server-side failure is generated
-            )))
+            nil)))
+
 
       (testing " - check connection timeout is handled"
         (with-open [client (-> (ClientOptions.)
@@ -286,7 +288,8 @@
               (is (instance? SocketTimeoutException error)))))
         (catch TimeoutException e
           ;; Expected whenever a server-side failure is generated
-          )))
+          nil)))
+
 
     (testing " - check connection timeout is handled"
       (with-open [client (-> (ClientOptions.)

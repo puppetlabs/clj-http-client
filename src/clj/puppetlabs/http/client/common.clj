@@ -1,5 +1,5 @@
 (ns puppetlabs.http.client.common
-  (:import (java.net URL)
+  (:import (java.net URL URI)
            (javax.net.ssl SSLContext)
            (com.codahale.metrics MetricRegistry)
            (clojure.lang IBlockingDeref)
@@ -31,6 +31,7 @@
 
 (def ok schema/optional-key)
 
+(def UrlOrUriOrString (schema/either schema/Str URL URI))
 (def UrlOrString (schema/either schema/Str URL))
 
 (def Headers
@@ -51,7 +52,7 @@
   "The list of request and client options passed by a user into
   the request function. Allows the user to configure
   both a client and a request."
-  {:url                   UrlOrString
+  {:url                   UrlOrUriOrString
    :method                schema/Keyword
    (ok :headers)          Headers
    (ok :body)             Body
@@ -75,7 +76,7 @@
 (def RawUserRequestOptions
   "The list of request options passed by a user into the
   request function. Allows the user to configure a request."
-  {:url                   UrlOrString
+  {:url                   UrlOrUriOrString
    :method                schema/Keyword
    (ok :headers)          Headers
    (ok :body)             Body
@@ -90,7 +91,7 @@
   configuration and settings for an individual request. This is
   everything from UserRequestOptions not included in
   ClientOptions."
-  {:url                   UrlOrString
+  {:url                   UrlOrUriOrString
    :method                schema/Keyword
    :headers               Headers
    :body                  Body
