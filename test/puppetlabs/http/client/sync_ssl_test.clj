@@ -107,7 +107,7 @@
                                  {:ssl-ca-cert "./dev-resources/ssl/alternate-ca.pem"})))
           (is (thrown? SSLHandshakeException
                        (sync/get "https://localhost:10081/hello/"
-                                 {:ssl-ca-cert "./dev-resources/ssl/alternate-ca.pem"}))) )))))
+                                 {:ssl-ca-cert "./dev-resources/ssl/alternate-ca.pem"}))))))))
 
 (defmacro with-server-with-protocols
   [server-protocols server-cipher-suites & body]
@@ -133,7 +133,10 @@
        (let [cause# (.getCause e#)
              message# (.getMessage cause#)]
          (or (and (instance? SSLHandshakeException cause#)
-                  (re-find #"not supported by the client" message#))
+                  (or ;; java 11
+                      (re-find #"protocol_version" message#)
+                      ;; java 8
+                      (re-find #"not supported by the client" message#)))
              (and (instance? SSLException cause#)
                   (or (re-find #"handshake_failure" message#)
                       (re-find #"internal_error" message#)))
@@ -175,7 +178,7 @@
           (is (= "Hello, World!" (slurp (:body response))))))))
 
   (testing "should not connect to a server when protocols don't overlap"
-    (with-server-with-protocols ["TLSv1.1"] nil
+    (with-server-with-protocols ["TLSv1.1"] ["TLS_RSA_WITH_AES_128_CBC_SHA"]
       (testing "java sync client"
         (is (java-unsupported-protocol-exception?
               (java-https-get-with-protocols ["TLSv1.2"] nil))))
