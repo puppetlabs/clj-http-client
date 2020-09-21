@@ -16,6 +16,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.ParseException;
 import org.apache.http.ProtocolException;
 import org.apache.http.client.RedirectStrategy;
@@ -317,11 +318,13 @@ public class JavaClient {
             if (requestOptions.getAs() == ResponseBodyType.TEXT) {
                 body = coerceBodyType((InputStream) body, requestOptions.getAs(), contentType);
             }
+            StatusLine status = httpResponse.getStatusLine();
             responseDeliveryDelegate.deliverResponse(requestOptions,
                     origContentEncoding,
                     body,
                     headers,
-                    httpResponse.getStatusLine().getStatusCode(),
+                    status.getStatusCode(),
+                    status.getReasonPhrase(),
                     contentType,
                     callback);
         } catch (Exception e) {

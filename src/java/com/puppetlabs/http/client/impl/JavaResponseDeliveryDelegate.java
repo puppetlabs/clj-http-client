@@ -32,6 +32,7 @@ public final class JavaResponseDeliveryDelegate implements ResponseDeliveryDeleg
                                 Object body,
                                 Map<String, String> headers,
                                 int statusCode,
+                                String reasonPhrase,
                                 ContentType contentType,
                                 IResponseCallback callback) {
         Response response = new Response(requestOptions,
@@ -39,6 +40,7 @@ public final class JavaResponseDeliveryDelegate implements ResponseDeliveryDeleg
                 body,
                 headers,
                 statusCode,
+                reasonPhrase,
                 contentType);
         deliverResponse(response, requestOptions, callback);
     }

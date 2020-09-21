@@ -15,6 +15,7 @@ public class Response {
     private Object body;
     private Map<String, String> headers;
     private Integer status;
+    private String reasonPhrase;
     private ContentType contentType;
 
     public Response(RequestOptions options, Throwable error) {
@@ -24,12 +25,13 @@ public class Response {
 
     public Response(RequestOptions options, String origContentEncoding,
                     Object body, Map<String, String> headers, int status,
-                    ContentType contentType) {
+                    String reasonPhrase, ContentType contentType) {
         this.options = options;
         this.origContentEncoding = origContentEncoding;
         this.body = body;
         this.headers = headers;
         this.status = status;
+        this.reasonPhrase = reasonPhrase;
         this.contentType = contentType;
     }
 
@@ -54,6 +56,10 @@ public class Response {
 
     public Integer getStatus() {
         return status;
+    }
+
+    public String getReasonPhrase() {
+        return reasonPhrase;
     }
 
     public ContentType getContentType() { return contentType; }

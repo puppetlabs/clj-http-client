@@ -65,96 +65,107 @@
 (deftest persistent-async-client-test
   (testlogging/with-test-logging
     (testutils/with-app-with-config app
-    [jetty9/jetty9-service test-web-service]
-    {:webserver {:port 10000}}
-    (testing "java async client"
-      (let [request-options (RequestOptions. (URI. "http://localhost:10000/hello/"))
-            client-options (ClientOptions.)
-            client (Async/createClient client-options)]
-        (testing "HEAD request with persistent async client"
-          (let [response (.head client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= nil (.getBody (.deref response))))))
-        (testing "GET request with persistent async client"
-          (let [response (.get client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "POST request with persistent async client"
-          (let [response (.post client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "PUT request with persistent async client"
-          (let [response (.put client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "DELETE request with persistent async client"
-          (let [response (.delete client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "TRACE request with persistent async client"
-          (let [response (.trace client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "OPTIONS request with persistent async client"
-          (let [response (.options client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "PATCH request with persistent async client"
-          (let [response (.patch client request-options)]
-            (is (= 200 (.getStatus (.deref response))))
-            (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
-        (testing "client closes properly"
-          (.close client)
-          (is (thrown? IllegalStateException
-                       (.get client request-options))))))
-    (testing "clojure async client"
-      (let [client (async/create-client {})]
-        (testing "HEAD request with persistent async client"
-          (let [response (common/head client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= nil (:body @response)))))
-        (testing "GET request with persistent async client"
-          (let [response (common/get client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "POST request with persistent async client"
-          (let [response (common/post client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "PUT request with persistent async client"
-          (let [response (common/put client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "DELETE request with persistent async client"
-          (let [response (common/delete client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "TRACE request with persistent async client"
-          (let [response (common/trace client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "OPTIONS request with persistent async client"
-          (let [response (common/options client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "PATCH request with persistent async client"
-          (let [response (common/patch client "http://localhost:10000/hello/")]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "GET request via request function with persistent async client"
-          (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
-            (is (= 200 (:status @response)))
-            (is (= "Hello, World!" (slurp (:body @response))))))
-        (testing "Bad verb request via request function with persistent async client"
-          (is (thrown? IllegalArgumentException
-                       (common/make-request client
-                                            "http://localhost:10000/hello/"
-                                            :bad))))
-        (testing "client closes properly"
-          (common/close client)
-          (is (thrown? IllegalStateException
-                       (common/get client
-                                   "http://localhost:10000/hello/")))))))))
+      [jetty9/jetty9-service test-web-service]
+      {:webserver {:port 10000}}
+      (testing "java async client"
+        (let [request-options (RequestOptions. (URI. "http://localhost:10000/hello/"))
+              client-options (ClientOptions.)
+              client (Async/createClient client-options)]
+          (testing "HEAD request to missing endpoint"
+            (let [response (.head client
+                                  (RequestOptions. (URI. "http://localhost:10000/missing")))]
+              (is (= 404 (.getStatus (.deref response))))
+              (is (= "Not Found" (.getReasonPhrase (.deref response))))))
+          (testing "HEAD request with persistent async client"
+            (let [response (.head client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "OK" (.getReasonPhrase (.deref response))))
+              (is (= nil (.getBody (.deref response))))))
+          (testing "GET request with persistent async client"
+            (let [response (.get client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "POST request with persistent async client"
+            (let [response (.post client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "PUT request with persistent async client"
+            (let [response (.put client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "DELETE request with persistent async client"
+            (let [response (.delete client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "TRACE request with persistent async client"
+            (let [response (.trace client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "OPTIONS request with persistent async client"
+            (let [response (.options client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "PATCH request with persistent async client"
+            (let [response (.patch client request-options)]
+              (is (= 200 (.getStatus (.deref response))))
+              (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
+          (testing "client closes properly"
+            (.close client)
+            (is (thrown? IllegalStateException
+                         (.get client request-options))))))
+      (testing "clojure async client"
+        (let [client (async/create-client {})]
+          (testing "HEAD request to missing endpoint"
+            (let [response (common/head client "http://localhost:10000/missing")]
+              (is (= 404 (:status @response)))
+              (is (= "Not Found" (:reason-phrase @response)))))
+          (testing "HEAD request with persistent async client"
+            (let [response (common/head client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "OK" (:reason-phrase @response)))
+              (is (= nil (:body @response)))))
+          (testing "GET request with persistent async client"
+            (let [response (common/get client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "POST request with persistent async client"
+            (let [response (common/post client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "PUT request with persistent async client"
+            (let [response (common/put client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "DELETE request with persistent async client"
+            (let [response (common/delete client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "TRACE request with persistent async client"
+            (let [response (common/trace client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "OPTIONS request with persistent async client"
+            (let [response (common/options client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "PATCH request with persistent async client"
+            (let [response (common/patch client "http://localhost:10000/hello/")]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "GET request via request function with persistent async client"
+            (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
+              (is (= 200 (:status @response)))
+              (is (= "Hello, World!" (slurp (:body @response))))))
+          (testing "Bad verb request via request function with persistent async client"
+            (is (thrown? IllegalArgumentException
+                         (common/make-request client
+                                              "http://localhost:10000/hello/"
+                                              :bad))))
+          (testing "client closes properly"
+            (common/close client)
+            (is (thrown? IllegalStateException
+                         (common/get client
+                                     "http://localhost:10000/hello/")))))))))
 
 (deftest java-api-cookie-test
   (testlogging/with-test-logging

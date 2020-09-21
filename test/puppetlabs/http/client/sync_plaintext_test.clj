@@ -63,10 +63,12 @@
           (let [request-options (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
                 response (java-method request-options)]
             (is (= 200 (.getStatus response)))
+            (is (= "OK" (.getReasonPhrase response)))
             (is (= "Hello, World!" (slurp (.getBody response))))))
         (testing "clojure sync client"
           (let [response (clj-fn "http://localhost:10000/hello/")]
             (is (= 200 (:status response)))
+            (is (= "OK" (:reason-phrase response)))
             (is (= "Hello, World!" (slurp (:body response))))))))))
 
 (deftest sync-client-head-test
@@ -82,7 +84,11 @@
       (testing "clojure sync client"
         (let [response (sync/head "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
-          (is (= nil (:body response))))))))
+          (is (= nil (:body response)))))
+      (testing "not found"
+        (let [response (sync/head "http://localhost:10000/missing")]
+          (is (= 404 (:status response)))
+          (is (= "Not Found" (:reason-phrase response))))))))
 
 (deftest sync-client-get-test
   (basic-test "GET" #(Sync/get %) sync/get))
@@ -108,96 +114,96 @@
 (deftest sync-client-persistent-test
   (testlogging/with-test-logging
     (testutils/with-app-with-config app
-    [jetty9/jetty9-service test-web-service]
-    {:webserver {:port 10000}}
-    (testing "persistent java client"
-      (let [request-options (RequestOptions. "http://localhost:10000/hello/")
-            client-options (ClientOptions.)
-            client (Sync/createClient client-options)]
-        (testing "HEAD request with persistent sync client"
-          (let [response (.head client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= nil (.getBody response)))))
-        (testing "GET request with persistent sync client"
-          (let [response (.get client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "POST request with persistent sync client"
-          (let [response (.post client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "PUT request with persistent sync client"
-          (let [response (.put client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "DELETE request with persistent sync client"
-          (let [response (.delete client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "TRACE request with persistent sync client"
-          (let [response (.trace client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "OPTIONS request with persistent sync client"
-          (let [response (.options client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "PATCH request with persistent sync client"
-          (let [response (.patch client request-options)]
-            (is (= 200 (.getStatus response)))
-            (is (= "Hello, World!" (slurp (.getBody response))))))
-        (testing "client closes properly"
-          (.close client)
-          (is (thrown? IllegalStateException
-                       (.get client request-options))))))
-    (testing "persistent clojure client"
-      (let [client (sync/create-client {})]
-        (testing "HEAD request with persistent sync client"
-          (let [response (common/head client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= nil (:body response)))))
-        (testing "GET request with persistent sync client"
-          (let [response (common/get client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "POST request with persistent sync client"
-          (let [response (common/post client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "PUT request with persistent sync client"
-          (let [response (common/put client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "DELETE request with persistent sync client"
-          (let [response (common/delete client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "TRACE request with persistent sync client"
-          (let [response (common/trace client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "OPTIONS request with persistent sync client"
-          (let [response (common/options client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "PATCH request with persistent sync client"
-          (let [response (common/patch client "http://localhost:10000/hello/")]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "GET request via request function with persistent sync client"
-          (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
-            (is (= 200 (:status response)))
-            (is (= "Hello, World!" (slurp (:body response))))))
-        (testing "Bad verb request via request function with persistent sync client"
-          (is (thrown? IllegalArgumentException
-                       (common/make-request client
-                                            "http://localhost:10000/hello/"
-                                            :bad))))
-        (testing "client closes properly"
-          (common/close client)
-          (is (thrown? IllegalStateException
-                       (common/get client
-                                   "http://localhost:10000/hello")))))))))
+      [jetty9/jetty9-service test-web-service]
+      {:webserver {:port 10000}}
+      (testing "persistent java client"
+        (let [request-options (RequestOptions. "http://localhost:10000/hello/")
+              client-options (ClientOptions.)
+              client (Sync/createClient client-options)]
+          (testing "HEAD request with persistent sync client"
+            (let [response (.head client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= nil (.getBody response)))))
+          (testing "GET request with persistent sync client"
+            (let [response (.get client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "POST request with persistent sync client"
+            (let [response (.post client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "PUT request with persistent sync client"
+            (let [response (.put client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "DELETE request with persistent sync client"
+            (let [response (.delete client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "TRACE request with persistent sync client"
+            (let [response (.trace client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "OPTIONS request with persistent sync client"
+            (let [response (.options client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "PATCH request with persistent sync client"
+            (let [response (.patch client request-options)]
+              (is (= 200 (.getStatus response)))
+              (is (= "Hello, World!" (slurp (.getBody response))))))
+          (testing "client closes properly"
+            (.close client)
+            (is (thrown? IllegalStateException
+                         (.get client request-options))))))
+      (testing "persistent clojure client"
+        (let [client (sync/create-client {})]
+          (testing "HEAD request with persistent sync client"
+            (let [response (common/head client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= nil (:body response)))))
+          (testing "GET request with persistent sync client"
+            (let [response (common/get client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "POST request with persistent sync client"
+            (let [response (common/post client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "PUT request with persistent sync client"
+            (let [response (common/put client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "DELETE request with persistent sync client"
+            (let [response (common/delete client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "TRACE request with persistent sync client"
+            (let [response (common/trace client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "OPTIONS request with persistent sync client"
+            (let [response (common/options client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "PATCH request with persistent sync client"
+            (let [response (common/patch client "http://localhost:10000/hello/")]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "GET request via request function with persistent sync client"
+            (let [response (common/make-request client "http://localhost:10000/hello/" :get)]
+              (is (= 200 (:status response)))
+              (is (= "Hello, World!" (slurp (:body response))))))
+          (testing "Bad verb request via request function with persistent sync client"
+            (is (thrown? IllegalArgumentException
+                         (common/make-request client
+                                              "http://localhost:10000/hello/"
+                                              :bad))))
+          (testing "client closes properly"
+            (common/close client)
+            (is (thrown? IllegalStateException
+                         (common/get client
+                                     "http://localhost:10000/hello")))))))))
 
 (deftest sync-client-as-test
   (testlogging/with-test-logging

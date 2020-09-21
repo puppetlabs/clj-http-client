@@ -84,10 +84,11 @@
    result :- common/ResponsePromise]
   (reify ResponseDeliveryDelegate
     (deliverResponse
-      [_ _ orig-encoding body headers status content-type callback]
+      [_ _ orig-encoding body headers status-code reason-phrase content-type callback]
       (->> {:opts                  opts
             :orig-content-encoding orig-encoding
-            :status                status
+            :status                status-code
+            :reason-phrase         reason-phrase
             :headers               (into {} headers)
             :content-type          (java-content-type->clj content-type)
             :body                  body}

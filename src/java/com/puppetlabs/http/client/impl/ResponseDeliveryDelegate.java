@@ -10,6 +10,7 @@ public interface ResponseDeliveryDelegate {
                          Object body,
                          java.util.Map<String, String> headers,
                          int statusCode,
+                         String reasonPhrase,
                          ContentType contentType,
                          IResponseCallback callback);
 
