@@ -163,6 +163,7 @@
    :body Body
    :headers Headers
    :status schema/Int
+   :reason-phrase schema/Str
    :content-type ContentType})
 
 (def ErrorResponse

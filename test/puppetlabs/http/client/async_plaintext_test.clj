@@ -71,9 +71,15 @@
         (let [request-options (RequestOptions. (URI. "http://localhost:10000/hello/"))
               client-options (ClientOptions.)
               client (Async/createClient client-options)]
+          (testing "HEAD request to missing endpoint"
+            (let [response (.head client
+                                  (RequestOptions. (URI. "http://localhost:10000/missing")))]
+              (is (= 404 (.getStatus (.deref response))))
+              (is (= "Not Found" (.getReasonPhrase (.deref response))))))
           (testing "HEAD request with persistent async client"
             (let [response (.head client request-options)]
               (is (= 200 (.getStatus (.deref response))))
+              (is (= "OK" (.getReasonPhrase (.deref response))))
               (is (= nil (.getBody (.deref response))))))
           (testing "GET request with persistent async client"
             (let [response (.get client request-options)]
@@ -109,9 +115,14 @@
                          (.get client request-options))))))
       (testing "clojure async client"
         (let [client (async/create-client {})]
+          (testing "HEAD request to missing endpoint"
+            (let [response (common/head client "http://localhost:10000/missing")]
+              (is (= 404 (:status @response)))
+              (is (= "Not Found" (:reason-phrase @response)))))
           (testing "HEAD request with persistent async client"
             (let [response (common/head client "http://localhost:10000/hello/")]
               (is (= 200 (:status @response)))
+              (is (= "OK" (:reason-phrase @response)))
               (is (= nil (:body @response)))))
           (testing "GET request with persistent async client"
             (let [response (common/get client "http://localhost:10000/hello/")]

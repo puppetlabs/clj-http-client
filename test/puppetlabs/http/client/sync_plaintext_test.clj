@@ -63,10 +63,12 @@
           (let [request-options (SimpleRequestOptions. (URI. "http://localhost:10000/hello/"))
                 response (java-method request-options)]
             (is (= 200 (.getStatus response)))
+            (is (= "OK" (.getReasonPhrase response)))
             (is (= "Hello, World!" (slurp (.getBody response))))))
         (testing "clojure sync client"
           (let [response (clj-fn "http://localhost:10000/hello/")]
             (is (= 200 (:status response)))
+            (is (= "OK" (:reason-phrase response)))
             (is (= "Hello, World!" (slurp (:body response))))))))))
 
 (deftest sync-client-head-test
@@ -82,7 +84,11 @@
       (testing "clojure sync client"
         (let [response (sync/head "http://localhost:10000/hello/")]
           (is (= 200 (:status response)))
-          (is (= nil (:body response))))))))
+          (is (= nil (:body response)))))
+      (testing "not found"
+        (let [response (sync/head "http://localhost:10000/missing")]
+          (is (= 404 (:status response)))
+          (is (= "Not Found" (:reason-phrase response))))))))
 
 (deftest sync-client-get-test
   (basic-test "GET" #(Sync/get %) sync/get))
