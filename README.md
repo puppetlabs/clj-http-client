@@ -34,6 +34,14 @@ The repo contains these files needed for testing, though if needed you may
 want to read `dev-resources/gen-pki.sh` for the commands to generate additional
 sets of files.
 
+## Upgrading dependencies
+
+The APIs provided by httpclient change significantly in 5.0 and some of the
+internal classes that we've extended change within minor releases of the 4.5
+series. Whenever upgrading the apache/httpcomponents dependencies an audit of
+the Java classes should be undertaken, especially the classes pertaining to
+SafeRedirectedRequest and RedirectStrategy.
+
 ## Support
 
 We use the [Trapperkeeper project on JIRA](https://tickets.puppetlabs.com/browse/TK)
