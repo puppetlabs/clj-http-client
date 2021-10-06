@@ -1,5 +1,6 @@
 language: clojure
 lein: 2.9.1
+dist: bionic
 jobs:
   include:
     - stage: jdk8
