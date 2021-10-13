@@ -21,9 +21,6 @@ public class SafeRedirectedRequest
         extends HttpGet
         implements HttpUriRequest, InvocationHandler {
 
-    private final String AUTH_HEADER = "Authorization";
-    private final String XAUTH_HEADER = "X-Authorization";
-
     private final HttpUriRequest delegate;
 
     public SafeRedirectedRequest(HttpUriRequest delegate) {
@@ -41,10 +38,9 @@ public class SafeRedirectedRequest
     // copy exiting headers when being redirected.
     @Override
     public void setHeaders(final Header[] headers) {
-        final Header[] cleanedHeaders = (Header[]) Arrays.asList(headers)
-                .stream()
-                .filter(header -> AUTH_HEADER.equalsIgnoreCase(header.getName()))
-                .filter(header -> XAUTH_HEADER.equalsIgnoreCase(header.getName()))
+        final Header[] cleanedHeaders = Arrays.stream(headers).filter(header ->
+                        CreateRedirectUtil.SECURITY_RELATED_HEADERS.stream().noneMatch(mask ->
+                                mask.equalsIgnoreCase(header.getName())))
                 .toArray(Header[]::new);
         delegate.setHeaders(cleanedHeaders);
     }

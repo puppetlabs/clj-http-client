@@ -1,17 +1,17 @@
 package com.puppetlabs.http.client.impl;
 
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.ProtocolException;
+import org.apache.http.*;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.protocol.HttpContext;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 
 // This class overrides the getRedirect() method of DefaultRedirectStrategy
 // (or LaxRedirectStrategy as it inherits this method from DefaultRedirectStrategy)
@@ -27,6 +27,11 @@ import java.net.URI;
 // revised whenever updating httpclient.
 public class CreateRedirectUtil {
     public static final int SC_PERMANENT_REDIRECT = 308;
+    public static final List<String> SECURITY_RELATED_HEADERS = Arrays.asList(
+            "X-Authorization", "Authorization",
+            "Cookie", "Set-Cookie", "WWW-Authenticate",
+            "Proxy-Authorization", "Proxy-Authenticate"
+    );
 
     public static HttpUriRequest getRedirect(
             final DefaultRedirectStrategy redirectStrategy,
@@ -37,25 +42,36 @@ public class CreateRedirectUtil {
         final URI uri = redirectStrategy.getLocationURI(request, response, context);
         final String method = request.getRequestLine().getMethod();
 
+        // This is new to allow Redirects to contain Auth headers IF they are to the same host/port/scheme
+        final HttpClientContext clientContext = HttpClientContext.adapt(context);
+        final HttpHost target = clientContext.getTargetHost();
+        final boolean localRedirect = target.getHostName().equals(uri.getHost()) &&
+                target.getPort() == uri.getPort() &&
+                target.getSchemeName().equals(uri.getScheme());
+
+
         if (method.equalsIgnoreCase(HttpHead.METHOD_NAME)) {
-            return SafeRedirectedRequest.wrap(new HttpHead(uri));
+            return localRedirect ? new HttpHead(uri) : SafeRedirectedRequest.wrap(new HttpHead(uri));
         } else if (method.equalsIgnoreCase(HttpGet.METHOD_NAME)) {
-            return SafeRedirectedRequest.wrap(new HttpGet(uri));
+            return localRedirect ? new HttpGet(uri) : SafeRedirectedRequest.wrap(new HttpGet(uri));
         } else {
             final int status = response.getStatusLine().getStatusCode();
             if (status == HttpStatus.SC_TEMPORARY_REDIRECT || status == SC_PERMANENT_REDIRECT) {
 
-                // RequestBuilder.copy will copy any existing headers, which we don't want
-                // .removeHeaders does an equalsIgnoreCase() on the passed String.
-                HttpUriRequest copiedReq = RequestBuilder.copy(request)
-                        .setUri(uri)
-                        .removeHeaders("authorization")
-                        .removeHeaders("x-authorization")
-                        .build();
+                if (! localRedirect) {
+                    // RequestBuilder.copy will copy any existing headers, which we don't want
+                    RequestBuilder builder = RequestBuilder.copy(request).setUri(uri);
+                    for (String header : SECURITY_RELATED_HEADERS) {
+                        // .removeHeaders does an equalsIgnoreCase() on the passed String.
+                        builder.removeHeaders(header);
+                    }
 
-                return SafeRedirectedRequest.wrap(copiedReq);
+                    return SafeRedirectedRequest.wrap(builder.build());
+                } else {
+                    return RequestBuilder.copy(request).setUri(uri).build();
+                }
             } else {
-                return SafeRedirectedRequest.wrap(new HttpGet(uri));
+                return localRedirect ? new HttpGet(uri) : SafeRedirectedRequest.wrap(new HttpGet(uri));
             }
         }
     }
