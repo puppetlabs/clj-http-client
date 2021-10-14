@@ -5,6 +5,7 @@
            (java.util Locale)
            (java.util.concurrent CountDownLatch TimeUnit))
   (:require [clojure.test :refer :all]
+            [clojure.set :as set]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.i18n.core :as i18n]
             [puppetlabs.trapperkeeper.core :as tk]
@@ -282,28 +283,53 @@
               (try
                 (swap! state #(conj % {:uri uri :headers headers}))
                 (condp = uri
-                  "/hello/world" {:status 200 :body "Hello, World!"}
-                  "/hello"       {:status 302
-                                   :headers {"Location" "/hello/world"}
-                                   :body    ""}
+                  "/hello" {:status 302
+                            :headers {"Location" "http://localhost:8082/world"}
+                            :body ""}
+                  "/hello/foo" {:status 302
+                          :headers {"Location" "/hello/bar"}
+                          :body ""}
+                  "/hello/bar" {:status 200 :body "It's me, I'm still here ...and I'm still me."}
                   {:status 404 :body "D'oh"})
               (catch Throwable e
                 (prn e))))
-            "/hello")
+            "/hello"
+            {:server-id :hello})
+          (add-ring-handler
+            (fn
+              [{:keys [uri headers] :as req}]
+              (try
+                (swap! state #(conj % {:uri uri :headers headers}))
+                (condp = uri
+                  "/world" {:status 200 :body "Hello, World!"}
+                  {:status 404 :body "D'oh"})
+              (catch Throwable e
+                (prn e))))
+            "/world"
+            {:server-id :world})
           context)))
 
 (deftest redirect-headers-test-async
-  (testlogging/with-test-logging
-    (let [state (atom [])]
+  ;(testlogging/with-test-logging
+    (let [state (atom [])
+          headers {"X-Authorization" "foo", "Authorization" "bar",
+                   "Cookie" "123", "Set-Cookie" "true",
+                   "WWW-Authenticate" "Basic token",
+                   "Proxy-Authorization" "Basic token", "Proxy-Authenticate" "Basic"}
+          header-names #{"x-authorization" "authorization" "cookie" "set-cookie"
+                         "www-authenticate" "proxy-authorization" "proxy-authenticate"
+                         "X-Authorization" "Authorizaion"
+                         "Cookie" "Set-Cookie"
+                         "WWW-Authenticate", "Proxy-Authorization", "Proxy-Authenticate"}]
       (create-redirect-web-service state)
       (testutils/with-app-with-config app
         [jetty9/jetty9-service redirect-web-service-with-state]
-        {:webserver {:port 8081}}
+        {:webserver {:hello {:port 8081} :world {:port 8082}}}
         (testing "default redirect policy does not include authorization headers"
           (let [client (Async/createClient (ClientOptions.))
                 request-options  (RequestOptions.
                                   (URI. "http://localhost:8081/hello")
-                                  {"X-Authorization" "foo", "Authorizaion" "bar"}
+                                  headers
                                   nil
                                   true
                                   ResponseBodyType/TEXT)]
@@ -313,18 +339,40 @@
                       [first-req second-req] @state]
                   (is (= 200 (.getStatus response)))
                   (is (= "/hello" (:uri first-req)))
-                  (is (= "/hello/world" (:uri second-req)))
-                  (is (some #{"x-authorization" "authorization"} (keys (:headers first-req))))
-                  (is (not-any? #{"x-authorization" "authorization"} (keys (:headers second-req))))))
+                  (is (= "/world" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (not-any? header-names (keys (:headers second-req))))))
               (reset! state [])
               (testing "HEAD requests"
                 (let [response (.deref (.head client request-options))
                       [first-req second-req] @state]
                   (is (= 200 (.getStatus response)))
                   (is (= "/hello" (:uri first-req)))
-                  (is (= "/hello/world" (:uri second-req)))
-                  (is (some #{"x-authorization" "authorization"} (keys (:headers first-req))))
-                  (is (not-any? #{"x-authorization" "authorization"} (keys (:headers second-req))))))
+                  (is (= "/world" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (not-any? header-names (keys (:headers second-req))))))
+              (reset! state [])
+              (testing "POST requests fail"
+                (let [response (.deref (.post client request-options))
+                      [first-req second-req] @state]
+                  (is (= 302 (.getStatus response)))
+                  (is (= "/hello" (:uri first-req)))
+                  (is (nil? second-req))))
+              (reset! state [])
+              (testing "Pass auth headers when redirected to URI with same scheme, host, and port"
+                (let [request-options (RequestOptions.
+                                       (URI. "http://localhost:8081/hello/foo")
+                                       headers
+                                       nil
+                                       true
+                                       ResponseBodyType/TEXT)
+                      response (.deref (.get client request-options))
+                      [first-req second-req] @state]
+                  (is (= 200 (.getStatus response)))
+                  (is (= "/hello/foo" (:uri first-req)))
+                  (is (= "/hello/bar" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers second-req)))))))))
               (finally
                 (.close client)))))
 
@@ -334,7 +382,7 @@
                                                (setForceRedirects true)))
                 request-options  (RequestOptions.
                                   (URI. "http://localhost:8081/hello")
-                                  {"X-Authorization" "foo", "Authorizaion" "bar"}
+                                  headers
                                   nil
                                   true
                                   ResponseBodyType/TEXT)]
@@ -346,9 +394,9 @@
                   (is (= 2 (count @state)))
                   (is (= 200 (.getStatus response)))
                   (is (= "/hello" (:uri first-req)))
-                  (is (= "/hello/world" (:uri second-req)))
-                  (is (some #{"x-authorization" "authorization"} (keys (:headers first-req))))
-                  (is (not-any? #{"x-authorization" "authorization"} (keys (:headers second-req))))))
+                  (is (= "/world" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (not-any? header-names (keys (:headers second-req))))))
               (reset! state [])
               (testing "HEAD requests"
                 (let [response (.deref (.head client request-options))
@@ -356,9 +404,9 @@
                   (is (= 2 (count @state)))
                   (is (= 200 (.getStatus response)))
                   (is (= "/hello" (:uri first-req)))
-                  (is (= "/hello/world" (:uri second-req)))
-                  (is (some #{"x-authorization" "authorization"} (keys (:headers first-req))))
-                  (is (not-any? #{"x-authorization" "authorization"} (keys (:headers second-req))))))
+                  (is (= "/world" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (not-any? header-names (keys (:headers second-req))))))
               (reset! state [])
               (testing "POST requests"
                 (let [response (.deref (.post client request-options))
@@ -366,9 +414,9 @@
                   (is (= 2 (count @state)))
                   (is (= 200 (.getStatus response)))
                   (is (= "/hello" (:uri first-req)))
-                  (is (= "/hello/world" (:uri second-req)))
-                  (is (some #{"x-authorization" "authorization"} (keys (:headers first-req))))
-                  (is (not-any? #{"x-authorization" "authorization"} (keys (:headers second-req))))))
+                  (is (= "/world" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (not-any? header-names (keys (:headers second-req))))))
               (reset! state [])
               (testing "DELETE requests"
                 (let [response (.deref (.delete client request-options))
@@ -376,11 +424,26 @@
                   (is (= 2 (count @state)))
                   (is (= 200 (.getStatus response)))
                   (is (= "/hello" (:uri first-req)))
-                  (is (= "/hello/world" (:uri second-req)))
-                  (is (some #{"x-authorization" "authorization"} (keys (:headers first-req))))
-                  (is (not-any? #{"x-authorization" "authorization"} (keys (:headers second-req))))))
+                  (is (= "/world" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (not-any? header-names (keys (:headers second-req))))))
+              (reset! state [])
+              (testing "Pass auth headers when redirected to URI with same scheme, host, and port"
+                (let [ request-options  (RequestOptions.
+                                         (URI. "http://localhost:8081/hello/foo")
+                                         headers
+                                         nil
+                                         true
+                                         ResponseBodyType/TEXT)
+                      response (.deref (.get client request-options))
+                      [first-req second-req] @state]
+                  (is (= 200 (.getStatus response)))
+                  (is (= "/hello/foo" (:uri first-req)))
+                  (is (= "/hello/bar" (:uri second-req)))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers first-req)))))))
+                  (is (= 7 (count (set/intersection header-names (set (keys (:headers second-req)))))))))
               (finally
-                (.close client)))))))))
+                (.close client))))))))
 
 (deftest redirect-test-async
   (testlogging/with-test-logging
