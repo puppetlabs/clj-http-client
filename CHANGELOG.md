@@ -1,3 +1,9 @@
+## 1.2.3
+* [SERVER-3068](https://tickets.puppetlabs.com/browse/SERVER-3068) Conditionally allow auth headers when being redirected.
+
+## 1.2.2
+* Internal release of 1.2.1, no other changes.
+
 ## 1.2.1
 * [SERVER-3068](https://tickets.puppetlabs.com/browse/SERVER-3068) Do not copy auth headers when being redirected.
 
