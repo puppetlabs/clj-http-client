@@ -1,3 +1,27 @@
+## 1.2.3
+* [SERVER-3068](https://tickets.puppetlabs.com/browse/SERVER-3068) Conditionally allow auth headers when being redirected.
+
+## 1.2.2
+* Internal release of 1.2.1, no other changes.
+
+## 1.2.1
+* [SERVER-3068](https://tickets.puppetlabs.com/browse/SERVER-3068) Do not copy auth headers when being redirected.
+
+## 1.2.0
+* [SERVER-2780](https://tickets.puppetlabs.com/browse/SERVER-2780) Add reason phrase to HTTP response
+
+## 1.1.3
+* [PE-27189]((https://tickets.puppetlabs.com/browse/PE-27189) Disambiguate ambiguous type specifications
+
+## 1.1.2
+* [PE-26658](https://tickets.puppetlabs.com/browse/PE-26658) Apply JVM security policy to FIPS
+
+## 1.1.1
+* Released by automation w/o content
+
+## 1.1.0
+* [PDB-4357](https://tickets.puppetlabs.com/browse/PDB-4357) FIPS support via bc-fips jar
+
 ## 1.0.0
 * Adds `::max-connections-total` and `::max-connections-per-route` to allow the Apache HTTP client values to be overridden.  They default to 20 and 2 (to correlate to the Apache client behavior) respectively.
 * Update to clj-parent 1.7.12.  This moves the library to require Java 8.

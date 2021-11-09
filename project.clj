@@ -1,4 +1,4 @@
-(defproject puppetlabs/http-client "1.2.1-SNAPSHOT"
+(defproject puppetlabs/http-client "1.2.4-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
@@ -67,9 +67,9 @@
                            :jar-exclusions ^:replace []
                            :source-paths ^:replace ["src/clj" "src/java"]}}
 
-  :deploy-repositories [["releases" {:url "https://clojars.org/repo"
-                                     :username :env/clojars_jenkins_username
-                                     :password :env/clojars_jenkins_password
+  :deploy-repositories [["releases" {:url "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-releases__local/"
+                                     :username :env/nexus_jenkins_username
+                                     :password :env/nexus_jenkins_password
                                      :sign-releases false}]]
 
   :lein-release {:scm :git
@@ -78,5 +78,5 @@
   :plugins [[lein-parent "0.3.7"]
             [puppetlabs/i18n "0.8.0"]]
 
-  :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-releases__local/"]
-                 ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-snapshots__local/"]])
+  :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-releases__local/"]
+                 ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-snapshots__local/"]])
