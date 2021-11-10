@@ -1,3 +1,6 @@
+## 1.2.4
+* Public release of 1.2.3, no other changes.
+
 ## 1.2.3
 * [SERVER-3068](https://tickets.puppetlabs.com/browse/SERVER-3068) Conditionally allow auth headers when being redirected.
 
