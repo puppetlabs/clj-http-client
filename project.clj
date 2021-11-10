@@ -67,9 +67,7 @@
                            :jar-exclusions ^:replace []
                            :source-paths ^:replace ["src/clj" "src/java"]}}
 
-  :deploy-repositories [["releases" {:url "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-releases__local/"
-                                     :username :env/nexus_jenkins_username
-                                     :password :env/nexus_jenkins_password
+  :deploy-repositories [["releases" {:url "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-releases__local/"
                                      :sign-releases false}]]
 
   :lein-release {:scm :git
@@ -78,5 +76,5 @@
   :plugins [[lein-parent "0.3.7"]
             [puppetlabs/i18n "0.8.0"]]
 
-  :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-releases__local/"]
-                 ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-snapshots__local/"]])
+  :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-releases__local/"]
+                 ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/list/clojure-snapshots__local/"]])
