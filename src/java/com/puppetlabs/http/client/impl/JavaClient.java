@@ -8,6 +8,8 @@ import com.puppetlabs.http.client.HttpMethod;
 import com.puppetlabs.http.client.RequestOptions;
 import com.puppetlabs.http.client.ResponseBodyType;
 import com.puppetlabs.http.client.impl.metrics.TimerUtils;
+import com.puppetlabs.http.client.impl.SafeDefaultRedirectStrategy;
+import com.puppetlabs.http.client.impl.SafeLaxRedirectStrategy;
 
 import com.puppetlabs.ssl_utils.SSLUtils;
 import org.apache.commons.io.IOUtils;
@@ -39,8 +41,6 @@ import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.impl.client.DefaultRedirectStrategy;
-import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
@@ -558,10 +558,10 @@ public class JavaClient {
             };
         }
         else if (coercedOptions.getForceRedirects()) {
-            redirectStrategy = new LaxRedirectStrategy();
+            redirectStrategy = new SafeLaxRedirectStrategy();
         }
         else {
-            redirectStrategy = new DefaultRedirectStrategy();
+            redirectStrategy = new SafeDefaultRedirectStrategy();
         }
         clientBuilder.setRedirectStrategy(redirectStrategy);
 
