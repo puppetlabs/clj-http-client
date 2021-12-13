@@ -140,7 +140,8 @@
              (and (instance? SSLException cause#)
                   (or (re-find #"handshake_failure" message#)
                       (re-find #"internal_error" message#)))
-             (instance? ConnectionClosedException cause#))))))
+             (instance? ConnectionClosedException cause#))))
+     (catch ConnectionClosedException cce# true)))
 
 (defn java-https-get-with-protocols
   [client-protocols client-cipher-suites]
@@ -183,5 +184,5 @@
         (is (java-unsupported-protocol-exception?
               (java-https-get-with-protocols ["TLSv1.2"] nil))))
       (testing "clojure sync client"
-        (is (thrown? SSLException (clj-https-get-with-protocols ["TLSv1.2"] nil)))))))
+        (is (java-unsupported-protocol-exception? (clj-https-get-with-protocols ["TLSv1.2"] nil)))))))
 
