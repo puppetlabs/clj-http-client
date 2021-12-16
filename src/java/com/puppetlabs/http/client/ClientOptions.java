@@ -18,7 +18,7 @@ import java.security.Security;
  */
 public class ClientOptions {
     public static final String[] DEFAULT_SSL_PROTOCOLS =
-            new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"};
+            new String[] {"TLSv1.3", "TLSv1.2"};
 
     private SSLContext sslContext;
     private String sslCert;

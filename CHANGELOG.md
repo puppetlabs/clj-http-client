@@ -1,3 +1,6 @@
+## 2.0.0
+* [PE-33177](https://tickets.puppetlabs.com/browse/PE-33177) Add TLSv1.3 to ClientOptions default SSL protocols and remove TLSv1 and TLSv1.1.
+
 ## 1.2.4
 * Public release of 1.2.3, no other changes.
 
