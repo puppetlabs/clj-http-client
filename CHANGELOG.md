@@ -1,3 +1,6 @@
+## Unreleased
+* Use `OPTIONS` request method when calling the synchronous client's `options` function.
+
 ## 2.0.0
 * [PE-33177](https://tickets.puppetlabs.com/browse/PE-33177) Add TLSv1.3 to ClientOptions default SSL protocols and remove TLSv1 and TLSv1.1.
 
