@@ -66,7 +66,7 @@
       (trace [this url] (common/trace this url {}))
       (trace [this url opts] (common/make-request this url :trace opts))
       (options [this url] (common/options this url {}))
-      (options [this url opts] (common/make-request this url :post opts))
+      (options [this url opts] (common/make-request this url :options opts))
       (patch [this url] (common/patch this url {}))
       (patch [this url opts] (common/make-request this url :patch opts))
       (make-request [this url method] (common/make-request this url method {}))
