@@ -1,4 +1,7 @@
 ## Unreleased
+
+# 2.1.0
+* update to clj-parent 5.2.6 to move from bouncy-castle `15on` libraries to the `18on` version
 * Use `OPTIONS` request method when calling the synchronous client's `options` function.
 
 ## 2.0.0

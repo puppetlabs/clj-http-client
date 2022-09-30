@@ -111,9 +111,7 @@
               (is (= 200 (.getStatus (.deref response))))
               (is (= "Hello, World!" (slurp (.getBody (.deref response)))))))
           (testing "client closes properly"
-            (.close client)
-            (is (thrown? IllegalStateException
-                         (.get client request-options))))))
+            (is (= nil (.close client))))))
       (testing "clojure async client"
         (let [client (async/create-client {})]
           (testing "HEAD request to missing endpoint"
@@ -163,10 +161,7 @@
                                               "http://localhost:10000/hello/"
                                               :bad))))
           (testing "client closes properly"
-            (common/close client)
-            (is (thrown? IllegalStateException
-                         (common/get client
-                                     "http://localhost:10000/hello/")))))))))
+            (is (= nil (common/close client)))))))))
 
 (deftest java-api-cookie-test
   (testlogging/with-test-logging

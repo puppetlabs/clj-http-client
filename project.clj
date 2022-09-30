@@ -1,11 +1,11 @@
-(defproject puppetlabs/http-client "2.0.1-SNAPSHOT"
+(defproject puppetlabs/http-client "2.1.0-SNAPSHOT"
   :description "HTTP client wrapper"
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
 
   :min-lein-version "2.9.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "4.6.24"]
+  :parent-project {:coords [puppetlabs/clj-parent "5.2.6"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -34,7 +34,8 @@
   ;; depend on this source jar using a :classifier in their :dependencies.
   :classifiers [["sources" :sources-jar]]
 
-  :profiles {:defaults {:dependencies [[cheshire]
+  :profiles {:provided {:dependencies [[org.bouncycastle/bcpkix-jdk18on]]}
+             :defaults {:dependencies [[cheshire]
                                        [puppetlabs/kitchensink :classifier "test"]
                                        [puppetlabs/trapperkeeper]
                                        [puppetlabs/trapperkeeper :classifier "test"]
@@ -44,7 +45,7 @@
                         :resource-paths ["dev-resources"]
                         :jvm-opts ["-Djava.util.logging.config.file=dev-resources/logging.properties"]}
              :dev [:defaults
-                   {:dependencies [[org.bouncycastle/bcpkix-jdk15on]]}]
+                   {:dependencies [[org.bouncycastle/bcpkix-jdk18on]]}]
              :fips [:defaults
                     {:dependencies [[org.bouncycastle/bcpkix-fips]
                                     [org.bouncycastle/bc-fips]
