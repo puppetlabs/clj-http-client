@@ -154,7 +154,7 @@
               (is (= "Hello, World!" (slurp (.getBody response))))))
           (testing "client closes properly"
             (.close client)
-            (is (thrown? IllegalStateException
+            (is (thrown? HttpClientException
                          (.get client request-options))))))
       (testing "persistent clojure client"
         (let [client (sync/create-client {})]
