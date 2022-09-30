@@ -1,13 +1,13 @@
 dist: bionic
 language: clojure
-lein: 2.9.1
+lein: 2.9.10
 jobs:
   include:
     # The OpenJDK versions used by Travis are pretty old, which causes
     # problems with some of the tests. This pulls in a semi-recent version
     # from the Ubuntu repos.
     - name: jdk8
-      before_install: 
+      before_install:
         - sudo rm -rf /usr/local/lib/jvm/
         - sudo rm -rf /usr/lib/jvm/openjdk-8
         - sudo apt-get install -y openjdk-8-jdk-headless
@@ -18,7 +18,7 @@ jobs:
     #  script: lein with-profile fips test
     #  jdk: openjdk8
     - name: jdk11
-      before_install: 
+      before_install:
         - sudo rm -rf /usr/local/lib/jvm/
         - sudo rm -rf /usr/lib/jvm/openjdk-11
         - sudo apt-get install -y openjdk-11-jdk-headless
