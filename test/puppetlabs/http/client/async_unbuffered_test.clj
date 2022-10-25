@@ -19,7 +19,7 @@
   [data-size]
   (apply str "xxxx" (repeatedly (/ data-size 35) #(UUID/randomUUID))))
 
-(defn successful-handler
+(defn streaming-handler
   "A Ring handler that asynchronously sends some data, waits for confirmation the data has been received then sends
   some more data"
   [data send-more-data]
@@ -39,32 +39,19 @@
       {:status 200
        :body instream})))
 
-(defn blocking-handler
-  "A Ring handler that sends some data but then never closes the socket"
-  [data]
-  (fn [_]
-    (let [outstream (PipedOutputStream.)
-          instream (PipedInputStream.)]
-      (.connect instream outstream)
-      ;; Return the response immediately and asynchronously stream some data into it
-      (future
-       (.write outstream (.getBytes data)))
-      {:status 200
-       :body instream})))
-
 (defn- clojure-non-blocking-streaming
-  "Stream 32M of data (roughly) which is large enough to ensure the client won't buffer it all. Checks the data is
+  "Stream 1M of data (roughly) which is large enough to ensure the client won't buffer it all. Checks the data is
   streamed in a non-blocking manner i.e some data is received by the client before the server has finished
   transmission"
   [decompress-body?]
   (testlogging/with-test-logging
-   (let [data (generate-data (* 32 1024 1024))
+   (let [data (generate-data (* 1024 1024))
          opts {:as :unbuffered-stream :decompress-body decompress-body?}]
 
      (testing " - check data can be streamed successfully"
        (let [send-more-data (promise)]
          (testwebserver/with-test-webserver-and-config
-          (successful-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+          (streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                    :socket-timeout-milliseconds 20000})]
             (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
@@ -78,19 +65,21 @@
                 (is (= (str data "yyyy") (str "xxxx" (slurp instream)))))))))) ;; Read the rest and validate
 
      (testing " - check socket timeout is handled"
-       (try
-         (testwebserver/with-test-webserver-and-config
-          (blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                   :socket-timeout-milliseconds 200})]
-            (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
-                  {:keys [body error]} response]
-              (is (nil? error))
-              ;; Consume the body to get the exception
-              (is (thrown? SocketTimeoutException (slurp body))))))
-         (catch TimeoutException e
-                ;; Expected whenever a server-side failure is generated
-                nil)))
+       (let [send-more-data (promise)]
+         (try
+           (testwebserver/with-test-webserver-and-config
+             (streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+             (with-open [client (async/create-client {:connect-timeout-milliseconds 100
+                                                      :socket-timeout-milliseconds 200})]
+               (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
+                     {:keys [body error]} response]
+                 (is (nil? error))
+                 ;; Consume the body to get the exception
+                 (is (thrown? SocketTimeoutException (slurp body)))))
+                 (deliver send-more-data true))
+           (catch TimeoutException e
+             ;; Expected whenever a server-side failure is generated
+             nil))))
 
      (testing " - check connection timeout is handled"
        (with-open [client (async/create-client {:connect-timeout-milliseconds 100})]
@@ -100,11 +89,11 @@
            (is (instance? ConnectException error))))))))
 
 (deftest clojure-non-blocking-streaming-without-decompression
-  (testing "clojure :unbuffered-stream with 32MB payload and no decompression"
+  (testing "clojure :unbuffered-stream with 1MB payload and no decompression"
     (clojure-non-blocking-streaming false)))
 
 (deftest clojure-non-blocking-streaming-with-decompression
-  (testing "clojure :unbuffered-stream with 32MB payload and decompression"
+  (testing "clojure :unbuffered-stream with 1MB payload and decompression"
     (clojure-non-blocking-streaming true)))
 
 (defn- clojure-blocking-streaming
@@ -114,7 +103,7 @@
 
    (testing " - check data can be streamed successfully"
      (testwebserver/with-test-webserver-and-config
-      (successful-handler data nil) port {:shutdown-timeout-seconds 1}
+      (streaming-handler data nil) port {:shutdown-timeout-seconds 1}
       (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                :socket-timeout-milliseconds 20000})]
         (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
@@ -127,17 +116,19 @@
             (is (= (str data "yyyy") (str "xxxx" (slurp instream))))))))) ;; Read the rest and validate
 
    (testing " - check socket timeout is handled"
-     (try
-       (testwebserver/with-test-webserver-and-config
-        (blocking-handler data) port {:shutdown-timeout-seconds 1}
-        (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                 :socket-timeout-milliseconds 200})]
-          (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
-                {:keys [error]} response]
-            (is (instance? SocketTimeoutException error)))))
-       (catch TimeoutException e
-         ;; Expected whenever a server-side failure is generated
-         nil)))
+     (let [send-more-data (promise)]
+       (try
+         (testwebserver/with-test-webserver-and-config
+           (streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
+                                                    :socket-timeout-milliseconds 200})]
+             (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
+                   {:keys [error]} response]
+               (is (instance? SocketTimeoutException error))))
+               (deliver send-more-data true))
+         (catch TimeoutException e
+           ;; Expected whenever a server-side failure is generated
+           nil))))
 
 
    (testing " - check connection timeout is handled"
@@ -168,25 +159,25 @@
     (clojure-blocking-streaming (generate-data 1024) {:as :stream :decompress-body true})))
 
 (deftest clojure-existing-streaming-with-large-payload-without-decompression
-  (testing "clojure :stream with 32M payload and no decompression"
-    (clojure-blocking-streaming (generate-data (* 32 1024 1024)) {:as :stream :decompress-body false})))
+  (testing "clojure :stream with 1M payload and no decompression"
+    (clojure-blocking-streaming (generate-data (* 1024 1024)) {:as :stream :decompress-body false})))
 
 (deftest clojure-existing-streaming-with-large-payload-with-decompression
-  (testing "clojure :stream with 32M payload and decompression"
-    (clojure-blocking-streaming (generate-data (* 32 1024 1024)) {:as :stream :decompress-body true})))
+  (testing "clojure :stream with 1M payload and decompression"
+    (clojure-blocking-streaming (generate-data (* 1024 1024)) {:as :stream :decompress-body true})))
 
 (defn- java-non-blocking-streaming
-  "Stream 32M of data (roughly) which is large enough to ensure the client won't buffer it all. Checks the data is
-  streamed in a non-blocking manner i.e some data is received by the client before the server has finished
-  transmission"
+  "Stream 1M of data (roughly) which is large enough to ensure the client won't
+  buffer it all. Checks the data is streamed in a non-blocking manner i.e some
+  data is received by the client before the server has finished transmission"
   [decompress-body?]
   (testlogging/with-test-logging
-    (let [data (generate-data (* 32 1024 1024))]
+    (let [data (generate-data (* 1024 1024))]
 
       (testing " - check data can be streamed successfully"
         (let [send-more-data (promise)]
           (testwebserver/with-test-webserver-and-config
-            (successful-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+            (streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
             (with-open [client (-> (ClientOptions.)
                                    (.setSocketTimeoutMilliseconds 20000)
                                    (.setConnectTimeoutMilliseconds 100)
@@ -206,25 +197,27 @@
                   (is (= (str data "yyyy") (str "xxxx" (slurp instream)))))))))) ;; Read the rest and validate
 
       (testing " - check socket timeout is handled"
-        (try
-          (testwebserver/with-test-webserver-and-config
-            (blocking-handler data) port {:shutdown-timeout-seconds 1}
-            (with-open [client (-> (ClientOptions.)
-                                   (.setSocketTimeoutMilliseconds 200)
-                                   (.setConnectTimeoutMilliseconds 100)
-                                   (Async/createClient))]
-              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
-                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM)
-                                      (.setDecompressBody decompress-body?))
-                    response (-> client (.get request-options) .deref)
-                    body (.getBody response)
-                    error (.getError response)]
-                (is (nil? error))
-                ;; Consume the body to get the exception
-                (is (thrown? SocketTimeoutException (slurp body))))))
-          (catch TimeoutException e
-            ;; Expected whenever a server-side failure is generated
-            nil)))
+        (let [send-more-data (promise)]
+          (try
+            (testwebserver/with-test-webserver-and-config
+              (streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+              (with-open [client (-> (ClientOptions.)
+                                     (.setSocketTimeoutMilliseconds 200)
+                                     (.setConnectTimeoutMilliseconds 100)
+                                     (Async/createClient))]
+                (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                        (.setAs ResponseBodyType/UNBUFFERED_STREAM)
+                                        (.setDecompressBody decompress-body?))
+                      response (-> client (.get request-options) .deref)
+                      body (.getBody response)
+                      error (.getError response)]
+                  (is (nil? error))
+                  ;; Consume the body to get the exception
+                  (is (thrown? SocketTimeoutException (slurp body)))))
+              (deliver send-more-data true))
+            (catch TimeoutException e
+              ;; Expected whenever a server-side failure is generated
+              nil))))
 
 
       (testing " - check connection timeout is handled"
@@ -240,11 +233,11 @@
             (is (instance? ConnectException error))))))))
 
 (deftest java-non-blocking-streaming-without-decompression
-  (testing "java :unbuffered-stream with 32MB payload and no decompression"
+  (testing "java :unbuffered-stream with 1MB payload and no decompression"
     (java-non-blocking-streaming false)))
 
 (deftest java-non-blocking-streaming-with-decompression
-  (testing "java :unbuffered-stream with 32MB payload and decompression"
+  (testing "java :unbuffered-stream with 1MB payload and decompression"
     (java-non-blocking-streaming true)))
 
 (defn- java-blocking-streaming
@@ -254,7 +247,7 @@
 
     (testing " - check data can be streamed successfully"
       (testwebserver/with-test-webserver-and-config
-        (successful-handler data nil) port {:shutdown-timeout-seconds 1}
+        (streaming-handler data nil) port {:shutdown-timeout-seconds 1}
         (with-open [client (-> (ClientOptions.)
                                (.setSocketTimeoutMilliseconds 20000)
                                (.setConnectTimeoutMilliseconds 100)
@@ -273,22 +266,24 @@
               (is (= (str data "yyyy") (str "xxxx" (slurp instream))))))))) ;; Read the rest and validate
 
     (testing " - check socket timeout is handled"
-      (try
-        (testwebserver/with-test-webserver-and-config
-          (blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (with-open [client (-> (ClientOptions.)
-                                 (.setSocketTimeoutMilliseconds 200)
-                                 (.setConnectTimeoutMilliseconds 100)
-                                 (Async/createClient))]
-            (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
-                                    (.setAs response-body-type)
-                                    (.setDecompressBody decompress-body?))
-                  response (-> client (.get request-options) .deref)
-                  error (.getError response)]
-              (is (instance? SocketTimeoutException error)))))
-        (catch TimeoutException e
-          ;; Expected whenever a server-side failure is generated
-          nil)))
+      (let [send-more-data (promise)]
+        (try
+          (testwebserver/with-test-webserver-and-config
+            (streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+            (with-open [client (-> (ClientOptions.)
+                                   (.setSocketTimeoutMilliseconds 200)
+                                   (.setConnectTimeoutMilliseconds 100)
+                                   (Async/createClient))]
+              (let [request-options (doto (RequestOptions. (str "http://localhost:" port "/hello"))
+                                      (.setAs response-body-type)
+                                      (.setDecompressBody decompress-body?))
+                    response (-> client (.get request-options) .deref)
+                    error (.getError response)]
+                (is (instance? SocketTimeoutException error))))
+            (deliver send-more-data true))
+          (catch TimeoutException e
+            ;; Expected whenever a server-side failure is generated
+            nil))))
 
 
     (testing " - check connection timeout is handled"
@@ -324,9 +319,9 @@
     (java-blocking-streaming (generate-data 1024) ResponseBodyType/STREAM true)))
 
 (deftest java-existing-streaming-with-large-payload-without-decompression
-  (testing "java :stream with 32M payload and no decompression"
-    (java-blocking-streaming (generate-data (* 32 1024 1024)) ResponseBodyType/STREAM false)))
+  (testing "java :stream with 1M payload and no decompression"
+    (java-blocking-streaming (generate-data (* 1024 1024)) ResponseBodyType/STREAM false)))
 
 (deftest java-existing-streaming-with-large-payload-with-decompression
-  (testing "java :stream with 32M payload and decompression"
-    (java-blocking-streaming (generate-data (* 32 1024 1024)) ResponseBodyType/STREAM true)))
+  (testing "java :stream with 1M payload and decompression"
+    (java-blocking-streaming (generate-data (* 1024 1024)) ResponseBodyType/STREAM true)))
