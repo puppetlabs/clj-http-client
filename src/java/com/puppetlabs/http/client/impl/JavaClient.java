@@ -532,6 +532,15 @@ public class JavaClient {
         HttpAsyncClientBuilder clientBuilder = HttpAsyncClients.custom();
         clientBuilder.setMaxConnPerRoute(clientOptions.getMaxConnectionsPerRoute());
         clientBuilder.setMaxConnTotal(clientOptions.getMaxConnectionsTotal());
+        // Typically, the HttpClient library tracks the "user token" for a
+        // connection, which in our case is the SSL certificate name, and
+        // refuses to reuse a connection if the SSL certificate is different
+        // for the next request. Because we create a new HttpClientContext for
+        // every request, this tracking doesn't work in our case. However,
+        // since we bake the SSL context in at the time we create the client,
+        // it's impossible for it to change from request to request, so we can
+        // simply disable that tracking altogether.
+        clientBuilder.disableConnectionState();
 
         SSLContext context = coercedOptions.getSslContext();
         if (context != null) {
