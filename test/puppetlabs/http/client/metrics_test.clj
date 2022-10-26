@@ -441,7 +441,7 @@
      (testing "metrics work for a successful request"
        (let [metric-registry (MetricRegistry.)]
          (testwebserver/with-test-webserver-and-config
-          (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
+          (unbuffered-test/streaming-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (-> (ClientOptions.)
                                  (.setSocketTimeoutMilliseconds 20000)
                                  (.setConnectTimeoutMilliseconds 100)
@@ -486,52 +486,54 @@
                   (is (<= 1000 (.getMean full-response-data)))
                   (is (<= 1000 (.getAggregate full-response-data))))))))))
      (testing "metrics work for failed request"
-       (try
-         (testwebserver/with-test-webserver-and-config
-          (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (MetricRegistry.)]
-            (with-open [client (-> (ClientOptions.)
-                                   (.setSocketTimeoutMilliseconds 200)
-                                   (.setConnectTimeoutMilliseconds 100)
-                                   (.setMetricRegistry metric-registry)
-                                   (Async/createClient))]
-              (let [url (str "http://localhost:" port "/hello")
-                    request-options (doto (RequestOptions. url)
-                                      (.setAs ResponseBodyType/UNBUFFERED_STREAM))
-                    response (-> client (.get request-options) .deref)
-                    error (.getError response)
-                    body (.getBody response)]
-                (is (nil? error))
-                (is (thrown? SocketTimeoutException (slurp body)))
-                (let [client-metric-registry (.getMetricRegistry client)
-                      client-metrics (Metrics/getClientMetrics client-metric-registry)
-                      client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
-                      full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
-                      full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
-                                                          metric-namespace url)]
-                  (is (= [full-response-name]
-                         (map #(.getMetricName %) (.getUrlTimers client-metrics))
-                         (map #(.getMetricName %) (.getUrlData client-metrics-data))))
-                  (is (= [full-response-name-with-method]
-                         (map #(.getMetricName %) (.getUrlAndMethodTimers client-metrics))
-                         (map #(.getMetricName %) (.getUrlAndMethodData client-metrics-data))))
-                  (is (= [] (.getMetricIdTimers client-metrics)
-                         (.getMetricIdData client-metrics-data)))
-                  (is (every? #(instance? ClientTimer %)
-                              (concat (.getUrlTimers client-metrics)
-                                      (.getUrlAndMethodTimers client-metrics))))
-                  (let [full-response-data (first (.getUrlData client-metrics-data))]
-                    (is (every? #(instance? ClientMetricData %)
-                                (concat (.getUrlData client-metrics-data)
-                                        (.getUrlAndMethodData client-metrics-data))))
+       (let [send-more-data (promise)]
+         (try
+           (testwebserver/with-test-webserver-and-config
+             (unbuffered-test/streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+             (let [metric-registry (MetricRegistry.)]
+               (with-open [client (-> (ClientOptions.)
+                                      (.setSocketTimeoutMilliseconds 200)
+                                      (.setConnectTimeoutMilliseconds 100)
+                                      (.setMetricRegistry metric-registry)
+                                      (Async/createClient))]
+                 (let [url (str "http://localhost:" port "/hello")
+                       request-options (doto (RequestOptions. url)
+                                         (.setAs ResponseBodyType/UNBUFFERED_STREAM))
+                       response (-> client (.get request-options) .deref)
+                       error (.getError response)
+                       body (.getBody response)]
+                   (is (nil? error))
+                   (is (thrown? SocketTimeoutException (slurp body)))
+                   (let [client-metric-registry (.getMetricRegistry client)
+                         client-metrics (Metrics/getClientMetrics client-metric-registry)
+                         client-metrics-data (Metrics/getClientMetricsData client-metric-registry)
+                         full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
+                         full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
+                                                                metric-namespace url)]
+                     (is (= [full-response-name]
+                            (map #(.getMetricName %) (.getUrlTimers client-metrics))
+                            (map #(.getMetricName %) (.getUrlData client-metrics-data))))
+                     (is (= [full-response-name-with-method]
+                            (map #(.getMetricName %) (.getUrlAndMethodTimers client-metrics))
+                            (map #(.getMetricName %) (.getUrlAndMethodData client-metrics-data))))
+                     (is (= [] (.getMetricIdTimers client-metrics)
+                            (.getMetricIdData client-metrics-data)))
+                     (is (every? #(instance? ClientTimer %)
+                                 (concat (.getUrlTimers client-metrics)
+                                         (.getUrlAndMethodTimers client-metrics))))
+                     (let [full-response-data (first (.getUrlData client-metrics-data))]
+                       (is (every? #(instance? ClientMetricData %)
+                                   (concat (.getUrlData client-metrics-data)
+                                           (.getUrlAndMethodData client-metrics-data))))
 
-                    (is (= 1 (.getCount full-response-data)))
-                    (is (= full-response-name (.getMetricName full-response-data)))
-                    (is (<= 200 (.getMean full-response-data)))
-                    (is (<= 200 (.getAggregate full-response-data)))))))))
-         (catch TimeoutException e
-           ;; Expected whenever a server-side failure is generated
-           ))))))
+                       (is (= 1 (.getCount full-response-data)))
+                       (is (= full-response-name (.getMetricName full-response-data)))
+                       (is (<= 200 (.getMean full-response-data)))
+                       (is (<= 200 (.getAggregate full-response-data)))))))
+               (deliver send-more-data true)))
+           (catch TimeoutException e
+             ;; Expected whenever a server-side failure is generated
+             )))))))
 
 (deftest clojure-metrics-for-unbuffered-streaming-test
   (testlogging/with-test-logging
@@ -540,7 +542,7 @@
      (testing "metrics work for a successful request"
        (let [metric-registry (MetricRegistry.)]
          (testwebserver/with-test-webserver-and-config
-          (unbuffered-test/successful-handler data nil) port {:shutdown-timeout-seconds 1}
+          (unbuffered-test/streaming-handler data nil) port {:shutdown-timeout-seconds 1}
           (with-open [client (async/create-client {:connect-timeout-milliseconds 100
                                                    :socket-timeout-milliseconds 20000
                                                    :metric-registry metric-registry})]
@@ -576,43 +578,45 @@
                   (is (<= 1000 (:mean full-response-data)))
                   (is (<= 1000 (:aggregate full-response-data))))))))))
      (testing "metrics work for a failed request"
-       (try
-         (testwebserver/with-test-webserver-and-config
-          (unbuffered-test/blocking-handler data) port {:shutdown-timeout-seconds 1}
-          (let [metric-registry (MetricRegistry.)
-                url (str "http://localhost:" port "/hello")]
-            (with-open [client (async/create-client {:connect-timeout-milliseconds 100
-                                                     :socket-timeout-milliseconds 200
-                                                     :metric-registry metric-registry})]
-              (let [response @(common/get client url opts)
-                    {:keys [body error]} response]
-                (is (nil? error))
-                ;; Consume the body to get the exception
-                (is (thrown? SocketTimeoutException (slurp body))))
-              (let [client-metric-registry (common/get-client-metric-registry client)
-                    client-metrics (metrics/get-client-metrics client-metric-registry)
-                    client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
-                    full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
-                    full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
-                                                        metric-namespace url)]
-                (is (= [full-response-name]
-                       (map #(.getMetricName %) (:url client-metrics))
-                       (map :metric-name (:url client-metrics-data))))
-                (is (= [full-response-name-with-method]
-                       (map #(.getMetricName %) (:url-and-method client-metrics))
-                       (map :metric-name (:url-and-method client-metrics-data))))
-                (is (= [] (:metric-id client-metrics) (:metric-id client-metrics-data)))
-                (is (every? #(instance? ClientTimer %)
-                            (concat (:url client-metrics)
-                                    (:url-and-method client-metrics))))
-                (let [full-response-data (first (:url client-metrics-data))]
-                  (is (= {:count 1 :metric-name full-response-name}
-                         (select-keys full-response-data [:metric-name :count])))
-                  (is (<= 200 (:mean full-response-data)))
-                  (is (<= 200 (:aggregate full-response-data))))))))
-         (catch TimeoutException e
-           ;; Expected whenever a server-side failure is generated
-           ))))))
+       (let [send-more-data (promise)]
+         (try
+           (testwebserver/with-test-webserver-and-config
+             (unbuffered-test/streaming-handler data send-more-data) port {:shutdown-timeout-seconds 1}
+             (let [metric-registry (MetricRegistry.)
+                   url (str "http://localhost:" port "/hello")]
+               (with-open [client (async/create-client {:connect-timeout-milliseconds 100
+                                                        :socket-timeout-milliseconds 200
+                                                        :metric-registry metric-registry})]
+                 (let [response @(common/get client url opts)
+                       {:keys [body error]} response]
+                   (is (nil? error))
+                   ;; Consume the body to get the exception
+                   (is (thrown? SocketTimeoutException (slurp body))))
+                 (let [client-metric-registry (common/get-client-metric-registry client)
+                       client-metrics (metrics/get-client-metrics client-metric-registry)
+                       client-metrics-data (metrics/get-client-metrics-data client-metric-registry)
+                       full-response-name (format "%s.with-url.%s.full-response" metric-namespace url)
+                       full-response-name-with-method (format "%s.with-url-and-method.%s.GET.full-response"
+                                                              metric-namespace url)]
+                   (is (= [full-response-name]
+                          (map #(.getMetricName %) (:url client-metrics))
+                          (map :metric-name (:url client-metrics-data))))
+                   (is (= [full-response-name-with-method]
+                          (map #(.getMetricName %) (:url-and-method client-metrics))
+                          (map :metric-name (:url-and-method client-metrics-data))))
+                   (is (= [] (:metric-id client-metrics) (:metric-id client-metrics-data)))
+                   (is (every? #(instance? ClientTimer %)
+                               (concat (:url client-metrics)
+                                       (:url-and-method client-metrics))))
+                   (let [full-response-data (first (:url client-metrics-data))]
+                     (is (= {:count 1 :metric-name full-response-name}
+                            (select-keys full-response-data [:metric-name :count])))
+                     (is (<= 200 (:mean full-response-data)))
+                     (is (<= 200 (:aggregate full-response-data))))))
+               (deliver send-more-data true)))
+           (catch TimeoutException e
+             ;; Expected whenever a server-side failure is generated
+             )))))))
 
 (deftest metric-namespace-test
   (let [metric-prefix "my-metric-prefix"

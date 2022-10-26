@@ -1,5 +1,9 @@
 ## Unreleased
 
+# 2.1.1
+* [PE-34843](https://tickets.puppetlabs.com/browse/PE-34843) Properly reuse connections when using a client certificate
+* Update to clj-parent 5.2.11
+
 # 2.1.0
 * update to clj-parent 5.2.6 to move from bouncy-castle `15on` libraries to the `18on` version
 * Use `OPTIONS` request method when calling the synchronous client's `options` function.

@@ -56,6 +56,11 @@
     {:status 200
      :body "cookie has been set"}))
 
+(defn clear-latch
+  [latch]
+  (dotimes [_ (.getCount latch)]
+    (.countDown latch)))
+
 (tk/defservice test-cookie-service
   [[:WebserverService add-ring-handler]]
   (init [this context]
@@ -671,8 +676,10 @@
             (testing "clojure persistent async client"
               (with-open [client (async/create-client {})]
                 (dotimes [n 10] (future (common/get client url {:as :text})))
-                (is (= false (.await countdown 5 TimeUnit/SECONDS)))
-                (is (= 2 @actual-count)))))))))
+                (is (= false (.await countdown 1 TimeUnit/SECONDS)))
+                (is (= 2 @actual-count))
+                ;; Clear the latch so the webserver can shutdown
+                (clear-latch countdown))))))))
 
   (testing "passing client route limit of 0 selects default behavior (a limit of 2)"
     (let [actual-count (atom 0)
@@ -689,8 +696,10 @@
            (testing "clojure persistent async client"
              (with-open [client (async/create-client {:max-connections-per-route 0})]
                (dotimes [n 10] (future (common/get client url {:as :text})))
-               (is (= false (.await countdown 5 TimeUnit/SECONDS)))
-               (is (= 2 @actual-count)))))))))
+               (is (= false (.await countdown 1 TimeUnit/SECONDS)))
+               (is (= 2 @actual-count))
+               ;; Clear the latch so the webserver can shutdown
+               (clear-latch countdown))))))))
 
 
   (testing "client limits specified requests per route"
@@ -708,8 +717,10 @@
            (testing "clojure persistent async client"
              (with-open [client (async/create-client {:max-connections-per-route 3})]
                (dotimes [n 10] (future (common/get client url {:as :text})))
-               (is (= false (.await countdown 5 TimeUnit/SECONDS)))
-               (is (= 3 @actual-count)))))))))
+               (is (= false (.await countdown 1 TimeUnit/SECONDS)))
+               (is (= 3 @actual-count))
+               ;; Clear the latch so the webserver can shutdown
+               (clear-latch countdown))))))))
 
   (testing "client route limit of 11 does not limit requests per route when less than 11"
     (let [actual-count (atom 0)
@@ -745,5 +756,7 @@
              (with-open [client (async/create-client {:max-connections-per-route 11
                                                       :max-connections-total 3})]
                (dotimes [n 10] (future (common/get client url {:as :text})))
-               (is (= false (.await countdown 5 TimeUnit/SECONDS)))
-               (is (= 3 @actual-count))))))))))
+               (is (= false (.await countdown 1 TimeUnit/SECONDS)))
+               (is (= 3 @actual-count))
+               ;; Clear the latch so the webserver can shutdown
+               (clear-latch countdown)))))))))
