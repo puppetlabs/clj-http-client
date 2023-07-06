@@ -1,24 +1,23 @@
 (ns puppetlabs.http.client.sync-ssl-test
-  (:import (com.puppetlabs.http.client Sync
-                                       HttpClientException
-                                       SimpleRequestOptions)
-           (javax.net.ssl SSLHandshakeException SSLException)
-           (java.net URI ConnectException)
-           (org.apache.http ConnectionClosedException)
-           (com.puppetlabs.ssl_utils SSLUtils))
   (:require [clojure.test :refer :all]
+            [puppetlabs.http.client.sync :as sync]
             [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
-            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
-            [puppetlabs.http.client.sync :as sync]
-            [schema.test :as schema-test]
-            [clojure.tools.logging :as log]))
+            [schema.test :as schema-test])
+  (:import (com.puppetlabs.http.client HttpClientException
+                                       SimpleRequestOptions
+                                       Sync)
+           (com.puppetlabs.ssl_utils SSLUtils)
+           (java.net URI)
+           (javax.net.ssl SSLException SSLHandshakeException)
+           (org.apache.http ConnectionClosedException)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
 (defn app
-  [req]
+  [_req]
   {:status 200
    :body "Hello, World!"})
 
@@ -149,9 +148,9 @@
                             (setSslCert "./dev-resources/ssl/cert.pem")
                             (setSslKey "./dev-resources/ssl/key.pem")
                             (setSslCaCert "./dev-resources/ssl/ca.pem"))]
-    (if client-protocols
+    (when client-protocols
       (.setSslProtocols request-options (into-array String client-protocols)))
-    (if client-cipher-suites
+    (when client-cipher-suites
       (.setSslCipherSuites request-options (into-array String client-cipher-suites)))
     (Sync/get request-options)))
 
@@ -160,9 +159,9 @@
   (let [ssl-opts (merge {:ssl-cert    "./dev-resources/ssl/cert.pem"
                          :ssl-key     "./dev-resources/ssl/key.pem"
                          :ssl-ca-cert "./dev-resources/ssl/ca.pem"}
-                        (if client-protocols
+                        (when client-protocols
                           {:ssl-protocols client-protocols})
-                        (if client-cipher-suites
+                        (when client-cipher-suites
                           {:cipher-suites client-cipher-suites}))]
     (sync/get "https://localhost:10080/hello/" ssl-opts)))
 

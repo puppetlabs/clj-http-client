@@ -1,22 +1,22 @@
 (ns puppetlabs.http.client.async-plaintext-test
-  (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType)
-           (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net URI SocketTimeoutException ServerSocket URL)
-           (java.util Locale)
-           (java.util.concurrent CountDownLatch TimeUnit))
-  (:require [clojure.test :refer :all]
-            [clojure.set :as set]
-            [puppetlabs.http.client.test-common :refer :all]
+  (:require [clojure.set :as set]
+            [clojure.test :refer :all]
+            [puppetlabs.http.client.async :as async]
+            [puppetlabs.http.client.common :as common]
+            [puppetlabs.http.client.test-common :as test-common]
             [puppetlabs.i18n.core :as i18n]
             [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.testutils.webserver :as testwebserver]
-            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
-            [puppetlabs.http.client.common :as common]
-            [puppetlabs.http.client.async :as async]
-            [schema.test :as schema-test]
-            [ring.middleware.cookies :refer [wrap-cookies]]))
+            [ring.middleware.cookies :refer [wrap-cookies]]
+            [schema.test :as schema-test])
+  (:import (com.puppetlabs.http.client Async ClientOptions RequestOptions ResponseBodyType)
+           (java.net ServerSocket SocketTimeoutException URI URL)
+           (java.util Locale)
+           (java.util.concurrent CountDownLatch TimeUnit)
+           (org.apache.http.impl.nio.client HttpAsyncClients)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -224,37 +224,37 @@
                                       (URI. "http://localhost:8080/params?foo=bar&baz=lux"))
                     response        (.get client request-options)]
                 (is (= 200 (.getStatus (.deref response))))
-                (is (= queryparams (read-string (slurp (.getBody
-                                                         (.deref response)))))))
+                (is (= test-common/queryparams (read-string (slurp (.getBody
+                                                                     (.deref response)))))))
               (finally
                 (.close client)))))
       (testing "string URL Query Parameters work with the clojure client"
           (with-open [client (async/create-client {})]
             (let [opts     {:method       :get
                             :url          "http://localhost:8080/params/"
-                            :query-params queryparams
+                            :query-params test-common/queryparams
                             :as           :text}
                   response (common/get client "http://localhost:8080/params" opts)]
                 (is (= 200 (:status @response)))
-                (is (= queryparams (read-string (:body @response)))))))
+                (is (= test-common/queryparams (read-string (:body @response)))))))
       (testing "URL based Query Parameters work with the clojure client"
         (with-open [client (async/create-client {})]
           (let [opts {:method       :get
                       :url          (URL. "http://localhost:8080/params/")
-                      :query-params queryparams
+                      :query-params test-common/queryparams
                       :as           :text}
                 response (common/get client "http://localhost:8080/params" opts)]
             (is (= 200 (:status @response)))
-            (is (= queryparams (read-string (:body @response)))))))
+            (is (= test-common/queryparams (read-string (:body @response)))))))
       (testing "URI based Query Parameters work with the clojure client"
         (with-open [client (async/create-client {})]
           (let [opts     {:method       :get
                           :url          (.toURI (URL. "http://localhost:8080/params/"))
-                          :query-params queryparams
+                          :query-params test-common/queryparams
                           :as           :text}
                 response (common/get client "http://localhost:8080/params" opts)]
             (is (= 200 (:status @response)))
-            (is (= queryparams (read-string (:body @response)))))))
+            (is (= test-common/queryparams (read-string (:body @response)))))))
       (testing "string URL Query Parameters can be set directly in the URL"
           (with-open [client (async/create-client {})]
             (let [response (common/get client
@@ -267,19 +267,20 @@
           (with-open [client (async/create-client {})]
             (let [response (common/get client
                                        "http://localhost:8080/params?paramone=one&foo=lux"
-                                       query-options)]
+                                       test-common/query-options)]
               (is (= 200 (:status @response)))
-              (is (= queryparams (read-string (:body @response))))))))))
+              (is (= test-common/queryparams (read-string (:body @response))))))))))
 
 
 (defn create-redirect-web-service
   [state]
+  #_{:clj-kondo/ignore [:inline-def]}
   (tk/defservice redirect-web-service-with-state
     [[:WebserverService add-ring-handler]]
     (init [this context]
           (add-ring-handler
             (fn
-              [{:keys [uri headers] :as req}]
+              [{:keys [uri headers]}]
               (try
                 (swap! state #(conj % {:uri uri :headers headers}))
                 (condp = uri
@@ -287,24 +288,24 @@
                             :headers {"Location" "http://localhost:8082/world"}
                             :body ""}
                   "/hello/foo" {:status 302
-                          :headers {"Location" "/hello/bar"}
-                          :body ""}
+                                :headers {"Location" "/hello/bar"}
+                                :body ""}
                   "/hello/bar" {:status 200 :body "It's me, I'm still here ...and I'm still me."}
                   {:status 404 :body "D'oh"})
-              (catch Throwable e
-                (prn e))))
+                (catch Throwable e
+                  (prn e))))
             "/hello"
             {:server-id :hello})
           (add-ring-handler
             (fn
-              [{:keys [uri headers] :as req}]
+              [{:keys [uri headers]}]
               (try
                 (swap! state #(conj % {:uri uri :headers headers}))
                 (condp = uri
                   "/world" {:status 200 :body "Hello, World!"}
                   {:status 404 :body "D'oh"})
-              (catch Throwable e
-                (prn e))))
+                (catch Throwable e
+                  (prn e))))
             "/world"
             {:server-id :world})
           context)))
@@ -531,12 +532,12 @@
                            (Async/createClient))]
       (let [request-options     (RequestOptions. "http://127.0.0.255:65535")
             time-before-connect (System/currentTimeMillis)]
-        (is (connect-exception-thrown? (-> client
-                                           (.get request-options)
-                                           (.deref)
-                                           (.getError)))
+        (is (test-common/connect-exception-thrown? (-> client
+                                                       (.get request-options)
+                                                       (.deref)
+                                                       (.getError)))
             "Unexpected result for connection attempt")
-        (is (elapsed-within-range? time-before-connect 2000)
+        (is (test-common/elapsed-within-range? time-before-connect 2000)
             "Connection attempt took significantly longer than timeout")))))
 
 (deftest short-connect-timeout-persistent-clojure-test-async
@@ -545,12 +546,12 @@
     (with-open [client (async/create-client
                          {:connect-timeout-milliseconds 250})]
       (let [time-before-connect (System/currentTimeMillis)]
-        (is (connect-exception-thrown? (-> @(common/get
-                                              client
-                                              "http://127.0.0.255:65535")
-                                           :error))
+        (is (test-common/connect-exception-thrown? (-> @(common/get
+                                                          client
+                                                          "http://127.0.0.255:65535")
+                                                       :error))
             "Unexpected result for connection attempt")
-        (is (elapsed-within-range? time-before-connect 2000)
+        (is (test-common/elapsed-within-range? time-before-connect 2000)
             "Connection attempt took significantly longer than timeout")))))
 
 (deftest longer-connect-timeout-test-async
@@ -590,7 +591,7 @@
                                                   (.deref)
                                                   (.getError)))
             "Unexpected result for get attempt")
-        (is (elapsed-within-range? time-before-connect 2000)
+        (is (test-common/elapsed-within-range? time-before-connect 2000)
             "Get attempt took significantly longer than timeout")))))
 
 (deftest short-socket-timeout-persistent-clojure-test-async
@@ -605,7 +606,7 @@
                        (-> @(common/get client url)
                            :error))
             "Unexpected result for get attempt")
-        (is (elapsed-within-range? time-before-connect 2000)
+        (is (test-common/elapsed-within-range? time-before-connect 2000)
             "Get attempt took significantly longer than timeout")))))
 
 (deftest longer-socket-timeout-test-async
@@ -675,7 +676,7 @@
           (let [url (str "http://localhost:" port "/hello")]
             (testing "clojure persistent async client"
               (with-open [client (async/create-client {})]
-                (dotimes [n 10] (future (common/get client url {:as :text})))
+                (dotimes [_n 10] (future (common/get client url {:as :text})))
                 (is (= false (.await countdown 1 TimeUnit/SECONDS)))
                 (is (= 2 @actual-count))
                 ;; Clear the latch so the webserver can shutdown
@@ -695,7 +696,7 @@
          (let [url (str "http://localhost:" port "/hello")]
            (testing "clojure persistent async client"
              (with-open [client (async/create-client {:max-connections-per-route 0})]
-               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (dotimes [_n 10] (future (common/get client url {:as :text})))
                (is (= false (.await countdown 1 TimeUnit/SECONDS)))
                (is (= 2 @actual-count))
                ;; Clear the latch so the webserver can shutdown
@@ -716,7 +717,7 @@
          (let [url (str "http://localhost:" port "/hello")]
            (testing "clojure persistent async client"
              (with-open [client (async/create-client {:max-connections-per-route 3})]
-               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (dotimes [_n 10] (future (common/get client url {:as :text})))
                (is (= false (.await countdown 1 TimeUnit/SECONDS)))
                (is (= 3 @actual-count))
                ;; Clear the latch so the webserver can shutdown
@@ -736,7 +737,7 @@
          (let [url (str "http://localhost:" port "/hello")]
            (testing "clojure persistent async client"
              (with-open [client (async/create-client {:max-connections-per-route 11})]
-               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (dotimes [_n 10] (future (common/get client url {:as :text})))
                (is (= true (.await countdown 5 TimeUnit/SECONDS)))
                (is (= 10 @actual-count)))))))))
 
@@ -755,7 +756,7 @@
            (testing "clojure persistent async client"
              (with-open [client (async/create-client {:max-connections-per-route 11
                                                       :max-connections-total 3})]
-               (dotimes [n 10] (future (common/get client url {:as :text})))
+               (dotimes [_n 10] (future (common/get client url {:as :text})))
                (is (= false (.await countdown 1 TimeUnit/SECONDS)))
                (is (= 3 @actual-count))
                ;; Clear the latch so the webserver can shutdown

@@ -1,0 +1,8 @@
+{:linters {:refer-all {:exclude [clojure.test slingshot.test]}
+           :unresolved-symbol {:level :warning :exclude [(puppetlabs.trapperkeeper.core/defservice)
+                                                         (puppetlabs.trapperkeeper.testutils.bootstrap/with-app-with-config)
+                                                         (puppetlabs.trapperkeeper.testutils.webserver/with-test-webserver)
+                                                         (puppetlabs.trapperkeeper.testutils.webserver/with-test-webserver-and-config)]}
+           :invalid-arity {:skip-args [puppetlabs.trapperkeeper.core/defservice]}}
+ :output {:linter-name true}
+ :lint-as {puppetlabs.trapperkeeper.core/defservice clojure.core/def}}

@@ -1,16 +1,15 @@
 (ns puppetlabs.http.client.async-unbuffered-test
-  (:import (com.puppetlabs.http.client Async RequestOptions ClientOptions ResponseBodyType)
-           (java.net SocketTimeoutException ConnectException)
-           (java.io PipedInputStream PipedOutputStream)
-           (java.util.concurrent TimeoutException)
-           (java.util UUID))
   (:require [clojure.test :refer :all]
-            [puppetlabs.http.client.test-common :refer :all]
+            [puppetlabs.http.client.async :as async]
+            [puppetlabs.http.client.common :as common]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.testutils.webserver :as testwebserver]
-            [puppetlabs.http.client.common :as common]
-            [puppetlabs.http.client.async :as async]
-            [schema.test :as schema-test]))
+            [schema.test :as schema-test])
+  (:import (com.puppetlabs.http.client Async ClientOptions RequestOptions ResponseBodyType)
+           (java.io PipedInputStream PipedOutputStream)
+           (java.net ConnectException SocketTimeoutException)
+           (java.util UUID)
+           (java.util.concurrent TimeoutException)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -32,7 +31,7 @@
        (.write outstream (.getBytes data))
        ; Block until the client confirms it has read the first few bytes
        ; :socket-timeout-milliseconds on the client ensures we can't really get stuck here, even if the test fails
-       (if send-more-data (deref send-more-data))
+       (when send-more-data (deref send-more-data))
        ; Write the last of the data
        (.write outstream (.getBytes "yyyy"))
        (.close outstream))
@@ -76,8 +75,8 @@
                  (is (nil? error))
                  ;; Consume the body to get the exception
                  (is (thrown? SocketTimeoutException (slurp body)))))
-                 (deliver send-more-data true))
-           (catch TimeoutException e
+             (deliver send-more-data true))
+           (catch TimeoutException _e
              ;; Expected whenever a server-side failure is generated
              nil))))
 
@@ -125,8 +124,8 @@
              (let [response @(common/get client (str "http://localhost:" port "/hello") opts)
                    {:keys [error]} response]
                (is (instance? SocketTimeoutException error))))
-               (deliver send-more-data true))
-         (catch TimeoutException e
+           (deliver send-more-data true))
+         (catch TimeoutException _e
            ;; Expected whenever a server-side failure is generated
            nil))))
 
@@ -215,7 +214,7 @@
                   ;; Consume the body to get the exception
                   (is (thrown? SocketTimeoutException (slurp body)))))
               (deliver send-more-data true))
-            (catch TimeoutException e
+            (catch TimeoutException _e
               ;; Expected whenever a server-side failure is generated
               nil))))
 
@@ -281,7 +280,7 @@
                     error (.getError response)]
                 (is (instance? SocketTimeoutException error))))
             (deliver send-more-data true))
-          (catch TimeoutException e
+          (catch TimeoutException _e
             ;; Expected whenever a server-side failure is generated
             nil))))
 
