@@ -215,7 +215,7 @@
 (deftest query-params-test-async
   (testlogging/with-test-logging
     (testutils/with-app-with-config app
-      [jetty9/jetty9-service test-params-web-service]
+      [jetty9/jetty9-service test-common/test-params-web-service]
       {:webserver {:port 8080}}
       (testing "URI Query Parameters work with the Java client"
           (let [client (Async/createClient (ClientOptions.))]
@@ -449,7 +449,7 @@
 (deftest redirect-test-async
   (testlogging/with-test-logging
     (testutils/with-app-with-config app
-      [jetty9/jetty9-service redirect-web-service]
+      [jetty9/jetty9-service test-common/redirect-web-service]
       {:webserver {:port 8080}}
       (testing (str "redirects on POST not followed by persistent Java client "
                     "when forceRedirects option not set to true")

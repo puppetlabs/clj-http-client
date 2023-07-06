@@ -111,7 +111,8 @@
     :post HttpMethod/POST
     :put HttpMethod/PUT
     :trace HttpMethod/TRACE
-    (throw (IllegalArgumentException. ^String (trs "Unsupported request method: {0}" (:method opts))))))
+    (let [msg (trs "Unsupported request method: {0}" (:method opts))]
+      (throw (IllegalArgumentException. ^String msg)))))
 
 (schema/defn url-uri-string->uri :- URI
   [thing :- common/UrlOrUriOrString]

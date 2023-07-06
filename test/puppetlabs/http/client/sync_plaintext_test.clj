@@ -3,7 +3,7 @@
             [clojure.test :refer :all]
             [puppetlabs.http.client.common :as common]
             [puppetlabs.http.client.sync :as sync]
-            [puppetlabs.http.client.test-common :refer [connect-exception-thrown? elapsed-within-range? queryparams redirect-web-service test-params-web-service]]
+            [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]

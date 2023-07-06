@@ -81,5 +81,15 @@
             [jonase/eastwood "1.2.2" :exclusions [org.clojure/clojure]]
             [puppetlabs/i18n "0.9.2"]]
 
+  :eastwood {:continue-on-exception true
+             :exclude-namespaces [;; linting this test throws and exception as test-utils/load-test-config
+                                  ;; requires the addition of the config in /testutils, excluding for now
+                                  puppetlabs.orchestrator.integration.migration-errors-test
+                                  ;; The BoltClient protocol has more than 20 functions and therefore an exception is thrown
+                                  ;; when compiling it for linting https://github.com/jonase/eastwood/issues/344
+                                  puppetlabs.orchestrator.bolt.client]
+             :exclude-linters [:no-ns-form-found :reflection :deprecations]
+             :ignored-faults {:def-in-def {puppetlabs.http.client.async-plaintext-test [{:line 278}]}}}
+
   :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-releases__local/"]
                  ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-snapshots__local/"]])

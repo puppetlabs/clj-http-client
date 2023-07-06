@@ -1,4 +1,5 @@
-{:linters {:refer-all {:exclude [clojure.test slingshot.test]}
+{:linters {:refer-all {:exclude [clojure.test slingshot.test
+                                 puppetlabs.http.client.test-common]}
            :unresolved-symbol {:level :warning :exclude [(puppetlabs.trapperkeeper.core/defservice)
                                                          (puppetlabs.trapperkeeper.testutils.bootstrap/with-app-with-config)
                                                          (puppetlabs.trapperkeeper.testutils.webserver/with-test-webserver)
