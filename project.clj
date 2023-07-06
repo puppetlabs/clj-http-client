@@ -5,7 +5,7 @@
 
   :min-lein-version "2.9.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "5.2.11"]
+  :parent-project {:coords [puppetlabs/clj-parent "5.3.8"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -63,6 +63,7 @@
                                         ["-Djava.security.properties==dev-resources/jdk8-fips-security"]
                                         (throw unsupported-ex))
                                     11 ["-Djava.security.properties==dev-resources/jdk11-fips-security"]
+                                    17 ["-Djava.security.properties==dev-resources/jdk17-fips-security"]
                                     (throw unsupported-ex)))}]
              :sources-jar {:java-source-paths ^:replace []
                            :jar-exclusions ^:replace []
@@ -77,7 +78,8 @@
                  :deploy-via :lein-deploy}
 
   :plugins [[lein-parent "0.3.7"]
-            [puppetlabs/i18n "0.8.0"]]
+            [jonase/eastwood "1.2.2" :exclusions [org.clojure/clojure]]
+            [puppetlabs/i18n "0.9.2"]]
 
   :repositories [["puppet-releases" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-releases__local/"]
                  ["puppet-snapshots" "https://artifactory.delivery.puppetlabs.net/artifactory/clojure-snapshots__local/"]])
