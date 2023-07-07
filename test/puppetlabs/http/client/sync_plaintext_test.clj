@@ -1,22 +1,22 @@
 (ns puppetlabs.http.client.sync-plaintext-test
-  (:import (com.puppetlabs.http.client Sync RequestOptions SimpleRequestOptions
-                                       ResponseBodyType ClientOptions
-                                       HttpClientException)
-           (java.io ByteArrayInputStream InputStream)
-           (org.apache.http.impl.nio.client HttpAsyncClients)
-           (java.net ConnectException ServerSocket SocketTimeoutException URI))
-  (:require [clojure.test :refer :all]
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer :all]
+            [puppetlabs.http.client.common :as common]
+            [puppetlabs.http.client.sync :as sync]
             [puppetlabs.http.client.test-common :refer :all]
             [puppetlabs.trapperkeeper.core :as tk]
+            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.testutils.webserver :as testwebserver]
-            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
-            [puppetlabs.http.client.sync :as sync]
-            [puppetlabs.http.client.common :as common]
-            [schema.test :as schema-test]
-            [clojure.java.io :as io]
-            [ring.middleware.cookies :refer [wrap-cookies]]))
+            [ring.middleware.cookies :refer [wrap-cookies]]
+            [schema.test :as schema-test])
+  (:import (com.puppetlabs.http.client ClientOptions HttpClientException RequestOptions
+                                       ResponseBodyType SimpleRequestOptions
+                                       Sync)
+           (java.io ByteArrayInputStream InputStream)
+           (java.net ConnectException ServerSocket SocketTimeoutException URI)
+           (org.apache.http.impl.nio.client HttpAsyncClients)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -324,8 +324,8 @@
 (defn req-body-app
   [req]
   {:status  200
-   :headers (if-let [content-type (:content-type req)]
-              {"Content-Type" (:content-type req)})
+   :headers (when-let [content-type (:content-type req)]
+              {"Content-Type" content-type})
    :body    (slurp (:body req))})
 
 (tk/defservice test-body-web-service
@@ -487,10 +487,10 @@
       [jetty9/jetty9-service test-params-web-service]
       {:webserver {:port 8080}}
       (testing "URL Query Parameters work with the Java client"
-        (let [request-options (SimpleRequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))]
-          (let [response (Sync/get request-options)]
+        (let [request-options (SimpleRequestOptions. (URI. "http://localhost:8080/params?foo=bar&baz=lux"))
+              response (Sync/get request-options)]
             (is (= 200 (.getStatus response)))
-            (is (= queryparams (read-string (slurp (.getBody response))))))))
+            (is (= queryparams (read-string (slurp (.getBody response)))))))
 
       (testing "URL Query Parameters work with the clojure client"
         (let [opts {:method       :get

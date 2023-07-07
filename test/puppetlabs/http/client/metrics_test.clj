@@ -1,22 +1,22 @@
 (ns puppetlabs.http.client.metrics-test
   (:require [clojure.test :refer :all]
+            [puppetlabs.http.client.async :as async]
             [puppetlabs.http.client.async-unbuffered-test :as unbuffered-test]
+            [puppetlabs.http.client.common :as common]
+            [puppetlabs.http.client.metrics :as metrics]
+            [puppetlabs.http.client.sync :as sync]
+            [puppetlabs.trapperkeeper.core :as tk]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9]
             [puppetlabs.trapperkeeper.testutils.bootstrap :as testutils]
             [puppetlabs.trapperkeeper.testutils.logging :as testlogging]
             [puppetlabs.trapperkeeper.testutils.webserver :as testwebserver]
-            [puppetlabs.http.client.async :as async]
-            [puppetlabs.http.client.sync :as sync]
-            [puppetlabs.http.client.common :as common]
-            [puppetlabs.trapperkeeper.core :as tk]
-            [puppetlabs.http.client.metrics :as metrics]
             [schema.test :as schema-test])
-  (:import (com.puppetlabs.http.client Async RequestOptions
-                                       ClientOptions ResponseBodyType Sync)
-           (com.codahale.metrics MetricRegistry)
+  (:import (com.codahale.metrics MetricRegistry)
+           (com.puppetlabs.http.client Async ClientOptions
+                                       RequestOptions ResponseBodyType Sync)
+           (com.puppetlabs.http.client.metrics ClientMetricData ClientTimer Metrics)
            (java.net SocketTimeoutException)
-           (java.util.concurrent TimeoutException)
-           (com.puppetlabs.http.client.metrics Metrics ClientTimer ClientMetricData)))
+           (java.util.concurrent TimeoutException)))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -28,14 +28,12 @@
         (add-ring-handler
          (fn [_] {:status 200 :body "Hello, World!"}) "/hello")
         (add-ring-handler (fn [_]
-                            (do
-                              (Thread/sleep 5)
-                              {:status 200 :body "short"}))
+                            (Thread/sleep 5)
+                            {:status 200 :body "short"})
                           "/short")
         (add-ring-handler (fn [_]
-                            (do
                               (Thread/sleep 100)
-                              {:status 200 :body "long"}))
+                              {:status 200 :body "long"})
                           "/long")
         context))
 
@@ -531,7 +529,7 @@
                        (is (<= 200 (.getMean full-response-data)))
                        (is (<= 200 (.getAggregate full-response-data)))))))
                (deliver send-more-data true)))
-           (catch TimeoutException e
+           (catch TimeoutException _e
              ;; Expected whenever a server-side failure is generated
              )))))))
 
@@ -614,7 +612,7 @@
                      (is (<= 200 (:mean full-response-data)))
                      (is (<= 200 (:aggregate full-response-data))))))
                (deliver send-more-data true)))
-           (catch TimeoutException e
+           (catch TimeoutException _e
              ;; Expected whenever a server-side failure is generated
              )))))))
 

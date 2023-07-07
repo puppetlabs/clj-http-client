@@ -10,7 +10,7 @@
             [cheshire.core :as cheshire]
             [schema.test :as schema-test]
             [puppetlabs.http.client.sync :as http-client]
-            [puppetlabs.http.client.test-common :refer :all]
+            [puppetlabs.http.client.test-common :refer [connect-exception-thrown?]]
             [puppetlabs.trapperkeeper.testutils.webserver :as testwebserver]))
 
 (use-fixtures :once schema-test/validate-schemas)

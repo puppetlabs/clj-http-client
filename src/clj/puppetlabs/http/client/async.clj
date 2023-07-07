@@ -75,7 +75,7 @@
 
 (schema/defn java-content-type->clj :- common/ContentType
   [java-content-type :- (schema/maybe ContentType)]
-  (if java-content-type
+  (when java-content-type
     {:mime-type (.getMimeType java-content-type)
      :charset   (.getCharset java-content-type)}))
 
@@ -111,7 +111,8 @@
     :post HttpMethod/POST
     :put HttpMethod/PUT
     :trace HttpMethod/TRACE
-    (throw (IllegalArgumentException. ^String (trs "Unsupported request method: {0}" (:method opts))))))
+    (let [msg (trs "Unsupported request method: {0}" (:method opts))]
+      (throw (IllegalArgumentException. ^String msg)))))
 
 (schema/defn url-uri-string->uri :- URI
   [thing :- common/UrlOrUriOrString]
@@ -119,7 +120,7 @@
     (= (type thing) URL) (.toURI thing)
     (= (type thing) String) (-> (URIBuilder. ^String thing)
                                 (.build))
-    :default thing))
+    :else thing))
 
 (schema/defn  parse-url :- URI
   [{:keys [url query-params]}]
