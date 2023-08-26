@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/puppetlabs/clj-http-client.png?branch=master)](https://travis-ci.com/puppetlabs/clj-http-client)
 
 This is a wrapper around the [Apache HttpAsyncClient
-library](http://hc.apache.org/httpcomponents-asyncclient-4.0.x/) providing
+library](https://hc.apache.org/httpcomponents-asyncclient-4.1.x/index.html) providing
 some extra functionality for configuring SSL in a way compatible with Puppet.
 
 ## Installation
