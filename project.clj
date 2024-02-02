@@ -5,7 +5,7 @@
 
   :min-lein-version "2.9.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "5.3.8"]
+  :parent-project {:coords [puppetlabs/clj-parent "5.6.7"]
                    :inherit [:managed-dependencies]}
 
   ;; Abort when version ranges or version conflicts are detected in
@@ -44,27 +44,27 @@
                                        [puppetlabs/ring-middleware]]
                         :resource-paths ["dev-resources"]
                         :jvm-opts ["-Djava.util.logging.config.file=dev-resources/logging.properties"]}
-             :dev [:defaults
-                   {:dependencies [[org.bouncycastle/bcpkix-jdk18on]]}]
-             :fips [:defaults
-                    {:dependencies [[org.bouncycastle/bcpkix-fips]
-                                    [org.bouncycastle/bc-fips]
-                                    [org.bouncycastle/bctls-fips]]
-                     ;; this only ensures that we run with the proper profiles
-                     ;; during testing. This JVM opt will be set in the puppet module
-                     ;; that sets up the JVM classpaths during installation.
-                     :jvm-opts ~(let [version (System/getProperty "java.version")
-                                      [major minor _] (clojure.string/split version #"\.")
-                                      unsupported-ex (ex-info "Unsupported major Java version. Expects 8 or 11."
-                                                       {:major major
-                                                        :minor minor})]
-                                  (condp = (java.lang.Integer/parseInt major)
-                                    1 (if (= 8 (java.lang.Integer/parseInt minor))
-                                        ["-Djava.security.properties==dev-resources/jdk8-fips-security"]
-                                        (throw unsupported-ex))
-                                    11 ["-Djava.security.properties==dev-resources/jdk11-fips-security"]
-                                    17 ["-Djava.security.properties==dev-resources/jdk17-fips-security"]
-                                    (throw unsupported-ex)))}]
+             :dev-deps  {:dependencies [[org.bouncycastle/bcpkix-jdk18on]]}
+             :dev [:defaults :dev-deps]
+             :fips-deps {:dependencies [[org.bouncycastle/bcpkix-fips]
+                                        [org.bouncycastle/bc-fips]
+                                        [org.bouncycastle/bctls-fips]]
+                         ;; this only ensures that we run with the proper profiles
+                         ;; during testing. This JVM opt will be set in the puppet module
+                         ;; that sets up the JVM classpaths during installation.
+                         :jvm-opts ~(let [version (System/getProperty "java.version")
+                                          [major minor _] (clojure.string/split version #"\.")
+                                          unsupported-ex (ex-info "Unsupported major Java version. Expects 8 or 11."
+                                                           {:major major
+                                                            :minor minor})]
+                                      (condp = (java.lang.Integer/parseInt major)
+                                        1 (if (= 8 (java.lang.Integer/parseInt minor))
+                                            ["-Djava.security.properties==dev-resources/jdk8-fips-security"]
+                                            (throw unsupported-ex))
+                                        11 ["-Djava.security.properties==dev-resources/jdk11-fips-security"]
+                                        17 ["-Djava.security.properties==dev-resources/jdk17-fips-security"]
+                                        (throw unsupported-ex)))}
+             :fips [:defaults :fips-deps]
              :sources-jar {:java-source-paths ^:replace []
                            :jar-exclusions ^:replace []
                            :source-paths ^:replace ["src/clj" "src/java"]}}

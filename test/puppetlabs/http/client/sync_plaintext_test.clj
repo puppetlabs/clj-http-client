@@ -29,7 +29,8 @@
   [_]
   {:status 200
    :body "cookie has been set"
-   :cookies {"session_id" {:value "session-id-hash"}}})
+   :cookies {"session_id" {:value "session-id-hash"}
+             "someothercookie" {:value "somevalue" :path "/" :secure true}}})
 
 (defn check-cookie-handler
   [req]
@@ -272,6 +273,7 @@
       (let [client (Sync/createClient (ClientOptions.))]
         (testing "Set a cookie using Java API"
           (let [response (.get client (RequestOptions. "http://localhost:10000/cookietest"))]
+            (is (= "session_id=session-id-hash\nsomeothercookie=somevalue;Path=/;Secure" (.get (.getHeaders response) "set-cookie")))
             (is (= 200 (.getStatus response)))))
         (testing "Check if cookie still exists"
           (let [response (.get client (RequestOptions. "http://localhost:10000/cookiecheck"))]

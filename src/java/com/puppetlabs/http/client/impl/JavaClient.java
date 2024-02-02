@@ -295,7 +295,23 @@ public class JavaClient {
         try {
             Map<String, String> headers = new HashMap<>();
             for (Header h : httpResponse.getAllHeaders()) {
-                headers.put(h.getName().toLowerCase(), h.getValue());
+                String headerName = h.getName().toLowerCase();
+                // the http specs allow for multiple headers with the same name,
+                // but unfortunately since headers are stored in a map, this isn't
+                // possible without breaking changes.  This adds special casing for the
+                // Set-Cookie header, to add entries separated by newlines.
+                if (headerName.equals("set-cookie")) {
+                    String headerValue = headers.get("set-cookie");
+                    if (headerValue != null) {
+                        headers.put(headerName, headerValue + "\n" + h.getValue());
+                    }
+                    else
+                    {
+                        headers.put(headerName, h.getValue());
+                    }
+                } else {
+                    headers.put(headerName.toLowerCase(), h.getValue());
+                }
             }
             String origContentEncoding = headers.get("content-encoding");
             if (requestOptions.getDecompressBody()) {
