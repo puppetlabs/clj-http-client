@@ -1,10 +1,13 @@
 package com.puppetlabs.http.client.impl;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.nio.IOControl;
 import org.apache.http.nio.client.methods.AsyncByteConsumer;
 import org.apache.http.protocol.HttpContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -18,6 +21,8 @@ public class StreamingAsyncResponseConsumer extends AsyncByteConsumer<HttpRespon
     private volatile Deliverable<HttpResponse> promise;
     private volatile Promise<IOException> ioExceptionPromise = new Promise<>();
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(StreamingAsyncResponseConsumer.class);
+
     public void setFinalResult(IOException ioException) {
         ioExceptionPromise.deliver(ioException);
     }
@@ -28,10 +33,16 @@ public class StreamingAsyncResponseConsumer extends AsyncByteConsumer<HttpRespon
 
     @Override
     protected void onResponseReceived(final HttpResponse response) throws IOException {
-        PipedInputStream pis = new ExceptionInsertingPipedInputStream(ioExceptionPromise);
-        pos = new PipedOutputStream();
-        pos.connect(pis);
-        ((BasicHttpEntity) response.getEntity()).setContent(pis);
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            PipedInputStream pis = new ExceptionInsertingPipedInputStream(ioExceptionPromise);
+            pos = new PipedOutputStream();
+            pos.connect(pis);
+            ((BasicHttpEntity) entity).setContent(pis);
+        } else {
+            // this can happen if the server sends no response, like with a 204.
+            LOGGER.debug("Null entity when processing response");
+        }
         this.response = response;
         promise.deliver(response);
     }

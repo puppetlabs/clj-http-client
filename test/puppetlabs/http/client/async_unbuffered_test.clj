@@ -324,3 +324,13 @@
 (deftest java-existing-streaming-with-large-payload-with-decompression
   (testing "java :stream with 1M payload and decompression"
     (java-blocking-streaming (generate-data (* 1024 1024)) ResponseBodyType/STREAM true)))
+
+(deftest java-204-streaming
+  (testing "client handles a webserver that returns a 204 response and no body correctly"
+    (testwebserver/with-test-webserver-and-config
+      (constantly {:status 204}) port {:shutdown-timeout-seconds 1}
+      (with-open [client (async/create-client {:connect-timeout-milliseconds 100})]
+        (let [response @(common/post client (str "http://localhost:" port "/something") {:method :post
+                                                                                         :as :unbuffered-stream})]
+          (is (= 204 (:status response))))))))
+
