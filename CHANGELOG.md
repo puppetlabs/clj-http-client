@@ -1,5 +1,8 @@
 ## Unreleased
 
+# 2.1.3
+* ensure unbuffered-stream correctly handles 204 responses with no body in the response.
+
 # 2.1.2
 * add support for multiple `Set-Cookie` headers in a response separated by newlines. 
 * update project.clj to remove composite profiles that include maps, it is deprecated in lein 2.11.0
