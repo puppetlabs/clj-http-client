@@ -344,6 +344,7 @@ public class JavaClient {
                     contentType,
                     callback);
         } catch (Exception e) {
+            LOGGER.error("Processing successful request to {} raised '{}'", requestOptions.getUri().toString(), e.getMessage());
             responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
         }
     }
@@ -479,11 +480,13 @@ public class JavaClient {
 
             @Override
             public void failed(Exception e) {
+                LOGGER.error("{} request to '{}' failed.", method.toString(), requestOptions.getUri().toString());
                 responseDeliveryDelegate.deliverResponse(requestOptions, e, callback);
             }
 
             @Override
             public void cancelled() {
+                LOGGER.error("{} request to '{}' cancelled.", method.toString(), requestOptions.getUri().toString());
                 responseDeliveryDelegate.deliverResponse(requestOptions,
                         new HttpClientException("Request cancelled"),
                         callback);
