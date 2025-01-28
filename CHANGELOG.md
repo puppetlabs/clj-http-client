@@ -1,5 +1,8 @@
 ## Unreleased
 
+# 2.1.4
+* improve logging around non-successful outcomes
+
 # 2.1.3
 * ensure unbuffered-stream correctly handles 204 responses with no body in the response.
 
