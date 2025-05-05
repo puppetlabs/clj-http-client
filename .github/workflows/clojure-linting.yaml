@@ -15,6 +15,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: setup clojure
+        uses: DeLaGuardo/setup-clojure@13.1
+        with:
+            lein: 2.11.2                  # Leiningen
       - name: checkout repo
         uses: actions/checkout@v2
       - name: install clj-kondo (this is quite fast)
